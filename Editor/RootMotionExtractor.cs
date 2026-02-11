@@ -3,45 +3,27 @@ using UnityEditor;
 using Characters.Player.Data;
 using System.Reflection;
 
-/// <summary>
-/// [终极版] Root Motion 智能烘焙器
-/// 职责：
-/// 1. [批量设置] 提供 UI 快速修改 PlayerSO 中所有 MotionClipData 的通用配置。
-/// 2. [智能烘焙] 模拟动画播放，提取 Root Motion，并自动计算最佳截断点、播放倍速和脚部相位。
-/// 3. [数据写入] 将所有计算结果直接写入 PlayerSO 对应的 MotionClipData 结构体中。
-/// </summary>
 public class RootMotionExtractorWindow : EditorWindow
 {
-    // --- GUI 字段 ---
     private PlayerSO _targetSO;
     private GameObject _characterPrefab;
     private HumanBodyBones _leftFootBone = HumanBodyBones.LeftFoot;
     private HumanBodyBones _rightFootBone = HumanBodyBones.RightFoot;
 
-    // --- 批量设置 UI 变量 ---
     private MotionType _batchMotionType = MotionType.CurveDriven;
     private float _batchTargetDuration = 0f;
     private bool _batchAutoExitTime = true;
     private bool _batchManualExitTime = false;
     private float _batchManualExitTimeValue = 0.5f;
 
-    /// <summary>
-    /// [MenuItem] 在 Unity 顶部菜单栏创建入口。
-    /// </summary>
     [MenuItem("Tools/Root Motion Extractor (Ultimate)")]
     public static void ShowWindow()
     {
         GetWindow<RootMotionExtractorWindow>("RM Baker");
     }
 
-    /// <summary>
-    /// 绘制编辑器窗口。
-    /// </summary>
     private void OnGUI()
     {
-        // ========================================================
-        // 1. 烘焙部分
-        // ========================================================
         GUILayout.Label("Root Motion 智能烘焙器", EditorStyles.boldLabel);
         EditorGUILayout.Space(5);
         _targetSO = (PlayerSO)EditorGUILayout.ObjectField("配置文件 (PlayerSO)", _targetSO, typeof(PlayerSO), false);
@@ -50,6 +32,7 @@ public class RootMotionExtractorWindow : EditorWindow
         _leftFootBone = (HumanBodyBones)EditorGUILayout.EnumPopup("左脚骨骼", _leftFootBone);
         _rightFootBone = (HumanBodyBones)EditorGUILayout.EnumPopup("右脚骨骼", _rightFootBone);
         EditorGUILayout.Space(10);
+
         if (GUILayout.Button("一键智能烘焙 (Bake All)", GUILayout.Height(40)))
         {
             if (_targetSO == null || _characterPrefab == null)
@@ -60,13 +43,9 @@ public class RootMotionExtractorWindow : EditorWindow
             BakeAll();
         }
 
-        // ========================================================
-        // 2. 批量设置部分
-        // ========================================================
         EditorGUILayout.Space(20);
         EditorGUILayout.LabelField("", GUI.skin.horizontalSlider);
         GUILayout.Label("批量设置工具", EditorStyles.boldLabel);
-        EditorGUILayout.HelpBox("修改下方参数，点击按钮，将设置应用到上方 SO 文件中的所有 MotionClipData。", MessageType.Info);
 
         _batchMotionType = (MotionType)EditorGUILayout.EnumPopup("驱动模式 (Type)", _batchMotionType);
         _batchTargetDuration = EditorGUILayout.FloatField("目标时长 (Target Duration)", _batchTargetDuration);
@@ -89,9 +68,6 @@ public class RootMotionExtractorWindow : EditorWindow
         }
     }
 
-    /// <summary>
-    /// 批量应用设置到 SO 中的所有 MotionClipData。
-    /// </summary>
     private void ApplyBatchSettings()
     {
         if (!EditorUtility.DisplayDialog("确认操作",
@@ -104,7 +80,6 @@ public class RootMotionExtractorWindow : EditorWindow
         {
             FieldInfo[] fields = typeof(PlayerSO).GetFields(BindingFlags.Public | BindingFlags.Instance);
             int count = 0;
-
             foreach (var field in fields)
             {
                 if (field.FieldType == typeof(MotionClipData))
@@ -121,7 +96,6 @@ public class RootMotionExtractorWindow : EditorWindow
                     }
                 }
             }
-
             EditorUtility.SetDirty(_targetSO);
             AssetDatabase.SaveAssets();
             Debug.Log($"<color=blue>批量设置成功！共更新了 {count} 个 MotionClipData。</color>");
@@ -132,9 +106,6 @@ public class RootMotionExtractorWindow : EditorWindow
         }
     }
 
-    /// <summary>
-    /// 批量烘焙 PlayerSO 中所有已配置的 MotionClipData。
-    /// </summary>
     private void BakeAll()
     {
         GameObject agent = Instantiate(_characterPrefab);
@@ -148,9 +119,10 @@ public class RootMotionExtractorWindow : EditorWindow
             return;
         }
 
-        if (_targetSO.ReferenceRunLoop_L == null || _targetSO.ReferenceRunLoop_R == null)
+        // 🔥 [修改] 只有当 L 和 R 都不存在时才警告
+        if (_targetSO.ReferenceRunLoop_L == null && _targetSO.ReferenceRunLoop_R == null)
         {
-            Debug.LogWarning("未配置 Reference Run Loop，将跳过智能匹配，使用默认时长。");
+            Debug.LogWarning("未配置任何 Reference Run Loop，将跳过智能匹配，使用默认时长。");
         }
 
         animator.applyRootMotion = true;
@@ -187,24 +159,20 @@ public class RootMotionExtractorWindow : EditorWindow
         }
     }
 
-    /// <summary>
-    /// 对单个 AnimationClip 进行采样和数据提取。
-    /// </summary>
     private void BakeSingleClip(Animator animator, MotionClipData data)
     {
         AnimationClip clip = data.Clip.Clip;
         float frameRate = clip.frameRate > 0 ? clip.frameRate : 30;
         float interval = 1f / frameRate;
         float totalTime = clip.length;
-
         if (totalTime <= 0.001f) totalTime = 0.001f;
-
         int frameCount = Mathf.CeilToInt(totalTime * frameRate);
 
-        // --- 阶段 1: 基础数据采集 & 转身点计算 ---
+        // --- 阶段 1: 基础数据采集 ---
         AnimationCurve tempRotCurve = new AnimationCurve();
         animator.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
         float lastRotY = 0f, accRotY = 0f;
+
         for (int i = 0; i <= frameCount; i++)
         {
             float time = Mathf.Min(i * interval, totalTime);
@@ -220,30 +188,50 @@ public class RootMotionExtractorWindow : EditorWindow
         CalculateRotationFinishedTime(data, tempRotCurve);
 
         // --- 阶段 2: 智能截断点计算 (Pose Matching) ---
-        // 确保搜索起点合理
         float searchStartTime = data.RotationFinishedTime;
-        if (searchStartTime < 0.1f) searchStartTime = 0.1f; // 至少留 0.1s
+        if (searchStartTime < 0.1f) searchStartTime = 0.1f;
         if (searchStartTime >= totalTime) searchStartTime = totalTime - 0.1f;
         if (searchStartTime < totalTime * 0.2f) searchStartTime = totalTime * 0.2f;
 
-        if (data.AutoCalculateExitTime && _targetSO.ReferenceRunLoop_L?.Clip != null)
+        // 🔥 [修改] 判断是否至少有一个参考动画存在
+        bool hasRefL = _targetSO.ReferenceRunLoop_L?.Clip != null;
+        bool hasRefR = _targetSO.ReferenceRunLoop_R?.Clip != null;
+
+        if (data.AutoCalculateExitTime && (hasRefL || hasRefR))
         {
-            PoseInfo targetL = SampleClipPose(animator, _targetSO.ReferenceRunLoop_L.Clip, 0f);
-            PoseInfo targetR = SampleClipPose(animator, _targetSO.ReferenceRunLoop_R.Clip, 0f);
-            float bestTime = totalTime, minCost = float.MaxValue;
+            PoseInfo targetL = default;
+            PoseInfo targetR = default;
+
+            // 按需采样
+            if (hasRefL) targetL = SampleClipPose(animator, _targetSO.ReferenceRunLoop_L.Clip, 0f);
+            if (hasRefR) targetR = SampleClipPose(animator, _targetSO.ReferenceRunLoop_R.Clip, 0f);
+
+            float bestTime = totalTime;
+            float minCost = float.MaxValue;
             FootPhase bestPhase = FootPhase.LeftFootDown;
+
             for (int i = 0; i <= frameCount; i++)
             {
                 float time = i * interval;
                 if (time < searchStartTime) continue;
+
                 PoseInfo currentPose = SampleClipPose(animator, clip, time);
-                float costL = Vector3.Distance(currentPose.LeftLocal, targetL.LeftLocal) + Vector3.Distance(currentPose.RightLocal, targetL.RightLocal);
-                float costR = Vector3.Distance(currentPose.LeftLocal, targetR.LeftLocal) + Vector3.Distance(currentPose.RightLocal, targetR.RightLocal);
-                if (costL < minCost) { minCost = costL; bestTime = time; bestPhase = FootPhase.LeftFootDown; }
-                if (costR < minCost) { minCost = costR; bestTime = time; bestPhase = FootPhase.RightFootDown; }
+
+                // 🔥 [修改] 分开判断 L 和 R
+                if (hasRefL)
+                {
+                    float costL = Vector3.Distance(currentPose.LeftLocal, targetL.LeftLocal) + Vector3.Distance(currentPose.RightLocal, targetL.RightLocal);
+                    if (costL < minCost) { minCost = costL; bestTime = time; bestPhase = FootPhase.LeftFootDown; }
+                }
+
+                if (hasRefR)
+                {
+                    float costR = Vector3.Distance(currentPose.LeftLocal, targetR.LeftLocal) + Vector3.Distance(currentPose.RightLocal, targetR.RightLocal);
+                    if (costR < minCost) { minCost = costR; bestTime = time; bestPhase = FootPhase.RightFootDown; }
+                }
             }
 
-            // 确保 bestTime 有效
+            // 防御性检查
             if (bestTime < 0.1f) bestTime = totalTime;
 
             data.EffectiveExitTime = bestTime;
@@ -252,56 +240,34 @@ public class RootMotionExtractorWindow : EditorWindow
         }
         else
         {
-            // 手动模式下的防呆
-            if (data.ManualExitTime)
-            {
-                data.EffectiveExitTime = Mathf.Clamp(data.ManualExitTimeValue, 0.1f, totalTime);
-            }
-            else
-            {
-                data.EffectiveExitTime = totalTime;
-            }
-
-            data.EffectiveExitTime = data.ManualExitTime ? Mathf.Min(data.ManualExitTimeValue, totalTime) : totalTime;
+            data.EffectiveExitTime = data.ManualExitTime ? Mathf.Clamp(data.ManualExitTimeValue, 0.1f, totalTime) : totalTime;
             PoseInfo endPose = SampleClipPose(animator, clip, data.EffectiveExitTime);
             data.EndPhase = (endPose.LeftLocal.y < endPose.RightLocal.y) ? FootPhase.LeftFootDown : FootPhase.RightFootDown;
         }
 
         // --- 阶段 3: 计算播放倍速 ---
-        // 确保 EffectiveExitTime 不为 0
         if (data.EffectiveExitTime <= 0.001f) data.EffectiveExitTime = totalTime;
-
-        if (data.TargetDuration > 0.01f)
-        {
-            data.PlaybackSpeed = data.EffectiveExitTime / data.TargetDuration;
-        }
-        else
-        {
-            data.PlaybackSpeed = 1f;
-        }
-
-        data.Duration = totalTime;
-
         data.PlaybackSpeed = (data.TargetDuration > 0.01f) ? (data.EffectiveExitTime / data.TargetDuration) : 1f;
+        data.Duration = (data.TargetDuration > 0.01f) ? data.TargetDuration : data.EffectiveExitTime;
 
-        // --- 阶段 4: 生成最终曲线 (应用截断和倍速) ---
+        // --- 阶段 4: 生成最终曲线 ---
         data.SpeedCurve = new AnimationCurve();
         data.RotationCurve = new AnimationCurve();
-
-        // 确保采样帧数至少为 1
         int newFrameCount = Mathf.Max(1, Mathf.CeilToInt(data.EffectiveExitTime * frameRate));
-
         animator.transform.SetPositionAndRotation(Vector3.zero, Quaternion.identity);
         Vector3 lastPos = Vector3.zero;
         lastRotY = 0f;
         accRotY = 0f;
+
         for (int i = 0; i <= newFrameCount; i++)
         {
             float originalTime = Mathf.Min(i * interval, data.EffectiveExitTime);
             float scaledTime = originalTime / data.PlaybackSpeed;
+
             clip.SampleAnimation(animator.gameObject, originalTime);
             Vector3 currentPos = animator.transform.position;
             float currentRotY = animator.transform.eulerAngles.y;
+
             if (i > 0)
             {
                 float dist = Vector3.Distance(new Vector3(currentPos.x, 0, currentPos.z), new Vector3(lastPos.x, 0, lastPos.z));
@@ -325,7 +291,6 @@ public class RootMotionExtractorWindow : EditorWindow
         SmoothCurve(data.RotationCurve, 5);
     }
 
-    // --- 辅助结构与方法 ---
     private struct PoseInfo { public Vector3 LeftLocal; public Vector3 RightLocal; }
 
     private PoseInfo SampleClipPose(Animator anim, AnimationClip clip, float time)
