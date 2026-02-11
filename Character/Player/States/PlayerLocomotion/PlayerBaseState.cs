@@ -38,67 +38,54 @@ namespace Characters.Player.States
         protected bool HasMoveInput => data.MoveInput.sqrMagnitude > 0.001f;
 
         /// <summary>
-        /// 计算世界坐标系下的移动方向（带相机旋转偏移）
-        /// 返回值：世界坐标系中，玩家应朝向的移动方向（基于输入+相机视角）
+        /// 计算世界坐标系下的移动方向（基于相机）
         /// </summary>
-        /// <returns>世界坐标系下的移动方向向量（Vector3）</returns>
         protected UnityEngine.Vector3 CalculateWorldMoveDir()
         {
-            // 1. 基于输入向量计算基础角度（Atan2(x,y)：根据输入的x/y分量计算弧度角）
-            // 数学逻辑：Atan2(input.x, input.y) 以Y轴为前、X轴为右，计算输入方向的弧度角
-            // 示例：输入(1,0)（右）→ 90°；输入(0,1)（前）→ 0°；输入(-1,0)（左）→ -90°
-            float targetAngle = UnityEngine.Mathf.Atan2(data.MoveInput.x, data.MoveInput.y) * UnityEngine.Mathf.Rad2Deg;
+            // 1. 输入角度 (相对于屏幕/相机)
+            float inputAngle = UnityEngine.Mathf.Atan2(data.MoveInput.x, data.MoveInput.y) * UnityEngine.Mathf.Rad2Deg;
 
-            // 2. 叠加相机的Y轴旋转（让移动方向跟随相机视角，第三人称视角核心逻辑）
-            // CameraTransform.eulerAngles.y：相机绕Y轴的旋转角度（视角朝向）
-            if (data.CameraTransform != null) targetAngle += data.CameraTransform.eulerAngles.y;
+            // 2. 叠加相机角度
+            if (data.CameraTransform != null)
+            {
+                inputAngle += data.CameraTransform.eulerAngles.y;
+            }
 
-            // 3. 将角度转换为世界坐标系下的方向向量（forward为基础，绕Y轴旋转targetAngle）
-            return UnityEngine.Quaternion.Euler(0f, targetAngle, 0f) * UnityEngine.Vector3.forward;
+            // 3. 转为向量
+            return UnityEngine.Quaternion.Euler(0f, inputAngle, 0f) * UnityEngine.Vector3.forward;
+        }
+
+        // 重载版本
+        protected UnityEngine.Vector3 CalculateWorldMoveDir(Vector2 inputVector)
+        {
+            float inputAngle = UnityEngine.Mathf.Atan2(inputVector.x, inputVector.y) * UnityEngine.Mathf.Rad2Deg;
+            if (data.CameraTransform != null) inputAngle += data.CameraTransform.eulerAngles.y;
+            return UnityEngine.Quaternion.Euler(0f, inputAngle, 0f) * UnityEngine.Vector3.forward;
         }
 
         /// <summary>
-        /// 计算玩家本地坐标系下的移动角度（重载1：使用当前MoveInput）
-        /// 返回值：相对于玩家自身forward的偏移角度（-180 ~ 180°），用于转身/动画混合判定
+        /// 计算相对于角色当前朝向的本地角度 (-180 ~ 180)
         /// </summary>
-        /// <returns>本地坐标系下的移动角度（°），无输入时返回0</returns>
         protected float CalculateLocalAngle()
         {
-            // 无有效移动输入时，直接返回0（避免无效计算）
             if (!HasMoveInput) return 0f;
 
-            // 1. 获取世界坐标系下的移动方向
-            Vector3 worldDir = CalculateWorldMoveDir();
+            // 1. 获取目标世界方向
+            Vector3 worldMoveDir = CalculateWorldMoveDir();
 
-            // 2. 转换为玩家本地坐标系方向（将世界方向转换为“相对于玩家自身”的方向）
-            // InverseTransformDirection：世界→本地，以玩家transform的forward为前、right为右
-            Vector3 localDir = player.transform.InverseTransformDirection(worldDir);
+            // 2. 转为本地空间 (相对于 Player.transform)
+            Vector3 localDir = player.transform.InverseTransformDirection(worldMoveDir);
 
-            // 3. 计算本地方向的偏移角度（Atan2(x,z)：以Z轴为前、X轴为右，计算偏移角）
-            // localDir.x：左右偏移；localDir.z：前后偏移 → 结果为相对于玩家forward的角度
+            // 3. 计算角度
             return Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg;
         }
 
-        /// <summary>
-        /// 计算玩家本地坐标系下的移动角度（重载2：自定义输入向量）
-        /// 用途：短按转身等场景，使用“上一帧有效输入”而非当前输入计算角度
-        /// </summary>
-        /// <param name="inputVector">自定义输入向量（如LastNonZeroMoveInput）</param>
-        /// <returns>本地坐标系下的移动角度（°），输入无效时返回0</returns>
+        // 重载版本
         protected float CalculateLocalAngle(Vector2 inputVector)
         {
-            // 输入向量长度过小（浮点精度问题），视为无有效输入，返回0
             if (inputVector.sqrMagnitude < 0.001f) return 0f;
-
-            // 1. 基于自定义输入向量计算世界移动方向（逻辑同CalculateWorldMoveDir）
-            float targetAngle = Mathf.Atan2(inputVector.x, inputVector.y) * Mathf.Rad2Deg;
-            if (data.CameraTransform != null) targetAngle += data.CameraTransform.eulerAngles.y;
-            Vector3 worldDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-
-            // 2. 转换为玩家本地坐标系方向
-            Vector3 localDir = player.transform.InverseTransformDirection(worldDir);
-
-            // 3. 计算本地方向的偏移角度
+            Vector3 worldMoveDir = CalculateWorldMoveDir(inputVector);
+            Vector3 localDir = player.transform.InverseTransformDirection(worldMoveDir);
             return Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg;
         }
     }

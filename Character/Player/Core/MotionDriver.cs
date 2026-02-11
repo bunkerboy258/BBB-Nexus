@@ -3,12 +3,22 @@ using Characters.Player.Data;
 
 namespace Characters.Player.Core
 {
+    /// <summary>
+    /// MotionDriver：
+    /// 负责把“输入/动画曲线”转换为 CharacterController.Move 的速度向量，并维护角色与相机参考的旋转数据。
+    /// </summary>
     public class MotionDriver
     {
-        private PlayerController _player;
-        private CharacterController _cc;
-        private PlayerRuntimeData _data;
-        private PlayerSO _config;
+        private readonly PlayerController _player;
+        private readonly CharacterController _cc;
+        private readonly PlayerRuntimeData _data;
+        private readonly PlayerSO _config;
+
+        // 曲线->输入切换：用于对齐 ViewYaw，避免参考系突变。
+        private bool _pendingViewYawAlign;
+
+        // 模式切换守卫：用于在 FreeLook<->Aiming 切换时做一次性的 yaw 同步（防止角度跳变）
+        private bool _wasAimingLastFrame;
 
         public MotionDriver(PlayerController player)
         {
@@ -16,168 +26,212 @@ namespace Characters.Player.Core
             _cc = player.CharController;
             _data = player.RuntimeData;
             _config = player.Config;
+
+            _wasAimingLastFrame = _data.IsAiming;
         }
 
-        /// <summary>
-        /// 核心驱动函数。
-        /// </summary>
-        /// <param name="clipData">当前动画数据 (Loop时为null)</param>
-        /// <param name="stateTime">状态已持续时间 (真实时间，无需乘倍速)</param>
-        /// <param name="startYaw">状态进入时的初始朝向</param>
         public void UpdateMotion(MotionClipData clipData, float stateTime, float startYaw)
         {
-            Vector3 horizontalVelocity = Vector3.zero;
+            HandleAimModeTransitionIfNeeded();
 
-            // 1. 决策：使用哪种驱动模式
-            if (clipData == null || clipData.Type == MotionType.InputDriven)
+            Vector3 horizontalVelocity;
+
+            if (clipData != null)
             {
-                horizontalVelocity = CalculateInputDrivenVelocity();
-            }
-            else if (clipData.Type == MotionType.CurveDriven)
-            {
-                horizontalVelocity = CalculateCurveDrivenVelocity(clipData, stateTime, startYaw);
-            }
-            else if(clipData.Type == MotionType.mixed)
-            {
-                if (stateTime < clipData.RotationFinishedTime)
+                if (clipData.Type == MotionType.CurveDriven)
                 {
+                    _pendingViewYawAlign = true;
                     horizontalVelocity = CalculateCurveDrivenVelocity(clipData, stateTime, startYaw);
+                }
+                else if (clipData.Type == MotionType.mixed)
+                {
+                    if (stateTime < clipData.RotationFinishedTime)
+                    {
+                        _pendingViewYawAlign = true;
+                        horizontalVelocity = CalculateCurveDrivenVelocity(clipData, stateTime, startYaw);
+                    }
+                    else
+                    {
+                        horizontalVelocity = CalculateMotionFromInput();
+                    }
                 }
                 else
                 {
-                    horizontalVelocity = CalculateInputDrivenVelocity();
+                    _pendingViewYawAlign = false;
+                    horizontalVelocity = CalculateMotionFromInput();
                 }
             }
+            else
+            {
+                _pendingViewYawAlign = false;
+                horizontalVelocity = CalculateMotionFromInput();
+            }
 
-            // 2. 垂直速度 (重力)
             Vector3 verticalVelocity = CalculateGravity();
-
-            // 3. 应用
             _cc.Move((horizontalVelocity + verticalVelocity) * Time.deltaTime);
+        }
+
+        public void UpdateMotion()
+        {
+            Vector3 verticalVelocity = CalculateGravity();
+            _cc.Move(verticalVelocity * Time.deltaTime);
         }
 
         /// <summary>
-        /// 无参重载：仅计算并应用重力（垂直速度），不处理水平移动
+        /// [兼容接口] 旧的瞄准状态仍在调用 UpdateAimMotion。
         /// </summary>
-        public void UpdateMotion()
-        {
-            // 水平速度置零（仅保留重力带来的垂直速度）
-            Vector3 horizontalVelocity = Vector3.zero;
-            // 计算垂直速度（重力逻辑）
-            Vector3 verticalVelocity = CalculateGravity();
-            // 仅应用重力移动
-            _cc.Move((horizontalVelocity + verticalVelocity) * Time.deltaTime);
-        }
-
         public void UpdateAimMotion(float speedMult)
         {
-            // 1. 旋转：使用鼠标输入直接更新 CurrentYaw（角色自身的朝向），不依赖相机
-            //    MotionDriver 之前已修复为每帧消费 LookInput 并乘 Time.deltaTime，
-            //    这里复用该逻辑，使鼠标可以直接控制角色转向
-            float lookDelta = _data.LookInput.x;
-            _data.LookInput = Vector2.zero; // 消费输入，防止重复累加
+            Vector3 horizontal = CalculateAimDrivenVelocity(speedMult);
+            Vector3 vertical = CalculateGravity();
+            _cc.Move((horizontal + vertical) * Time.deltaTime);
+        }
 
-            if (Mathf.Abs(lookDelta) > 0.001f)
+        private Vector3 CalculateMotionFromInput(float speedMult = 1f)
+        {
+            AlignViewYawToCharacterIfPending();
+
+            return _data.IsAiming
+                ? CalculateAimDrivenVelocity(speedMult)
+                : CalculateInputDrivenVelocity(speedMult);
+        }
+
+        /// <summary>
+        /// 探索模式（FreeLook）：移动使用 CameraTransform 的水平 forward/right 作为参考系。
+        /// </summary>
+        private Vector3 CalculateInputDrivenVelocity(float speedMult = 1f)
+        {
+            // CameraRoot 已移除：这里以 RuntimeData.CameraTransform 作为唯一相机参考。
+            Transform cam = _data.CameraTransform;
+
+            Vector3 camForward = cam != null ? cam.forward : _player.transform.forward;
+            Vector3 camRight = cam != null ? cam.right : _player.transform.right;
+
+            camForward.y = 0f;
+            camRight.y = 0f;
+            camForward = camForward.sqrMagnitude > 0.0001f ? camForward.normalized : _player.transform.forward;
+            camRight = camRight.sqrMagnitude > 0.0001f ? camRight.normalized : _player.transform.right;
+
+            Vector2 input = _data.MoveInput;
+            if (input.sqrMagnitude < 0.001f)
             {
-                // 将鼠标增量(像素/值) 映射为 角度增量 (度)
-                // 注意：AimSensitivity 应该足够大支持这种直接增量，或者确保 LookInput 是 Screen Delta
-                _data.CurrentYaw += lookDelta * _config.AimSensitivity * Time.deltaTime;
+                _data.CurrentYaw = _player.transform.eulerAngles.y;
+                return Vector3.zero;
             }
 
-            // 平滑旋转到新的目标 Yaw
-            Quaternion targetRot = Quaternion.Euler(0f, _data.CurrentYaw, 0f);
-            
-            // 使用更快地平滑时间（瞄准时响应要快）
-            _player.transform.rotation = Quaternion.Slerp(
-                _player.transform.rotation, 
-                targetRot, 
-                Time.deltaTime * 25f // 提高响应速度，或者使用 SmoothDampAngle
+            Vector3 moveDir = camRight * input.x + camForward * input.y;
+            moveDir = moveDir.sqrMagnitude > 0.0001f ? moveDir.normalized : Vector3.zero;
+
+            float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
+            float smoothedYaw = Mathf.SmoothDampAngle(
+                _player.transform.eulerAngles.y,
+                targetYaw,
+                ref _data.RotationVelocity,
+                _config.RotationSmoothTime
             );
+            _player.transform.rotation = Quaternion.Euler(0f, smoothedYaw, 0f);
+            _data.CurrentYaw = smoothedYaw;
 
-            // 2. 移动：基于 Input 的笛卡尔坐标移动 (Strafing)
-            //    在 Strafing 模式下：
-            //    Input.y +1 -> 角色前方 (Transform.Forward)
-            //    Input.x +1 -> 角色右方 (Transform.Right)
-            //    角色现在由鼠标控制转动，所以 Forward 始终指向用户想看的方向（角色正前方）
-
-            Vector3 moveDir = _player.transform.right * _data.MoveInput.x + _player.transform.forward * _data.MoveInput.y;
-
-            // 无输入时停止移动
-            if (_data.MoveInput.sqrMagnitude < 0.01f)
-            {
-                moveDir = Vector3.zero;
-            }
-
-            // 速度计算
-            float baseSpeed = _data.IsRunning ? _config.AimRunSpeed : _config.AimWalkSpeed; // 使用瞄准专用速度配置
+            float baseSpeed = _data.IsRunning ? _config.RunSpeed : _config.MoveSpeed;
             if (!_data.IsGrounded) baseSpeed *= _config.AirControl;
 
-            Vector3 verticalVelocity = CalculateGravity();
-            
-            // 应用最终移动
-            _cc.Move((moveDir.normalized * baseSpeed * speedMult + verticalVelocity) * Time.deltaTime);
+            return moveDir * baseSpeed * speedMult;
+        }
+
+        /// <summary>
+        /// 瞄准模式（Strafing）：旋转由 LookInput.x 驱动角色，移动严格使用角色自身 forward/right。
+        /// </summary>
+        private Vector3 CalculateAimDrivenVelocity(float speedMult = 1f)
+        {
+            float lookDeltaX = _data.LookInput.x;
+            _data.LookInput = Vector2.zero;
+
+            float targetYaw = _player.transform.eulerAngles.y + lookDeltaX * _config.LookSensitivity.x * _config.AimSensitivity * Time.deltaTime;
+
+            float smoothedYaw = Mathf.SmoothDampAngle(
+                _player.transform.eulerAngles.y,
+                targetYaw,
+                ref _data.RotationVelocity,
+                _config.AimRotationSmoothTime
+            );
+
+            _player.transform.rotation = Quaternion.Euler(0f, smoothedYaw, 0f);
+            _data.CurrentYaw = smoothedYaw;
+
+            // CameraRoot 已移除：这里仅维护数据层的 ViewYaw，使模式切换时 yaw 连续。
+            _data.ViewYaw = smoothedYaw;
+
+            Vector2 input = _data.MoveInput;
+            if (input.sqrMagnitude < 0.001f) return Vector3.zero;
+
+            Vector3 forward = _player.transform.forward;
+            Vector3 right = _player.transform.right;
+            forward.y = 0f;
+            right.y = 0f;
+            forward.Normalize();
+            right.Normalize();
+
+            Vector3 moveDir = (right * input.x + forward * input.y);
+            moveDir = moveDir.sqrMagnitude > 0.0001f ? moveDir.normalized : Vector3.zero;
+
+            float baseSpeed = _data.IsRunning ? _config.AimRunSpeed : _config.AimWalkSpeed;
+            if (!_data.IsGrounded) baseSpeed *= _config.AirControl;
+
+            return moveDir * baseSpeed * speedMult;
         }
 
         private Vector3 CalculateCurveDrivenVelocity(MotionClipData data, float time, float startYaw)
         {
-            // 1. 旋转
-            // 直接读取曲线 (X轴已经是缩放后的时间)
-            float curveAngle = data.RotationCurve.Evaluate(time*data.PlaybackSpeed);
+            float curveAngle = data.RotationCurve.Evaluate(time * data.PlaybackSpeed);
 
-            // 四元数叠加
             Quaternion startRot = Quaternion.Euler(0f, startYaw, 0f);
             Quaternion offsetRot = Quaternion.Euler(0f, curveAngle, 0f);
             Quaternion targetRot = startRot * offsetRot;
 
-            // 微平滑
             _player.transform.rotation = Quaternion.Slerp(_player.transform.rotation, targetRot, Time.deltaTime * 30f);
 
-            // 2. 速度
-            // 直接读取曲线 (Y轴已经是缩放后的速度)
-            float speed = data.SpeedCurve.Evaluate(time * data.PlaybackSpeed);
+            _data.CurrentYaw = _player.transform.eulerAngles.y;
 
-            // 沿当前朝向
+            float speed = data.SpeedCurve.Evaluate(time * data.PlaybackSpeed);
             return _player.transform.forward * speed;
         }
 
-        private Vector3 CalculateInputDrivenVelocity()
+        private void AlignViewYawToCharacterIfPending()
         {
-            if (_data.MoveInput.sqrMagnitude < 0.001f)
-            {
-                return Vector3.zero;
-            }
-            // 1. 计算目标
-            float targetAngle = Mathf.Atan2(_data.MoveInput.x, _data.MoveInput.y) * Mathf.Rad2Deg;
-            if (_data.CameraTransform != null) targetAngle += _data.CameraTransform.eulerAngles.y;
+            if (!_pendingViewYawAlign) return;
+            _pendingViewYawAlign = false;
 
-            // 2. 旋转
-            float angle = Mathf.SmoothDampAngle(
-                _player.transform.eulerAngles.y,
-                targetAngle,
-                ref _data.RotationVelocity,
-                _config.RotationSmoothTime
-            );
-            _player.transform.rotation = Quaternion.Euler(0f, angle, 0f);
+            float characterYaw = _player.transform.eulerAngles.y;
+            _data.ViewYaw = characterYaw;
+            _data.CurrentYaw = characterYaw;
+        }
 
-            // 3. 速度
-            float baseSpeed = _data.IsRunning ? _config.RunSpeed : _config.MoveSpeed;
-            if (!_data.IsGrounded) baseSpeed *= _config.AirControl;
-            Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+        private void HandleAimModeTransitionIfNeeded()
+        {
+            bool isAiming = _data.IsAiming;
+            if (isAiming == _wasAimingLastFrame) return;
 
-            return moveDir.normalized * baseSpeed;
+            float yaw = _player.transform.eulerAngles.y;
+            _data.CurrentYaw = yaw;
+            _data.ViewYaw = yaw;
+
+            _data.RotationVelocity = 0f;
+            _wasAimingLastFrame = isAiming;
         }
 
         private Vector3 CalculateGravity()
         {
             _data.IsGrounded = _cc.isGrounded;
+
             if (_data.IsGrounded && _data.VerticalVelocity < 0)
             {
-                _data.VerticalVelocity = -2f; // 贴地力
+                _data.VerticalVelocity = -2f;
             }
             else
             {
-                _data.VerticalVelocity += -20f * Time.deltaTime; // 重力
+                _data.VerticalVelocity += _config.Gravity * Time.deltaTime;
             }
+
             return new Vector3(0f, _data.VerticalVelocity, 0f);
         }
     }

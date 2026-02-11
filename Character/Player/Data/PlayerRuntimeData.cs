@@ -4,79 +4,200 @@ using UnityEngine;
 
 namespace Characters.Player.Data
 {
+    /// <summary>
+    /// 装备快照（“当前身上装备了什么”的运行时结果）。
+    /// 
+    /// 注意：
+    /// - Definition 表示“装备的定义资源”；
+    /// - Instance/DeviceLogic 是场景中实例化出来的对象（可为空）。
+    /// </summary>
     public class EquipmentSnapshot
     {
+        /// <summary>当前装备的定义（ScriptableObject）。为 null 表示空手。</summary>
         public ItemDefinitionSO Definition;
+
+        /// <summary>当前装备在场景中的实例（挂在玩家 WeaponContainer 下）。</summary>
         public InteractableItem Instance;
+
+        /// <summary>装置逻辑控制器（例如枪械开火/换弹）。没有装置则为 null。</summary>
         public DeviceController DeviceLogic;
+
+        /// <summary>是否有物品实例（Instance != null）。</summary>
         public bool HasItem => Instance != null;
+
+        /// <summary>是否有可用设备逻辑（DeviceLogic != null）。</summary>
         public bool HasDevice => DeviceLogic != null;
     }
 
     /// <summary>
-    /// 玩家运行时数据容器（纯数据，无业务逻辑）
+    /// 玩家运行时数据容器（纯数据，无业务逻辑）。
+    /// 
+    /// 约定（行业常用）：
+    /// - Input 区域：由 InputReader 写入；由 MotionDriver/Processors 消费。
+    /// - State 区域：由 MotionDriver / Controllers 写入；状态机与动画层读取。
+    /// - Intent 区域：由 *IntentProcessor 写入；状态机读取；每帧末 Reset。
+    /// - References：启动时注入，运行期间只读。
     /// </summary>
     public class PlayerRuntimeData
     {
-        #region Input (输入数据)
+        #region View / Input (视角与输入)
 
-        public Vector2 LookInput;               // 鼠标/摇杆视角输入
-        public Vector2 MoveInput;               // 移动输入 (-1~1)
-        public Vector2 LastNonZeroMoveInput;    // 上一帧有效移动输入（用于方向判定）
+        /// <summary>
+        /// 视角水平角（度）。
+        /// 用途：
+        /// - FreeLook：通常代表“相机/CameraRoot”的 yaw 参考；
+        /// - Aiming：通常会被同步为角色 yaw，保证模式切换不跳变。
+        /// </summary>
+        public float ViewYaw;
+
+        /// <summary>
+        /// 视角俯仰角（度）。
+        /// 用途：驱动 CameraRoot pitch 或用于 IK/瞄准仰角等。
+        /// </summary>
+        public float ViewPitch;
+
+        /// <summary>
+        /// 视角输入（鼠标/右摇杆 delta）。
+        /// 约定：
+        /// - FreeLook 模式下通常由 Cinemachine 消费（本项目 MotionDriver 不消费）；
+        /// - Aiming 模式下由 MotionDriver 消费并清零。
+        /// </summary>
+        public Vector2 LookInput;
+
+        /// <summary>
+        /// 移动输入（-1~1）。
+        /// X=左右，Y=前后。
+        /// </summary>
+        public Vector2 MoveInput;
 
         #endregion
 
         #region Character State (角色状态)
 
-        public float CurrentYaw;                // 角色Y轴朝向（度）
-        public bool IsAiming;                   // 是否瞄准中
-        public bool IsRunning;                  // 是否奔跑中
-        public bool IsGrounded;                 // 是否接地
-        public float VerticalVelocity;          // 垂直速度（Y轴）
-        public float RotationVelocity;          // 旋转速度（用于平滑）
+        /// <summary>
+        /// 角色当前世界 yaw（度）。
+        /// 这是“角色朝向”的权威结果，供动画/相机/对齐逻辑使用。
+        /// </summary>
+        public float CurrentYaw;
+
+        /// <summary>是否处于瞄准模式（Strafe）。由 AimIntentProcessor 控制。</summary>
+        public bool IsAiming;
+
+        /// <summary>是否处于奔跑状态。由 StaminaController/意图系统维护。</summary>
+        public bool IsRunning;
+
+        /// <summary>是否接地（CharacterController.isGrounded 的缓存）。由 MotionDriver 写入。</summary>
+        public bool IsGrounded;
+
+        /// <summary>
+        /// 角色垂直速度（m/s）。
+        /// 用途：重力、跳跃、贴地力。
+        /// </summary>
+        public float VerticalVelocity;
+
+        /// <summary>
+        /// SmoothDampAngle 的内部速度缓存。
+        /// 重要：模式切换时应清零，避免过冲。
+        /// </summary>
+        public float RotationVelocity;
 
         #endregion
 
-        #region Intent (意图标记)
+        #region Intent (意图标记：每帧生成，每帧清理)
 
-        public bool WantToRun;                  // 想要奔跑
-        public bool WantsToJump;                // 想要跳跃
-        public bool WantsToVault;               // 想要翻越
-        public bool IsVaulting;                 // 正在翻越中
+        /// <summary>
+        /// 本帧是否“想跑”（输入意图）。
+        /// 注意：IsRunning 通常是系统结果；WantToRun 是输入意图。
+        /// </summary>
+        public bool WantToRun;
+
+        /// <summary>本帧是否请求跳跃。</summary>
+        public bool WantsToJump;
+
+        /// <summary>本帧是否请求翻越。</summary>
+        public bool WantsToVault;
+
+        /// <summary>是否正在翻越中（持续状态）。</summary>
+        public bool IsVaulting;
 
         #endregion
 
-        #region Animation (动画参数)
+        #region Animation (动画驱动用参数)
 
-        public float CurrentAnimBlendX;         // 混合树X轴（转向角度）
-        public float CurrentAnimBlendY;         // 混合树Y轴（移动速度）
-        public float CurrentRunCycleTime;       // 跑步循环归一化时间 (0-1)
-        public FootPhase ExpectedFootPhase;     // 期望的下一步相位
+        /// <summary>
+        /// 动画混合 X（通常对应“方向/转角”）。由 MovementParameterProcessor 写入。
+        /// </summary>
+        public float CurrentAnimBlendX;
+
+        /// <summary>
+        /// 动画混合 Y（通常对应“速度/走跑权重”）。由 MovementParameterProcessor 写入。
+        /// </summary>
+        public float CurrentAnimBlendY;
+
+        /// <summary>
+        /// 跑步循环相位（0~1）。
+        /// 用途：左右脚相位匹配（例如 Stop/Start 选择、Loop_L/Loop_R 选择）。
+        /// </summary>
+        public float CurrentRunCycleTime;
+
+        /// <summary>
+        /// 期望下一步脚相位（用于起步/落地/循环混合器选择）。
+        /// </summary>
+        public FootPhase ExpectedFootPhase;
 
         #endregion
 
         #region Equipment (装备系统)
 
-        public ItemDefinitionSO DesiredItemDefinition;      // 期望装备
-        public EquipmentSnapshot CurrentEquipment = new EquipmentSnapshot();  // 当前装备
+        /// <summary>
+        /// 装备意图：玩家希望切换到的装备定义。
+        /// - 为 null 表示“卸载/空手”；
+        /// - 不等同于 CurrentEquipment.Definition（后者是实际已装备结果）。
+        /// </summary>
+        public ItemDefinitionSO DesiredItemDefinition;
+
+        /// <summary>
+        /// 当前实际装备快照（由 EquipmentDriver 写入）。
+        /// </summary>
+        public EquipmentSnapshot CurrentEquipment = new EquipmentSnapshot();
 
         #endregion
 
-        #region IK (反向运动学)
+        #region IK (反向运动学：意图 + 目标)
 
-        public bool WantsLeftHandIK;            // 左手IK意图
-        public bool WantsRightHandIK;           // 右手IK意图
-        public bool WantsLookAtIK;              // 注视IK意图
-        public Transform LeftHandGoal;          // 左手目标
-        public Transform RightHandGoal;         // 右手目标
-        public Vector3 LookAtPosition;          // 注视目标位置
+        /// <summary>是否开启左手 IK（通常用于枪械护木握持）。</summary>
+        public bool WantsLeftHandIK;
+
+        /// <summary>是否开启右手 IK（通常用于武器握把/扳机手）。</summary>
+        public bool WantsRightHandIK;
+
+        /// <summary>是否开启注视 IK（头/眼睛看向目标）。</summary>
+        public bool WantsLookAtIK;
+
+        /// <summary>左手 IK 目标点。</summary>
+        public Transform LeftHandGoal;
+
+        /// <summary>右手 IK 目标点。</summary>
+        public Transform RightHandGoal;
+
+        /// <summary>注视目标点（世界坐标）。</summary>
+        public Vector3 LookAtPosition;
 
         #endregion
 
-        #region References (引用)
+        #region References (引用：启动时注入)
 
-        public Transform CameraTransform;       // 主摄像机（用于IK注视等）
-        public float CurrentStamina;            // 当前耐力值
+        /// <summary>
+        /// 主摄像机 Transform 缓存。
+        /// 用途：Camera-Relative 移动计算、IK/射线等。
+        /// </summary>
+        public Transform CameraTransform;
+
+        /// <summary>
+        /// 耐力当前值。
+        /// 用途：冲刺消耗/恢复。
+        /// </summary>
+        public float CurrentStamina;
 
         #endregion
 
@@ -85,6 +206,10 @@ namespace Characters.Player.Data
             IsRunning = false;
         }
 
+        /// <summary>
+        /// 每帧末清理“一次性意图”。
+        /// 为什么：意图应由 Processor 每帧重新生成，避免状态残留导致误触发。
+        /// </summary>
         public void ResetIntetnt()
         {
             WantsToVault = false;
