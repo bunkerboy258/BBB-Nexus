@@ -27,6 +27,8 @@ namespace Characters.Player.Input
         public float MovePressTime { get; private set; } // 移动输入按下的时间戳（Time.time）
         public bool IsMovePressed { get; private set; }  // 移动输入当前是否按下
 
+        // 新增：鼠标/视角输入
+        public Vector2 LookInput { get; private set; }
 
         // 基础动作事件回调（供外部注册）
         public UnityAction OnWavePressed;
@@ -71,6 +73,14 @@ namespace Characters.Player.Input
         [Tooltip("数字键5动作的引用（InputActionReference）")]
         public InputActionReference number5Action;
 
+        [Header("Mouse Look")]
+        [Tooltip("鼠标移动动作的引用（InputActionReference），通常绑定 Mouse/delta 或 Gamepad/rightStick）")]
+        public InputActionReference mouseLookAction;
+        [Tooltip("鼠标灵敏度")]
+        public float mouseSensitivity = 1f;
+        [Tooltip("是否反转 Y 轴")]
+        public bool invertMouseY = false;
+
         #region 生命周期方法
         private void OnEnable()
         {
@@ -80,6 +90,7 @@ namespace Characters.Player.Input
             InitializeWaveInput();
             InitializeLeftMouseInput();
             InitializeAimInput();
+            InitializeMouseLookInput();
 
             // 新增：初始化数字键1-5的输入监听
             InitializeNumber1Input();
@@ -97,6 +108,7 @@ namespace Characters.Player.Input
             UninitializeWaveInput();
             UninitializeLeftMouseInput();
             UninitializeAimInput();
+            UninitializeMouseLookInput();
 
             // 新增：反初始化数字键1-5的输入监听（防止内存泄漏）
             UninitializeNumber1Input();
@@ -214,6 +226,26 @@ namespace Characters.Player.Input
             LeftMouseAction.action.Disable();
             LeftMouseAction.action.started -= OnLeftMouseStarted;
             LeftMouseAction.action.canceled -= OnLeftMouseCanceled;
+        }
+
+        // 新增：初始化鼠标视角输入
+        private void InitializeMouseLookInput()
+        {
+            if (mouseLookAction == null) return;
+
+            mouseLookAction.action.Enable();
+            mouseLookAction.action.performed += OnMouseLookPerformed;
+            mouseLookAction.action.canceled += OnMouseLookCanceled;
+        }
+
+        // 新增：反初始化鼠标视角输入
+        private void UninitializeMouseLookInput()
+        {
+            if (mouseLookAction == null) return;
+
+            mouseLookAction.action.Disable();
+            mouseLookAction.action.performed -= OnMouseLookPerformed;
+            mouseLookAction.action.canceled -= OnMouseLookCanceled;
         }
 
         // 新增：数字键1输入初始化
@@ -380,6 +412,19 @@ namespace Characters.Player.Input
         private void OnaimCancled(InputAction.CallbackContext context)
         {
             OnAimCanceled?.Invoke();
+        }
+
+        // 新增：鼠标视角回调：将 delta 转换为 LookInput（不乘 deltaTime，这里保留原始增量）
+        private void OnMouseLookPerformed(InputAction.CallbackContext context)
+        {
+            Vector2 raw = context.ReadValue<Vector2>();
+            if (invertMouseY) raw.y = -raw.y;
+            LookInput = raw * mouseSensitivity;
+        }
+
+        private void OnMouseLookCanceled(InputAction.CallbackContext context)
+        {
+            LookInput = Vector2.zero;
         }
 
         // 新增：数字键1按下回调

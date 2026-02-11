@@ -174,6 +174,8 @@ namespace Characters.Player.Data
         public MixerTransition2D MoveLoopMixer_R;
 
         [Header("--- 瞄准系统 (Aiming) ---")]
+        public float AimSensitivity = 1f;
+
         public float AimWalkSpeed = 2.5f;
         public float AimRunSpeed = 5.0f;
         public float AimRotationSmoothTime = 0.05f;

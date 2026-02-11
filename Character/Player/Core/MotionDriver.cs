@@ -71,40 +71,53 @@ namespace Characters.Player.Core
 
         public void UpdateAimMotion(float speedMult)
         {
-            // 1. 旋转：强制身体面向相机前方 (Strafing 核心)
-            if (_data.CameraTransform != null)
-            {
-                // 获取相机水平前方
-                Vector3 camFwd = _data.CameraTransform.forward;
-                camFwd.y = 0; // 忽略垂直分量
-                if (camFwd.sqrMagnitude > 0.001f)
-                {
-                    Quaternion targetRot = Quaternion.LookRotation(camFwd.normalized);
+            // 1. 旋转：使用鼠标输入直接更新 CurrentYaw（角色自身的朝向），不依赖相机
+            //    MotionDriver 之前已修复为每帧消费 LookInput 并乘 Time.deltaTime，
+            //    这里复用该逻辑，使鼠标可以直接控制角色转向
+            float lookDelta = _data.LookInput.x;
+            _data.LookInput = Vector2.zero; // 消费输入，防止重复累加
 
-                    // 使用极快的平滑 (AimRotationSmoothTime)
-                    float angle = Mathf.SmoothDampAngle(
-                        _player.transform.eulerAngles.y,
-                        targetRot.eulerAngles.y,
-                        ref _data.RotationVelocity,
-                        _config.AimRotationSmoothTime
-                    );
-                    _player.transform.rotation = Quaternion.Euler(0f, angle, 0f);
-                }
+            if (Mathf.Abs(lookDelta) > 0.001f)
+            {
+                // 将鼠标增量(像素/值) 映射为 角度增量 (度)
+                // 注意：AimSensitivity 应该足够大支持这种直接增量，或者确保 LookInput 是 Screen Delta
+                _data.CurrentYaw += lookDelta * _config.AimSensitivity * Time.deltaTime;
             }
 
-            // 2. 移动：基于 Input 的笛卡尔坐标移动
-            // 在 Strafing 模式下，Input.y 直接对应 Forward，Input.x 直接对应 Right
-            // 不需要再 Atan2 算角度了，直接平移
+            // 平滑旋转到新的目标 Yaw
+            Quaternion targetRot = Quaternion.Euler(0f, _data.CurrentYaw, 0f);
+            
+            // 使用更快地平滑时间（瞄准时响应要快）
+            _player.transform.rotation = Quaternion.Slerp(
+                _player.transform.rotation, 
+                targetRot, 
+                Time.deltaTime * 25f // 提高响应速度，或者使用 SmoothDampAngle
+            );
+
+            // 2. 移动：基于 Input 的笛卡尔坐标移动 (Strafing)
+            //    在 Strafing 模式下：
+            //    Input.y +1 -> 角色前方 (Transform.Forward)
+            //    Input.x +1 -> 角色右方 (Transform.Right)
+            //    角色现在由鼠标控制转动，所以 Forward 始终指向用户想看的方向（角色正前方）
 
             Vector3 moveDir = _player.transform.right * _data.MoveInput.x + _player.transform.forward * _data.MoveInput.y;
 
-            // 速度选择
-            float baseSpeed = _data.IsRunning ? _config.RunSpeed : _config.MoveSpeed;
+            // 无输入时停止移动
+            if (_data.MoveInput.sqrMagnitude < 0.01f)
+            {
+                moveDir = Vector3.zero;
+            }
 
-            // 应用重力和移动
+            // 速度计算
+            float baseSpeed = _data.IsRunning ? _config.AimRunSpeed : _config.AimWalkSpeed; // 使用瞄准专用速度配置
+            if (!_data.IsGrounded) baseSpeed *= _config.AirControl;
+
             Vector3 verticalVelocity = CalculateGravity();
+            
+            // 应用最终移动
             _cc.Move((moveDir.normalized * baseSpeed * speedMult + verticalVelocity) * Time.deltaTime);
         }
+
         private Vector3 CalculateCurveDrivenVelocity(MotionClipData data, float time, float startYaw)
         {
             // 1. 旋转

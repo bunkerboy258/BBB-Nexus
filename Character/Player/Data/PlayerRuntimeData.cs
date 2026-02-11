@@ -25,6 +25,11 @@ namespace Characters.Player.Data
         // 由 InputReader / InputIntentProcessor 写入
         // =================================================================================
 
+        // 🔥 [新增] 视角输入 (鼠标/右摇杆) 🔥
+        public Vector2 LookInput;
+        // 🔥 [新增] 角色当前的 Y 轴朝向 (Degrees) 🔥
+        // 由 MotionDriver 维护，作为旋转的权威数据源
+        public float CurrentYaw;
         /// <summary>
         /// [InputReader ->] 当前帧的原始移动输入值 (-1 to 1)。
         /// </summary>

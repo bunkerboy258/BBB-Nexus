@@ -110,6 +110,8 @@ namespace Characters.Player
         {
             // 1. 输入 -> 原始数据
             RuntimeData.MoveInput = InputReader.MoveInput;
+            // 新增：同步鼠标视角输入到 RuntimeData，供 MotionDriver 使用
+            RuntimeData.LookInput = InputReader.LookInput;
 
             // 2. 原始数据 -> 逻辑意图
             _inputIntentProcessor.Update();
