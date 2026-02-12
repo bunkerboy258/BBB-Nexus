@@ -5,9 +5,11 @@ using UnityEngine.Events;
 namespace Characters.Player.Input
 {
     /// <summary>
-    /// 玩家输入读取器：封装 Unity InputSystem 的输入监听逻辑，对外暴露输入状态和事件
-    /// 核心职责：监听移动、冲刺、挥手、攻击等输入，记录输入状态（按下时长、是否按下），触发外部注册的事件
-    /// 修改说明：将攻击输入从单一 performed 回调改为 started（按下）与 canceled（抬起）两个回调，新增 OnAttackDown/OnAttackUp 回调字段。
+    /// 玩家输入读取器：封装 Unity InputSystem 的输入监听逻辑，对外暴露输入状态和事件。
+    /// 
+    /// MouseLook 约定（重要）：
+    /// - mouseLookAction 通常绑定 Mouse/delta（增量）。该类输入不保证每帧触发 performed 回调；
+    /// - 因此 LookInput 采用 Update() 中每帧 ReadValue 的 pull 采样，保证权威视角数据连续，避免相机抖动。
     /// </summary>
     public class PlayerInputReader : MonoBehaviour
     {
@@ -83,6 +85,9 @@ namespace Characters.Player.Input
         [Tooltip("是否反转 Y 轴")]
         public bool invertMouseY = false;
 
+        // 每帧 pull 模式读取鼠标 delta（关闭旧的事件推送方式）
+        private const bool UsePullLookInput = true;
+
         #region 生命周期方法
         private void OnEnable()
         {
@@ -118,6 +123,20 @@ namespace Characters.Player.Input
             UninitializeNumber3Input();
             UninitializeNumber4Input();
             UninitializeNumber5Input();
+        }
+
+        private void Update()
+        {
+            if (!UsePullLookInput) return;
+
+            if (mouseLookAction == null || mouseLookAction.action == null) return;
+            if (!mouseLookAction.action.enabled) return;
+
+            // delta 输入不保证每帧触发 performed，用 ReadValue 每帧采样最稳定
+            Vector2 raw = mouseLookAction.action.ReadValue<Vector2>();
+            if (invertMouseX) raw.x = -raw.x;
+            if (invertMouseY) raw.y = -raw.y;
+            LookInput = raw * mouseSensitivity;
         }
         #endregion
 
@@ -235,9 +254,8 @@ namespace Characters.Player.Input
         {
             if (mouseLookAction == null) return;
 
+            // 仅启用 Action；不再订阅 performed/canceled（旧方案完全移除）。
             mouseLookAction.action.Enable();
-            mouseLookAction.action.performed += OnMouseLookPerformed;
-            mouseLookAction.action.canceled += OnMouseLookCanceled;
         }
 
         // 新增：反初始化鼠标视角输入
@@ -246,8 +264,7 @@ namespace Characters.Player.Input
             if (mouseLookAction == null) return;
 
             mouseLookAction.action.Disable();
-            mouseLookAction.action.performed -= OnMouseLookPerformed;
-            mouseLookAction.action.canceled -= OnMouseLookCanceled;
+            LookInput = Vector2.zero;
         }
 
         // 新增：数字键1输入初始化
@@ -414,20 +431,6 @@ namespace Characters.Player.Input
         private void OnaimCancled(InputAction.CallbackContext context)
         {
             OnAimCanceled?.Invoke();
-        }
-
-        // 新增：鼠标视角回调：将 delta 转换为 LookInput（不乘 deltaTime，这里保留原始增量）
-        private void OnMouseLookPerformed(InputAction.CallbackContext context)
-        {
-            Vector2 raw = context.ReadValue<Vector2>();
-            if (invertMouseX) raw.x = -raw.x;
-            if (invertMouseY) raw.y = -raw.y;
-            LookInput = raw * mouseSensitivity;
-        }
-
-        private void OnMouseLookCanceled(InputAction.CallbackContext context)
-        {
-            LookInput = Vector2.zero;
         }
 
         // 新增：数字键1按下回调

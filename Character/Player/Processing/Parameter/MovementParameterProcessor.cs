@@ -16,9 +16,9 @@ namespace Characters.Player.Parameters
         private float _targetIntensity;
         private float _currentIntensity; // 当前强度 (0.7 ~ 1.0)
 
-        // 角度平滑专用
-        private float _currentAngle;
-        private float _angleVelocity;
+        // 方向向量平滑（替代角度平滑，避免 -180/180 跳变）
+        private Vector3 _currentLocalDir = Vector3.forward;
+        private Vector3 _localDirVelocity;
 
         public MovementParameterProcessor(PlayerController player)
         {
@@ -26,9 +26,9 @@ namespace Characters.Player.Parameters
             _data = player.RuntimeData;
             _playerTransform = player.transform;
 
-            // 初始化
             _currentIntensity = 0.7f;
-            _currentAngle = 0f;
+            _currentLocalDir = Vector3.forward;
+            _localDirVelocity = Vector3.zero;
         }
 
         public void Update()
@@ -36,18 +36,11 @@ namespace Characters.Player.Parameters
             // 0) 统一出移动派生数据（状态机/动画共用）
             UpdateMovementDerivedData();
 
-            // 1) 计算两个独立的平滑值
+            // 1) 平滑强度
             UpdateIntensityLogic();
-            UpdateAngleLogic();
 
-            // 2) 极坐标 -> 笛卡尔坐标
-            float rad = _currentAngle * Mathf.Deg2Rad;
-            float x = Mathf.Sin(rad) * _currentIntensity;
-            float y = Mathf.Cos(rad) * _currentIntensity;
-
-            // 3) 写入 Data 供 Mixer 使用
-            _data.CurrentAnimBlendX = x;
-            _data.CurrentAnimBlendY = y;
+            // 2) 平滑方向并输出 Mixer 参数
+            UpdateDirectionBlend();
         }
 
         private void UpdateMovementDerivedData()
@@ -65,9 +58,7 @@ namespace Characters.Player.Parameters
             worldDir.y = 0f;
             _data.DesiredWorldMoveDir = worldDir.sqrMagnitude > 0.0001f ? worldDir.normalized : Vector3.zero;
 
-            // 转为本地角度（-180~180）
-            Vector3 localDir = _playerTransform.InverseTransformDirection(_data.DesiredWorldMoveDir);
-            _data.DesiredLocalMoveAngle = Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg;
+            // 这里不再直接用角度驱动 Mixer（角度会在 ±180 发生跳变），角度在 UpdateDirectionBlend 中由平滑后的向量得到。
         }
 
         // --- Y 轴逻辑 (强度/速度) ---
@@ -98,18 +89,54 @@ namespace Characters.Player.Parameters
             }
         }
 
-        // --- X 轴逻辑 (方向/角度) ---
-        private void UpdateAngleLogic()
+        private void UpdateDirectionBlend()
         {
-            // targetAngle 来自统一派生数据，确保与起步/状态判定一致
-            float targetAngle = _data.DesiredLocalMoveAngle;
+            // 目标局部方向：由 DesiredWorldMoveDir 转成本地向量
+            Vector3 targetLocalDir;
+            if (_data.DesiredWorldMoveDir.sqrMagnitude < 0.0001f)
+            {
+                // 无输入时回到正前方，防止停下后保留侧向导致混合停在 Lean 上
+                targetLocalDir = Vector3.forward;
+            }
+            else
+            {
+                targetLocalDir = _playerTransform.InverseTransformDirection(_data.DesiredWorldMoveDir);
+                targetLocalDir.y = 0f;
+                targetLocalDir = targetLocalDir.sqrMagnitude > 0.0001f ? targetLocalDir.normalized : Vector3.forward;
+            }
 
-            _currentAngle = Mathf.SmoothDampAngle(
-                _currentAngle,
-                targetAngle,
-                ref _angleVelocity,
-                _config.XAnimBlendSmoothTime
+            // SmoothDamp 方向向量：保证连续，不会出现 angle 的 ±180 跳变
+            float smoothTime = Mathf.Max(0.0001f, _config.XAnimBlendSmoothTime);
+            _currentLocalDir = Vector3.SmoothDamp(
+                _currentLocalDir,
+                targetLocalDir,
+                ref _localDirVelocity,
+                smoothTime,
+                Mathf.Infinity,
+                Time.deltaTime
             );
+            _currentLocalDir.y = 0f;
+
+            if (_currentLocalDir.sqrMagnitude < 0.0001f)
+            {
+                _currentLocalDir = Vector3.forward;
+            }
+            else
+            {
+                _currentLocalDir.Normalize();
+            }
+
+            // 由平滑后的向量求角度（供状态/调试/起步选择使用）
+            float angle = Mathf.Atan2(_currentLocalDir.x, _currentLocalDir.z) * Mathf.Rad2Deg;
+            _data.DesiredLocalMoveAngle = angle;
+
+            // 极坐标 -> 笛卡尔坐标（Cartesian Mixer）
+            float rad = angle * Mathf.Deg2Rad;
+            float x = Mathf.Sin(rad) * _currentIntensity;
+            float y = Mathf.Cos(rad) * _currentIntensity;
+
+            _data.CurrentAnimBlendX = x;
+            _data.CurrentAnimBlendY = y;
         }
     }
 }

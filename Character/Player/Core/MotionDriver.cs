@@ -41,9 +41,9 @@ namespace Characters.Player.Core
         {
             HandleAimModeTransitionIfNeeded();
 
-            Vector3 horizontalVelocity = clipData == null
-                ? CalculateMotionFromInput()
-                : CalculateMotionFromClip(clipData, stateTime, startYaw);
+            Vector3 horizontalVelocity = 
+                clipData == null? CalculateMotionFromInput():
+                CalculateMotionFromClip(clipData, stateTime, startYaw);
 
             Vector3 verticalVelocity = CalculateGravity();
             _cc.Move((horizontalVelocity + verticalVelocity) * Time.deltaTime);
@@ -203,9 +203,6 @@ namespace Characters.Player.Core
 
             // 切换瞬间清理旋转速度，避免 SmoothDampAngle 过冲。
             _data.RotationVelocity = 0f;
-
-            // 注意：不在此处强行修改 AuthorityYaw（鼠标权威）。
-            // 若未来需要“进入瞄准时角色立刻朝相机”一类效果，应在状态/意图层做“角色对齐 Authority”的策略。
 
             _wasAimingLastFrame = isAiming;
         }
