@@ -38,8 +38,8 @@ namespace Characters.Player.States
             _stateDuration = 0f;
             _startYaw = player.transform.eulerAngles.y;
 
-            // 选择要播放的动画数据
-            _currentClipData = SelectClip(CalculateLocalAngle(), data.WantToRun);
+            // 统一：使用 MovementParameterProcessor 产生的本地角度
+            _currentClipData = SelectClip(data.DesiredLocalMoveAngle, data.WantToRun);
             isrunstrat = data.WantToRun;
 
             // 播放动画并设置结束回调

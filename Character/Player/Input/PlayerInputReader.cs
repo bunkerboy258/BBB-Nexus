@@ -78,6 +78,8 @@ namespace Characters.Player.Input
         public InputActionReference mouseLookAction;
         [Tooltip("鼠标灵敏度")]
         public float mouseSensitivity = 1f;
+        [Tooltip("是否反转 X 轴")]
+        public bool invertMouseX = false;
         [Tooltip("是否反转 Y 轴")]
         public bool invertMouseY = false;
 
@@ -418,6 +420,7 @@ namespace Characters.Player.Input
         private void OnMouseLookPerformed(InputAction.CallbackContext context)
         {
             Vector2 raw = context.ReadValue<Vector2>();
+            if (invertMouseX) raw.x = -raw.x;
             if (invertMouseY) raw.y = -raw.y;
             LookInput = raw * mouseSensitivity;
         }

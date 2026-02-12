@@ -5,7 +5,12 @@ namespace Characters.Player.Core
 {
     /// <summary>
     /// MotionDriver：
-    /// 负责把“输入/动画曲线”转换为 CharacterController.Move 的速度向量，并维护角色与相机参考的旋转数据。
+    /// 把“输入/动画曲线”转换为 CharacterController.Move 的速度向量，并维护角色运动相关运行时数据。
+    /// 
+    /// 重要约定（当前工程的目标手感）：
+    /// - AuthorityYaw/AuthorityPitch 仅由 ViewRotationProcessor（鼠标）维护；相机可自由旋转。
+    /// - 曲线驱动阶段（Start/Land/Vault 等）只允许动画强制旋转角色，不允许越级修改 Authority 参考系。
+    /// - 曲线截断点后，角色在输入驱动逻辑下自然追随 Authority（SmoothDamp/Orient-to-movement）。
     /// </summary>
     public class MotionDriver
     {
@@ -13,9 +18,6 @@ namespace Characters.Player.Core
         private readonly CharacterController _cc;
         private readonly PlayerRuntimeData _data;
         private readonly PlayerSO _config;
-
-        // 曲线->输入切换消耗性标记：用于对齐 ViewYaw，避免参考系突变 
-        private bool _pendingViewYawAlign;
 
         // 模式切换消耗性标记：用于在 FreeLook<->Aiming 切换时做一次性的 yaw 同步（防止角度跳变）
         private bool _wasAimingLastFrame;
@@ -33,52 +35,22 @@ namespace Characters.Player.Core
         /// <summary>
         /// 统一入口：
         /// - clipData != null：使用曲线/混合驱动（用于 Start/Land/Vault 等带烘焙位移的状态）。
-        /// - clipData == null：使用输入驱动（自动根据 IsAiming 选择 FreeLook/Aiming 逻辑）。
+        /// - clipData == null：使用输入驱动。
         /// </summary>
         public void UpdateMotion(MotionClipData clipData, float stateTime, float startYaw)
         {
             HandleAimModeTransitionIfNeeded();
 
-            Vector3 horizontalVelocity;
-
-            if (clipData != null)
-            {
-                if (clipData.Type == MotionType.CurveDriven)
-                {
-                    _pendingViewYawAlign = true;
-                    horizontalVelocity = CalculateCurveDrivenVelocity(clipData, stateTime, startYaw);
-                }
-                else if (clipData.Type == MotionType.mixed)
-                {
-                    if (stateTime < clipData.RotationFinishedTime)
-                    {
-                        _pendingViewYawAlign = true;
-                        horizontalVelocity = CalculateCurveDrivenVelocity(clipData, stateTime, startYaw);
-                    }
-                    else
-                    {
-                        horizontalVelocity = CalculateMotionFromInput();
-                    }
-                }
-                else
-                {
-                    _pendingViewYawAlign = false;
-                    horizontalVelocity = CalculateMotionFromInput();
-                }
-            }
-            else
-            {
-                _pendingViewYawAlign = false;
-                horizontalVelocity = CalculateMotionFromInput();
-            }
+            Vector3 horizontalVelocity = clipData == null
+                ? CalculateMotionFromInput()
+                : CalculateMotionFromClip(clipData, stateTime, startYaw);
 
             Vector3 verticalVelocity = CalculateGravity();
             _cc.Move((horizontalVelocity + verticalVelocity) * Time.deltaTime);
         }
 
         /// <summary>
-        /// 仅更新重力/接地，不进行水平移动。
-        ///（Idle 等状态使用）
+        /// 仅更新重力/接地，不进行水平移动。（Idle 等状态使用）
         /// </summary>
         public void UpdateMotion()
         {
@@ -88,45 +60,55 @@ namespace Characters.Player.Core
 
         /// <summary>
         /// 输入驱动的移动（FreeLook/Aiming 自动分流）。
-        /// 用于 MoveLoop/AimIdle/AimMove 等不需要曲线驱动的状态，避免 UpdateMotion(null,...) 这种“空参数调用”。
         /// </summary>
         public void UpdateLocomotionFromInput(float speedMult = 1f)
         {
             HandleAimModeTransitionIfNeeded();
-
-            _pendingViewYawAlign = false;
 
             Vector3 horizontalVelocity = CalculateMotionFromInput(speedMult);
             Vector3 verticalVelocity = CalculateGravity();
             _cc.Move((horizontalVelocity + verticalVelocity) * Time.deltaTime);
         }
 
-        // Removed old compatibility method UpdateAimMotion.
+        private Vector3 CalculateMotionFromClip(MotionClipData clipData, float stateTime, float startYaw)
+        {
+            if (clipData.Type == MotionType.CurveDriven)
+            {
+                return CalculateCurveDrivenVelocity(clipData, stateTime, startYaw);
+            }
+
+            if (clipData.Type == MotionType.mixed)
+            {
+                // RotationFinishedTime 之前：曲线强制旋转/位移
+                // RotationFinishedTime 之后：切回输入驱动（角色将自然追随 Authority）
+                return stateTime < clipData.RotationFinishedTime
+                    ? CalculateCurveDrivenVelocity(clipData, stateTime, startYaw)
+                    : CalculateMotionFromInput();
+            }
+
+            // InputDriven
+            return CalculateMotionFromInput();
+        }
 
         private Vector3 CalculateMotionFromInput(float speedMult = 1f)
         {
-            AlignViewYawToCharacterIfPending();
-
             return _data.IsAiming
                 ? CalculateAimDrivenVelocity(speedMult)
-                : CalculateInputDrivenVelocity(speedMult);
+                : CalculateFreeLookDrivenVelocity(speedMult);
         }
 
         /// <summary>
-        /// 探索模式（FreeLook）：移动使用 CameraTransform 的水平 forward/right 作为参考系。
+        /// 探索模式（FreeLook）：
+        /// - 参考系来自 AuthorityYaw（相机/鼠标权威）；
+        /// - 角色朝向使用 Orient-to-movement（朝移动方向转）。
         /// </summary>
-        private Vector3 CalculateInputDrivenVelocity(float speedMult = 1f)
+        private Vector3 CalculateFreeLookDrivenVelocity(float speedMult = 1f)
         {
-            // CameraRoot 已移除：这里以 RuntimeData.CameraTransform 作为唯一相机参考。
-            Transform cam = _data.CameraTransform;
+            float yaw = _data.AuthorityYaw;
+            Quaternion yawRot = Quaternion.Euler(0f, yaw, 0f);
 
-            Vector3 camForward = cam != null ? cam.forward : _player.transform.forward;
-            Vector3 camRight = cam != null ? cam.right : _player.transform.right;
-
-            camForward.y = 0f;
-            camRight.y = 0f;
-            camForward = camForward.sqrMagnitude > 0.0001f ? camForward.normalized : _player.transform.forward;
-            camRight = camRight.sqrMagnitude > 0.0001f ? camRight.normalized : _player.transform.right;
+            Vector3 basisForward = yawRot * Vector3.forward;
+            Vector3 basisRight = yawRot * Vector3.right;
 
             Vector2 input = _data.MoveInput;
             if (input.sqrMagnitude < 0.001f)
@@ -135,9 +117,10 @@ namespace Characters.Player.Core
                 return Vector3.zero;
             }
 
-            Vector3 moveDir = camRight * input.x + camForward * input.y;
+            Vector3 moveDir = basisRight * input.x + basisForward * input.y;
             moveDir = moveDir.sqrMagnitude > 0.0001f ? moveDir.normalized : Vector3.zero;
 
+            // 角色朝向：朝向移动方向（而不是强制朝 AuthorityYaw）
             float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
             float smoothedYaw = Mathf.SmoothDampAngle(
                 _player.transform.eulerAngles.y,
@@ -155,17 +138,20 @@ namespace Characters.Player.Core
         }
 
         /// <summary>
-        /// 瞄准模式（Strafing）：旋转由 LookInput.x 驱动角色，移动严格使用角色自身 forward/right。
+        /// 瞄准模式（Strafing）：
+        /// - 旋转由 LookInput.x 驱动角色（本模式下由 MotionDriver 消费 LookInput）；
+        /// - 移动严格使用角色自身 forward/right。
         /// </summary>
         private Vector3 CalculateAimDrivenVelocity(float speedMult = 1f)
         {
-            float lookDeltaX = _data.LookInput.x;
-            _data.LookInput = Vector2.zero;
+            float currentYaw = _player.transform.eulerAngles.y;
 
-            float targetYaw = _player.transform.eulerAngles.y + lookDeltaX * _config.LookSensitivity.x * _config.AimSensitivity * Time.deltaTime;
+            // 瞄准模式：写死为“角色平滑对齐 AuthorityYaw（相机权威方向）”。
+            // 注意：这里不修改 AuthorityYaw/AuthorityRotation，权威永远由 ViewRotationProcessor（鼠标输入）维护。
+            float targetYaw = _data.AuthorityYaw;
 
             float smoothedYaw = Mathf.SmoothDampAngle(
-                _player.transform.eulerAngles.y,
+                currentYaw,
                 targetYaw,
                 ref _data.RotationVelocity,
                 _config.AimRotationSmoothTime
@@ -173,9 +159,6 @@ namespace Characters.Player.Core
 
             _player.transform.rotation = Quaternion.Euler(0f, smoothedYaw, 0f);
             _data.CurrentYaw = smoothedYaw;
-
-            // CameraRoot 已移除：这里仅维护数据层的 ViewYaw，使模式切换时 yaw 连续。
-            _data.ViewYaw = smoothedYaw;
 
             Vector2 input = _data.MoveInput;
             if (input.sqrMagnitude < 0.001f) return Vector3.zero;
@@ -204,6 +187,7 @@ namespace Characters.Player.Core
             Quaternion offsetRot = Quaternion.Euler(0f, curveAngle, 0f);
             Quaternion targetRot = startRot * offsetRot;
 
+            // 曲线阶段：动画强制转身（只影响角色）
             _player.transform.rotation = Quaternion.Slerp(_player.transform.rotation, targetRot, Time.deltaTime * 30f);
 
             _data.CurrentYaw = _player.transform.eulerAngles.y;
@@ -212,26 +196,17 @@ namespace Characters.Player.Core
             return _player.transform.forward * speed;
         }
 
-        private void AlignViewYawToCharacterIfPending()
-        {
-            if (!_pendingViewYawAlign) return;
-            _pendingViewYawAlign = false;
-
-            float characterYaw = _player.transform.eulerAngles.y;
-            _data.ViewYaw = characterYaw;
-            _data.CurrentYaw = characterYaw;
-        }
-
         private void HandleAimModeTransitionIfNeeded()
         {
             bool isAiming = _data.IsAiming;
             if (isAiming == _wasAimingLastFrame) return;
 
-            float yaw = _player.transform.eulerAngles.y;
-            _data.CurrentYaw = yaw;
-            _data.ViewYaw = yaw;
-
+            // 切换瞬间清理旋转速度，避免 SmoothDampAngle 过冲。
             _data.RotationVelocity = 0f;
+
+            // 注意：不在此处强行修改 AuthorityYaw（鼠标权威）。
+            // 若未来需要“进入瞄准时角色立刻朝相机”一类效果，应在状态/意图层做“角色对齐 Authority”的策略。
+
             _wasAimingLastFrame = isAiming;
         }
 

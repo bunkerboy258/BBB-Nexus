@@ -33,19 +33,41 @@ namespace Characters.Player.Parameters
 
         public void Update()
         {
-            // 1. 计算两个独立的平滑值
+            // 0) 统一出移动派生数据（状态机/动画共用）
+            UpdateMovementDerivedData();
+
+            // 1) 计算两个独立的平滑值
             UpdateIntensityLogic();
             UpdateAngleLogic();
 
-            // 2. [核心] 将极坐标转为笛卡尔坐标
+            // 2) 极坐标 -> 笛卡尔坐标
             float rad = _currentAngle * Mathf.Deg2Rad;
             float x = Mathf.Sin(rad) * _currentIntensity;
             float y = Mathf.Cos(rad) * _currentIntensity;
 
-            // 3. 写入 Data 供 Mixer 使用
+            // 3) 写入 Data 供 Mixer 使用
             _data.CurrentAnimBlendX = x;
             _data.CurrentAnimBlendY = y;
-            //Debug.Log($"[MovementParameterProcessor] Updated Blend - X: {x:F2}, Y: {y:F2}");
+        }
+
+        private void UpdateMovementDerivedData()
+        {
+            // 默认值
+            _data.DesiredWorldMoveDir = Vector3.zero;
+            _data.DesiredLocalMoveAngle = 0f;
+
+            Vector2 input = _data.MoveInput;
+            if (input.sqrMagnitude < 0.001f) return;
+
+            // 以 AuthorityYaw 为参考系得到世界方向
+            float worldAngle = Mathf.Atan2(input.x, input.y) * Mathf.Rad2Deg + _data.AuthorityYaw;
+            Vector3 worldDir = Quaternion.Euler(0f, worldAngle, 0f) * Vector3.forward;
+            worldDir.y = 0f;
+            _data.DesiredWorldMoveDir = worldDir.sqrMagnitude > 0.0001f ? worldDir.normalized : Vector3.zero;
+
+            // 转为本地角度（-180~180）
+            Vector3 localDir = _playerTransform.InverseTransformDirection(_data.DesiredWorldMoveDir);
+            _data.DesiredLocalMoveAngle = Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg;
         }
 
         // --- Y 轴逻辑 (强度/速度) ---
@@ -79,23 +101,9 @@ namespace Characters.Player.Parameters
         // --- X 轴逻辑 (方向/角度) ---
         private void UpdateAngleLogic()
         {
-            float targetAngle = 0f;
+            // targetAngle 来自统一派生数据，确保与起步/状态判定一致
+            float targetAngle = _data.DesiredLocalMoveAngle;
 
-            // 仅当有输入时计算目标角度，否则保持 0 (或者保持上一帧角度？通常归零)
-            if (_data.MoveInput.sqrMagnitude > 0.001f)
-            {
-                // 世界空间方向
-                float worldAngle = Mathf.Atan2(_data.MoveInput.x, _data.MoveInput.y) * Mathf.Rad2Deg;
-                if (_data.CameraTransform != null)
-                    worldAngle += _data.CameraTransform.eulerAngles.y;
-
-                // 本地空间方向
-                Vector3 worldDir = Quaternion.Euler(0f, worldAngle, 0f) * Vector3.forward;
-                Vector3 localDir = _playerTransform.InverseTransformDirection(worldDir);
-                targetAngle = Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg;
-            }
-
-            // 角度平滑 (解决 180 度跳变的核心)
             _currentAngle = Mathf.SmoothDampAngle(
                 _currentAngle,
                 targetAngle,

@@ -38,55 +38,33 @@ namespace Characters.Player.States
         protected bool HasMoveInput => data.MoveInput.sqrMagnitude > 0.001f;
 
         /// <summary>
-        /// 计算世界坐标系下的移动方向（基于相机）
+        /// 计算世界坐标系下的移动方向（统一：由 MovementParameterProcessor 写入 DesiredWorldMoveDir）。
         /// </summary>
         protected UnityEngine.Vector3 CalculateWorldMoveDir()
         {
-            // 1. 输入角度 (相对于屏幕/相机)
-            float inputAngle = UnityEngine.Mathf.Atan2(data.MoveInput.x, data.MoveInput.y) * UnityEngine.Mathf.Rad2Deg;
-
-            // 2. 叠加相机角度
-            if (data.CameraTransform != null)
-            {
-                inputAngle += data.CameraTransform.eulerAngles.y;
-            }
-
-            // 3. 转为向量
-            return UnityEngine.Quaternion.Euler(0f, inputAngle, 0f) * UnityEngine.Vector3.forward;
+            return data.DesiredWorldMoveDir;
         }
 
-        // 重载版本
+        // 重载版本：保持签名，但同样走统一规则（inputVector 参数用于兼容旧调用，实际结果仍以当前 data 为准）
         protected UnityEngine.Vector3 CalculateWorldMoveDir(Vector2 inputVector)
         {
-            float inputAngle = UnityEngine.Mathf.Atan2(inputVector.x, inputVector.y) * UnityEngine.Mathf.Rad2Deg;
-            if (data.CameraTransform != null) inputAngle += data.CameraTransform.eulerAngles.y;
-            return UnityEngine.Quaternion.Euler(0f, inputAngle, 0f) * UnityEngine.Vector3.forward;
+            // 需要按指定 inputVector 计算时可在此扩展；当前统一以 data.MoveInput/AuthorityYaw 的结果为准。
+            return data.DesiredWorldMoveDir;
         }
 
         /// <summary>
         /// 计算相对于角色当前朝向的本地角度 (-180 ~ 180)
+        /// （统一：由 MovementParameterProcessor 写入 DesiredLocalMoveAngle）。
         /// </summary>
         protected float CalculateLocalAngle()
         {
-            if (!HasMoveInput) return 0f;
-
-            // 1. 获取目标世界方向
-            Vector3 worldMoveDir = CalculateWorldMoveDir();
-
-            // 2. 转为本地空间 (相对于 Player.transform)
-            Vector3 localDir = player.transform.InverseTransformDirection(worldMoveDir);
-
-            // 3. 计算角度
-            return Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg;
+            return data.DesiredLocalMoveAngle;
         }
 
-        // 重载版本
+        // 重载版本：保持签名
         protected float CalculateLocalAngle(Vector2 inputVector)
         {
-            if (inputVector.sqrMagnitude < 0.001f) return 0f;
-            Vector3 worldMoveDir = CalculateWorldMoveDir(inputVector);
-            Vector3 localDir = player.transform.InverseTransformDirection(worldMoveDir);
-            return Mathf.Atan2(localDir.x, localDir.z) * Mathf.Rad2Deg;
+            return data.DesiredLocalMoveAngle;
         }
     }
 }

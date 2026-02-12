@@ -48,6 +48,8 @@ namespace Characters.Player
         [Tooltip("如果配置了此项，游戏开始时会自动装备这个物品")]
         public ItemDefinitionSO DefaultEquipment;
 
+        // [Removed] CameraRoot 同步已迁移到 Core.CameraSystem.CameraRigDriver（场景独立物体）。
+
         // --- 核心系统引用（供外部系统访问） ---
         public StateMachine StateMachine { get; private set; }
         public PlayerRuntimeData RuntimeData { get; private set; }
@@ -82,6 +84,7 @@ namespace Characters.Player
         private AimIntentProcessor _aimIntentProcessor; // [瞄准处理]
         private IKIntentProcessor _iKIntentProcessor;
 
+        private ViewRotationProcessor _viewRotationProcessor;
 
         // --- Unity 生命周期方法 ---
         private void Awake()
@@ -110,8 +113,10 @@ namespace Characters.Player
         {
             // 1. 输入 -> 原始数据
             RuntimeData.MoveInput = InputReader.MoveInput;
-            // 新增：同步鼠标视角输入到 RuntimeData，供 MotionDriver 使用
             RuntimeData.LookInput = InputReader.LookInput;
+
+            // 1.5 生成/更新权威方向源（yaw/pitch）
+            _viewRotationProcessor.Update();
 
             // 2. 原始数据 -> 逻辑意图
             _inputIntentProcessor.Update();
@@ -140,6 +145,8 @@ namespace Characters.Player
             // 7. 重置data意图标记    
             RuntimeData.ResetIntetnt();
         }
+
+        // [Removed] LateUpdate：CameraRoot 同步由 CameraRigDriver 负责。
 
         // --- 初始化方法 ---
         /// <summary>
@@ -181,6 +188,7 @@ namespace Characters.Player
             _equipIntentProcessor=new EquipIntentProcessor(this);
             _aimIntentProcessor = new AimIntentProcessor(this); // 同上
             _iKIntentProcessor=new IKIntentProcessor(this);
+            _viewRotationProcessor = new ViewRotationProcessor(this);
         }
 
         /// <summary>

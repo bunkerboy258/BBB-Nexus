@@ -72,6 +72,27 @@ namespace Characters.Player.Data
 
         #endregion
 
+        #region Authority Orientation (权威方向源)
+
+        /// <summary>
+        /// 权威水平角（度）。
+        /// 约定：所有“以相机为参考系”的逻辑（移动、对齐、相机 root）都应优先使用该值，而不是直接读 CameraTransform。
+        /// </summary>
+        public float AuthorityYaw;
+
+        /// <summary>
+        /// 权威俯仰角（度）。
+        /// 用于驱动 CameraRoot pitch 或 IK/瞄准仰角等。
+        /// </summary>
+        public float AuthorityPitch;
+
+        /// <summary>
+        /// 权威旋转（世界空间）。等价于 Quaternion.Euler(AuthorityPitch, AuthorityYaw, 0)。
+        /// </summary>
+        public Quaternion AuthorityRotation;
+
+        #endregion
+
         #region Character State (角色状态)
 
         /// <summary>
@@ -198,6 +219,24 @@ namespace Characters.Player.Data
         /// 用途：冲刺消耗/恢复。
         /// </summary>
         public float CurrentStamina;
+
+        #endregion
+
+        #region Movement Derived (移动派生数据：统一输出)
+
+        /// <summary>
+        /// 期望的世界空间移动方向（已融合 MoveInput + AuthorityYaw）。
+        /// 约定：由 MovementParameterProcessor（或专用 MovementDirectionProcessor）每帧更新；
+        /// 状态机与动画层只读，避免重复计算导致不一致。
+        /// </summary>
+        public Vector3 DesiredWorldMoveDir;
+
+        /// <summary>
+        /// 期望的本地移动角（度，-180~180）。
+        /// 定义：将 DesiredWorldMoveDir 转换到 Player 本地空间后得到的朝向角。
+        /// 用途：起步动画方向选择、2D Mixer 方向参数等。
+        /// </summary>
+        public float DesiredLocalMoveAngle;
 
         #endregion
 
