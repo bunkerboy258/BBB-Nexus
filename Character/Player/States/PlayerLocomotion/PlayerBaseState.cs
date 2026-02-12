@@ -37,34 +37,5 @@ namespace Characters.Player.States
         /// </summary>
         protected bool HasMoveInput => data.MoveInput.sqrMagnitude > 0.001f;
 
-        /// <summary>
-        /// 计算世界坐标系下的移动方向（统一：由 MovementParameterProcessor 写入 DesiredWorldMoveDir）。
-        /// </summary>
-        protected UnityEngine.Vector3 CalculateWorldMoveDir()
-        {
-            return data.DesiredWorldMoveDir;
-        }
-
-        // 重载版本：保持签名，但同样走统一规则（inputVector 参数用于兼容旧调用，实际结果仍以当前 data 为准）
-        protected UnityEngine.Vector3 CalculateWorldMoveDir(Vector2 inputVector)
-        {
-            // 需要按指定 inputVector 计算时可在此扩展；当前统一以 data.MoveInput/AuthorityYaw 的结果为准。
-            return data.DesiredWorldMoveDir;
-        }
-
-        /// <summary>
-        /// 计算相对于角色当前朝向的本地角度 (-180 ~ 180)
-        /// （统一：由 MovementParameterProcessor 写入 DesiredLocalMoveAngle）。
-        /// </summary>
-        protected float CalculateLocalAngle()
-        {
-            return data.DesiredLocalMoveAngle;
-        }
-
-        // 重载版本：保持签名
-        protected float CalculateLocalAngle(Vector2 inputVector)
-        {
-            return data.DesiredLocalMoveAngle;
-        }
     }
 }

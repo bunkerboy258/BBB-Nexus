@@ -40,7 +40,7 @@ namespace Characters.Player.States
                 // 4. 设置初始参数
                 // [修复] 必须是 Vector2 (X:角度, Y:速度)
                 // 注意：这里需要一个初始的 X 值，我们可以从 Data 里取，或者算一个
-                float initialX = CalculateLocalAngle(); // 或者 data.CurrentAnimBlendX
+                float initialX = data.DesiredLocalMoveAngle; // 或者 data.CurrentAnimBlendX
                 float initialY = data.IsRunning ? 1.0f : 0.7f;
 
                 state.Parameter = new Vector2(initialX, initialY);
