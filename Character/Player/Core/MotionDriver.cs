@@ -14,10 +14,10 @@ namespace Characters.Player.Core
         private readonly PlayerRuntimeData _data;
         private readonly PlayerSO _config;
 
-        // 曲线->输入切换：用于对齐 ViewYaw，避免参考系突变。
+        // 曲线->输入切换消耗性标记：用于对齐 ViewYaw，避免参考系突变 
         private bool _pendingViewYawAlign;
 
-        // 模式切换守卫：用于在 FreeLook<->Aiming 切换时做一次性的 yaw 同步（防止角度跳变）
+        // 模式切换消耗性标记：用于在 FreeLook<->Aiming 切换时做一次性的 yaw 同步（防止角度跳变）
         private bool _wasAimingLastFrame;
 
         public MotionDriver(PlayerController player)
@@ -30,6 +30,11 @@ namespace Characters.Player.Core
             _wasAimingLastFrame = _data.IsAiming;
         }
 
+        /// <summary>
+        /// 统一入口：
+        /// - clipData != null：使用曲线/混合驱动（用于 Start/Land/Vault 等带烘焙位移的状态）。
+        /// - clipData == null：使用输入驱动（自动根据 IsAiming 选择 FreeLook/Aiming 逻辑）。
+        /// </summary>
         public void UpdateMotion(MotionClipData clipData, float stateTime, float startYaw)
         {
             HandleAimModeTransitionIfNeeded();
@@ -71,6 +76,10 @@ namespace Characters.Player.Core
             _cc.Move((horizontalVelocity + verticalVelocity) * Time.deltaTime);
         }
 
+        /// <summary>
+        /// 仅更新重力/接地，不进行水平移动。
+        ///（Idle 等状态使用）
+        /// </summary>
         public void UpdateMotion()
         {
             Vector3 verticalVelocity = CalculateGravity();
@@ -78,14 +87,21 @@ namespace Characters.Player.Core
         }
 
         /// <summary>
-        /// [兼容接口] 旧的瞄准状态仍在调用 UpdateAimMotion。
+        /// 输入驱动的移动（FreeLook/Aiming 自动分流）。
+        /// 用于 MoveLoop/AimIdle/AimMove 等不需要曲线驱动的状态，避免 UpdateMotion(null,...) 这种“空参数调用”。
         /// </summary>
-        public void UpdateAimMotion(float speedMult)
+        public void UpdateLocomotionFromInput(float speedMult = 1f)
         {
-            Vector3 horizontal = CalculateAimDrivenVelocity(speedMult);
-            Vector3 vertical = CalculateGravity();
-            _cc.Move((horizontal + vertical) * Time.deltaTime);
+            HandleAimModeTransitionIfNeeded();
+
+            _pendingViewYawAlign = false;
+
+            Vector3 horizontalVelocity = CalculateMotionFromInput(speedMult);
+            Vector3 verticalVelocity = CalculateGravity();
+            _cc.Move((horizontalVelocity + verticalVelocity) * Time.deltaTime);
         }
+
+        // Removed old compatibility method UpdateAimMotion.
 
         private Vector3 CalculateMotionFromInput(float speedMult = 1f)
         {

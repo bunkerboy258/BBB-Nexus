@@ -46,8 +46,8 @@ namespace Characters.Player.States
 
         public override void PhysicsUpdate()
         {
-            // MotionDriver 的 Aim 逻辑保持不变
-            player.MotionDriver.UpdateAimMotion(1f);
+            // Use new MotionDriver API: call UpdateMotion with null clip to drive input/aim motion
+            player.MotionDriver.UpdateMotion(null, 0f, player.RuntimeData.ViewYaw);
         }
 
         public override void Exit()

@@ -43,10 +43,8 @@ namespace Characters.Player.States
 
         public override void PhysicsUpdate()
         {
-            // 3. 驱动转身
-            // 即使站着不动，也应该能转动身体跟随相机
-            // 我们可以复用 MotionDriver 的 Aim 模式，它会自动处理旋转
-            player.MotionDriver.UpdateAimMotion(1f);
+            // Use new MotionDriver API: call UpdateMotion with null clip to drive input/aim motion
+            player.MotionDriver.UpdateMotion(null, 0f, player.RuntimeData.ViewYaw);
         }
 
         public override void Exit()

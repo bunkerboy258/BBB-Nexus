@@ -45,7 +45,7 @@ namespace Characters.Player.Data
         /// <summary>
         /// 视角水平角（度）。
         /// 用途：
-        /// - FreeLook：通常代表“相机/CameraRoot”的 yaw 参考；
+        /// - FreeLook：通常代表“相机”的 yaw 参考；
         /// - Aiming：通常会被同步为角色 yaw，保证模式切换不跳变。
         /// </summary>
         public float ViewYaw;
