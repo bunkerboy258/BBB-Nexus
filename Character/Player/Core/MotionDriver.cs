@@ -7,6 +7,12 @@ namespace Characters.Player.Core
     /// MotionDriver：
     /// 把“输入/动画曲线”转换为 CharacterController.Move 的速度向量，并维护角色运动相关运行时数据。
     /// 
+    /// 职责：
+    /// - 根据 CurrentLocomotionState 获取基础速度（Walk/Jog/Sprint）
+    /// - 根据 IsAiming 选择探索模式或瞄准模式的速度
+    /// - 计算水平运动向量并应用到 CharacterController
+    /// - 维护垂直速度和重力
+    /// 
     /// 重要约定（当前工程的目标手感）：
     /// - AuthorityYaw/AuthorityPitch 仅由 ViewRotationProcessor（鼠标）维护；相机可自由旋转。
     /// - 曲线驱动阶段（Start/Land/Vault 等）只允许动画强制旋转角色，不允许越级修改 Authority 参考系。
@@ -101,6 +107,7 @@ namespace Characters.Player.Core
         /// 探索模式（FreeLook）：
         /// - 参考系来自 AuthorityYaw（相机/鼠标权威）；
         /// - 角色朝向使用 Orient-to-movement（朝移动方向转）。
+        /// - 根据 CurrentLocomotionState 选择三档速度。
         /// </summary>
         private Vector3 CalculateFreeLookDrivenVelocity(float speedMult = 1f)
         {
@@ -131,7 +138,8 @@ namespace Characters.Player.Core
             _player.transform.rotation = Quaternion.Euler(0f, smoothedYaw, 0f);
             _data.CurrentYaw = smoothedYaw;
 
-            float baseSpeed = _data.IsRunning ? _config.RunSpeed : _config.MoveSpeed;
+            // 根据运动状态获取基础速度
+            float baseSpeed = GetSpeedForLocomotionState(_data.CurrentLocomotionState, isAiming: false);
             if (!_data.IsGrounded) baseSpeed *= _config.AirControl;
 
             return moveDir * baseSpeed * speedMult;
@@ -141,6 +149,7 @@ namespace Characters.Player.Core
         /// 瞄准模式（Strafing）：
         /// - 旋转由 LookInput.x 驱动角色（本模式下由 MotionDriver 消费 LookInput）；
         /// - 移动严格使用角色自身 forward/right。
+        /// - 根据 CurrentLocomotionState 选择三档速度。
         /// </summary>
         private Vector3 CalculateAimDrivenVelocity(float speedMult = 1f)
         {
@@ -173,10 +182,50 @@ namespace Characters.Player.Core
             Vector3 moveDir = (right * input.x + forward * input.y);
             moveDir = moveDir.sqrMagnitude > 0.0001f ? moveDir.normalized : Vector3.zero;
 
-            float baseSpeed = _data.IsRunning ? _config.AimRunSpeed : _config.AimWalkSpeed;
+            // 根据运动状态获取基础速度（瞄准模式）
+            float baseSpeed = GetSpeedForLocomotionState(_data.CurrentLocomotionState, isAiming: true);
             if (!_data.IsGrounded) baseSpeed *= _config.AirControl;
 
             return moveDir * baseSpeed * speedMult;
+        }
+
+        /// <summary>
+        /// 根据运动状态获取基础速度。
+        /// 
+        /// 探索模式：
+        /// - Walk:  WalkSpeed
+        /// - Jog:   JogSpeed
+        /// - Sprint: SprintSpeed
+        /// - Idle:  0
+        /// 
+        /// 瞄准模式：
+        /// - Walk:  AimWalkSpeed
+        /// - Jog:   AimJogSpeed
+        /// - Sprint: AimSprintSpeed
+        /// - Idle:  0
+        /// </summary>
+        private float GetSpeedForLocomotionState(LocomotionState state, bool isAiming)
+        {
+            if (isAiming)
+            {
+                return state switch
+                {
+                    LocomotionState.Walk => _config.AimWalkSpeed,
+                    LocomotionState.Jog => _config.AimJogSpeed,
+                    LocomotionState.Sprint => _config.AimSprintSpeed,
+                    _ => 0f
+                };
+            }
+            else
+            {
+                return state switch
+                {
+                    LocomotionState.Walk => _config.WalkSpeed,
+                    LocomotionState.Jog => _config.JogSpeed,
+                    LocomotionState.Sprint => _config.SprintSpeed,
+                    _ => 0f
+                };
+            }
         }
 
         private Vector3 CalculateCurveDrivenVelocity(MotionClipData data, float time, float startYaw)

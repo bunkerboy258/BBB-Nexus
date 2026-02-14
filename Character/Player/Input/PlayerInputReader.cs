@@ -18,6 +18,9 @@ namespace Characters.Player.Input
         // 是否处于冲刺状态：通过属性实时判断冲刺按键是否按下
         public bool IsSprinting => sprintAction != null && sprintAction.action.IsPressed();
 
+        // 是否处于行走状态：通过属性实时判断行走按键（Ctrl）是否按下
+        public bool IsWalking => walkAction != null && walkAction.action.IsPressed();
+
         // C# 表达式体语法，等价于 get { return ... }
         //移动输入是连续值 需要实时同步输入值的变化 所以用事件绑定
         //跳跃 / 冲刺是布尔值，且通常不是 “持续响应” 用 IsPressed() 实时查询足够，且代码更简洁（不用绑定事件、管理回调）
@@ -51,6 +54,8 @@ namespace Characters.Player.Input
         [Header("Input References")]
         [Tooltip("移动动作的引用（InputActionReference）")]
         public InputActionReference moveAction;
+        [Tooltip("行走动作的引用（InputActionReference），通常绑定 LeftCtrl 或 RightCtrl")]
+        public InputActionReference walkAction;
         [Tooltip("冲刺动作的引用（InputActionReference）")]
         public InputActionReference sprintAction;
         [Tooltip("跳跃动作的引用（InputActionReference）")]
@@ -92,6 +97,7 @@ namespace Characters.Player.Input
         private void OnEnable()
         {
             InitializeMoveInput();
+            InitializeWalkInput();
             InitializeSprintInput();
             InitializeJumpInput();
             InitializeWaveInput();
@@ -110,6 +116,7 @@ namespace Characters.Player.Input
         private void OnDisable()
         {
             UninitializeMoveInput();
+            UninitializeWalkInput();
             UninitializeSprintInput();
             UninitializeJumpInput();
             UninitializeWaveInput();
@@ -163,6 +170,20 @@ namespace Characters.Player.Input
             moveAction.action.canceled -= OnMove;
             moveAction.action.started -= OnMoveStarted;
             moveAction.action.canceled -= OnMoveCanceled;
+        }
+
+        private void InitializeWalkInput()
+        {
+            if (walkAction == null) return;
+
+            walkAction.action.Enable();
+        }
+
+        private void UninitializeWalkInput()
+        {
+            if (walkAction == null) return;
+
+            walkAction.action.Disable();
         }
 
         private void InitializeSprintInput()
@@ -464,4 +485,4 @@ namespace Characters.Player.Input
         }
         #endregion
     }
-}
+} 

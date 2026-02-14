@@ -103,11 +103,14 @@ namespace Characters.Player.Data
         public Vector2 PitchLimits = new Vector2(-70f, 70f);
 
         [Header("Movement")]
-        [Tooltip("探索模式（未瞄准）基础移动速度")]
-        public float MoveSpeed = 4f;
+        [Tooltip("探索模式（未瞄准）行走速度（Ctrl 按住）")]
+        public float WalkSpeed = 2f;
 
-        [Tooltip("探索模式（未瞄准）奔跑速度")]
-        public float RunSpeed = 7f;
+        [Tooltip("探索模式（未瞄准）慢跑速度（正常移动）")]
+        public float JogSpeed = 4f;
+
+        [Tooltip("探索模式（未瞄准）冲刺速度（Shift 按住，消耗体力）")]
+        public float SprintSpeed = 7f;
 
         [Tooltip("探索模式 Orient-to-Movement 的旋转平滑时间（SmoothDampAngle）")]
         public float RotationSmoothTime = 0.12f;
@@ -124,9 +127,20 @@ namespace Characters.Player.Data
         [Tooltip("重力加速度（负值向下）")]
         public float Gravity = -20f;
 
-        // [Removed] GroundingForce：当前 MotionDriver 采用“VerticalVelocity=-2f 贴地”策略，
-        // 本字段在 Player 代码内无引用，保留只会增加配置面噪音。
-        // 如后续需要更精细的贴地力/斜坡吸附，可恢复并在 MotionDriver.CalculateGravity 中使用。
+        // [Deprecated 向后兼容]
+        /// <summary>[Deprecated] 已被 JogSpeed 替代，保留向后兼容</summary>
+        public float MoveSpeed
+        {
+            get => JogSpeed;
+            set => JogSpeed = value;
+        }
+
+        /// <summary>[Deprecated] 已被 SprintSpeed 替代，保留向后兼容</summary>
+        public float RunSpeed
+        {
+            get => SprintSpeed;
+            set => SprintSpeed = value;
+        }
 
         #endregion
 
@@ -136,13 +150,17 @@ namespace Characters.Player.Data
         [Tooltip("耐力上限")]
         public float MaxStamina = 1000f;
 
-        [Tooltip("奔跑时每秒消耗耐力")]
+        [Tooltip("冲刺时每秒消耗耐力")]
         public float StaminaDrainRate = 20f;
 
-        [Tooltip("非奔跑时每秒恢复耐力")]
+        [Tooltip("非冲刺时每秒恢复耐力")]
         public float StaminaRegenRate = 15f;
 
-        [Tooltip("体力耗尽后需要恢复到的百分比（如0.2=20%）才能重新奔跑")]
+        [Tooltip("行走时耐力恢复倍率（相对于 StaminaRegenRate）")]
+        [Range(0.5f, 2.0f)]
+        public float WalkStaminaRegenMult = 1.5f;
+
+        [Tooltip("体力耗尽后需要恢复到的百分比（如0.2=20%）才能重新冲刺")]
         [Range(0f, 1f)]
         public float StaminaRecoverThreshold = 0.2f;
 
@@ -169,10 +187,13 @@ namespace Characters.Player.Data
         public float AimSensitivity = 1f;
 
         [Tooltip("瞄准模式行走速度（Strafe）")]
-        public float AimWalkSpeed = 2.5f;
+        public float AimWalkSpeed = 1.5f;
 
-        [Tooltip("瞄准模式奔跑速度（Strafe）")]
-        public float AimRunSpeed = 5.0f;
+        [Tooltip("瞄准模式慢跑速度（Strafe）")]
+        public float AimJogSpeed = 2.5f;
+
+        [Tooltip("瞄准模式冲刺速度（Strafe）")]
+        public float AimSprintSpeed = 5.0f;
 
         [Tooltip("瞄准模式旋转平滑时间（SmoothDampAngle）")]
         public float AimRotationSmoothTime = 0.05f;
@@ -185,6 +206,21 @@ namespace Characters.Player.Data
 
         [Tooltip("瞄准移动混合器（Strafe locomotion）")]
         public MixerTransition2D AimLocomotionMixer;
+
+        // [Deprecated 向后兼容]
+        /// <summary>[Deprecated] 已被 AimJogSpeed 替代，保留向后兼容</summary>
+        public float AimWalkSpeedLegacy
+        {
+            get => AimJogSpeed;
+            set => AimJogSpeed = value;
+        }
+
+        /// <summary>[Deprecated] 已被 AimSprintSpeed 替代，保留向后兼容</summary>
+        public float AimRunSpeed
+        {
+            get => AimSprintSpeed;
+            set => AimSprintSpeed = value;
+        }
 
         #endregion
 
@@ -226,6 +262,12 @@ namespace Characters.Player.Data
         [Tooltip("跑步停止（右脚）")]
         public ClipTransition RunStopRight;
 
+        [Tooltip("冲刺停止（左脚）")]
+        public ClipTransition SprintStopLeft;
+
+        [Tooltip("冲刺停止（右脚）")]
+        public ClipTransition SprintStopRight;
+
         #endregion
 
         #region Start Animations (启动动画)
@@ -249,6 +291,16 @@ namespace Characters.Player.Data
         public MotionClipData RunStartFwdRight;
         public MotionClipData RunStartBackLeft;
         public MotionClipData RunStartBackRight;
+
+        [Header("Sprint Start")]
+        public MotionClipData SprintStartFwd;
+        public MotionClipData SprintStartBack;
+        public MotionClipData SprintStartLeft;
+        public MotionClipData SprintStartRight;
+        public MotionClipData SprintStartFwdLeft;
+        public MotionClipData SprintStartFwdRight;
+        public MotionClipData SprintStartBackLeft;
+        public MotionClipData SprintStartBackRight;
 
         #endregion
 

@@ -6,6 +6,13 @@ namespace Characters.Player.Processing
 {
     /// <summary>
     /// 统一处理移动与跳跃意图的处理器。
+    /// 职责：根据输入、体力、移动状态判定当前的运动状态（Idle/Walk/Jog/Sprint）。
+    /// 
+    /// 优先级判定（从高到低）：
+    /// 1. Sprint（Shift 按住 + 体力充足 + 有移动输入）
+    /// 2. Walk（Ctrl 按住 + 有移动输入）
+    /// 3. Jog（无特殊按键 + 有移动输入）
+    /// 4. Idle（无移动输入）
     /// </summary>
     public class LocomotionIntentProcessor
     {
@@ -34,8 +41,8 @@ namespace Characters.Player.Processing
         {
             // 处理移动意图
             ProcessMovementIntent();
-            // 体力与奔跑意图判定
-            ProcessStaminaAndRunIntent();
+            // 处理运动状态与体力意图判定
+            ProcessLocomotionStateAndStaminaIntent();
         }
 
         private void ProcessMovementIntent()
@@ -43,10 +50,15 @@ namespace Characters.Player.Processing
             // 判定是否有有效移动输入
             bool isMoving = _data.MoveInput.sqrMagnitude > 0.01f;
 
-            // 更新移动相关意图（可根据需要扩展）
+            // 计算世界空间移动方向（供参数处理器使用）
             if (isMoving)
             {
-                _data.DesiredWorldMoveDir = _player.transform.forward;
+                // 使用权威朝向作为参考系
+                Quaternion yawRot = Quaternion.Euler(0f, _data.AuthorityYaw, 0f);
+                Vector3 basisForward = yawRot * Vector3.forward;
+                Vector3 basisRight = yawRot * Vector3.right;
+
+                _data.DesiredWorldMoveDir = (basisRight * _data.MoveInput.x + basisForward * _data.MoveInput.y).normalized;
             }
             else
             {
@@ -54,34 +66,50 @@ namespace Characters.Player.Processing
             }
         }
 
-        private void ProcessStaminaAndRunIntent()
+        /// <summary>
+        /// 处理运动状态与体力意图。
+        /// 
+        /// 逻辑流程：
+        /// 1. 判定用户输入意图（Ctrl/Shift 按键 + 移动输入）
+        /// 2. 检查体力耗尽限制
+        /// 3. 根据优先级决定最终的运动状态
+        /// 4. 维护 WantToRun 意图标记（用于参数计算、UI 反馈）
+        /// </summary>
+        private void ProcessLocomotionStateAndStaminaIntent()
         {
             bool isMoving = _data.MoveInput.sqrMagnitude > 0.01f;
-            bool wantsToRun = _input.IsSprinting && isMoving;
 
-            // 体力耗尽后需恢复至阈值才能重新奔跑
-            if (_data.IsStaminaDepleted)
+            // 首先检查体力耗尽恢复条件
+            if (_data.IsStaminaDepleted && _data.CurrentStamina > _config.MaxStamina * _config.StaminaRecoverThreshold)
             {
-                if (_data.CurrentStamina > _config.MaxStamina * _config.StaminaRecoverThreshold)
-                {
-                    _data.IsStaminaDepleted = false;
-                }
-                else
-                {
-                    wantsToRun = false;
-                }
+                _data.IsStaminaDepleted = false;
             }
 
-            // 根据意图和体力状态决定是否奔跑
-            if (wantsToRun && !_data.IsStaminaDepleted && _data.CurrentStamina > 0)
+            // 根据优先级判定最终的运动状态
+            // 优先级：Sprint > Walk > Jog > Idle
+            if (!isMoving)
             {
-                _data.IsRunning = true;
+                // 无移动输入 → Idle
+                _data.CurrentLocomotionState = LocomotionState.Idle;
+                _data.WantToRun = false;
+            }
+            else if (_input.IsSprinting && !_data.IsStaminaDepleted && _data.CurrentStamina > 0)
+            {
+                // Shift 按住 + 体力充足 + 有移动输入 → Sprint
+                _data.CurrentLocomotionState = LocomotionState.Sprint;
                 _data.WantToRun = true;
+            }
+            else if (_input.IsWalking)
+            {
+                // Ctrl 按住 + 有移动输入 → Walk
+                _data.CurrentLocomotionState = LocomotionState.Walk;
+                _data.WantToRun = false;
             }
             else
             {
-                _data.IsRunning = false;
-                _data.WantToRun = _input.IsSprinting && !_data.IsStaminaDepleted;
+                // 默认情况：有移动输入 + 无特殊键 → Jog
+                _data.CurrentLocomotionState = LocomotionState.Jog;
+                _data.WantToRun = false;
             }
         }
 

@@ -4,6 +4,20 @@ using Characters.Player.Data;
 
 namespace Characters.Player.States
 {
+    /// <summary>
+    /// 玩家的"持续移动"循环状态。
+    /// 职责：
+    /// 1. 使用单一的循环混合器（MoveLoopMixer），供所有运动状态共用。
+    /// 2. 根据脚相位选择左脚/右脚的混合器版本。
+    /// 3. 实时更新动画混合参数（方向X和速度Y）。
+    /// 4. 动画内部根据 Y 值（0.35=Walk / 0.7=Jog / 0.98=Sprint）自动混合对应速度的动画。
+    /// 5. 检测脚相位并维护循环相位。
+    /// 
+    /// 参数 Y 值映射（由 MovementParameterProcessor 提供）：
+    /// - 0.35 → Walk（行走）
+    /// - 0.7  → Jog（慢跑）
+    /// - 0.98 → Sprint（冲刺）
+    /// </summary>
     public class PlayerMoveLoopState : PlayerBaseState
     {
         // [修复] 类型必须是 MixerState<Vector2>，而不是 Transition
@@ -15,7 +29,10 @@ namespace Characters.Player.States
 
         public override void Enter()
         {
-            // 1. 获取配置 (Transition)
+            Debug.Log($"进入 MoveLoop 状态");
+            
+            Debug.Log($"当前运动状态: {data.CurrentLocomotionState}, 预期脚相位: {data.ExpectedFootPhase}, 当前动画混合参数: ({data.CurrentAnimBlendX}, {data.CurrentAnimBlendY})");
+            // 1. 根据脚相位选择混合器（左/右脚）
             var targetMixer = (data.ExpectedFootPhase == FootPhase.LeftFootDown)
                 ? config.MoveLoopMixer_L
                 : config.MoveLoopMixer_R;
@@ -37,28 +54,18 @@ namespace Characters.Player.States
                 // 3. 重置时间
                 state.Time = 0f;
 
-                // 4. 设置初始参数
-                // [修复] 必须是 Vector2 (X:角度, Y:速度)
-                // 注意：这里需要一个初始的 X 值，我们可以从 Data 里取，或者算一个
-                float initialX = data.DesiredLocalMoveAngle; // 或者 data.CurrentAnimBlendX
-                float initialY = data.IsRunning ? 1.0f : 0.7f;
-
-                state.Parameter = new Vector2(initialX, initialY);
-
-                // 更新缓存
-                data.CurrentAnimBlendY = initialY;
-
-                // 别忘了更新 X 轴的缓存
-                data.CurrentAnimBlendX = initialX;
+                // 4. 设置初始参数（使用当前的动画混合参数）
+                state.Parameter = new Vector2(data.CurrentAnimBlendX, data.CurrentAnimBlendY);
 
                 // 5. 播放
-                player.Animancer.Layers[0].Play(state, 0.25f);
+                player.Animancer.Layers[0].Play(state, 0f);
+                //淡入时间是数据的一部分 而且在动画资源标准的情况下 就是不需要淡入的！
             }
         }
 
         public override void LogicUpdate()
         {
-            if(data.IsAiming)
+            if (data.IsAiming)
             {
                 player.StateMachine.ChangeState(player.AimMoveState);
                 return;
@@ -76,23 +83,26 @@ namespace Characters.Player.States
             else if (data.WantsToJump)
             {
                 player.StateMachine.ChangeState(player.JumpState);
+                return;
             }
 
             // 2. 更新参数
             if (_currentMixerState != null)
             {
-                // A. 设置混合参数 (Vector2)
+                // A. 设置混合参数 (Vector2: X=方向, Y=速度强度)
+                // Y 值由 MovementParameterProcessor 根据 CurrentLocomotionState 提供
+                // (0.35=Walk, 0.7=Jog, 0.98=Sprint)
                 _currentMixerState.Parameter = new Vector2(data.CurrentAnimBlendX, data.CurrentAnimBlendY);
 
-                // B. 更新相位
+                // B. 更新脚相位
                 UpdateFootPhase();
             }
         }
 
         public override void PhysicsUpdate()
         {
-            // [修复] 传递速度时，加上空值检查
-            player.MotionDriver.UpdateMotion(null, 0, 0f);
+            // 根据当前运动状态计算速度，委托给 MotionDriver 处理移动
+            player.MotionDriver.UpdateLocomotionFromInput();
         }
 
         public override void Exit()
