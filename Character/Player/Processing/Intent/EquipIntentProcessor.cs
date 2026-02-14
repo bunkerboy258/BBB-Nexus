@@ -3,7 +3,7 @@ using Items.Core;
 using Items.Data;
 using Characters.Player.Data;
 
-namespace Characters.Player.Core
+namespace Characters.Player.Processing
 {
     public class EquipIntentProcessor
     {

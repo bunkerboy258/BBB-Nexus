@@ -2,7 +2,7 @@ using UnityEngine;
 using Characters.Player.Data;
 using Characters.Player.Input;
 
-namespace Characters.Player.Parameters
+namespace Characters.Player.Processing
 {
     /// <summary>
     /// 职责: 处理跳跃键相关的交互意图分发 (翻越优先 > 跳跃)。

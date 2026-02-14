@@ -3,7 +3,7 @@ using Characters.Player.Core;      // For MotionDriver
 using Characters.Player.Data;
 using Characters.Player.Input;
 using Characters.Player.Layers;
-using Characters.Player.Parameters;
+using Characters.Player.Processing;
 using Characters.Player.States;
 using Core.StateMachine;
 using Items.Core;
@@ -75,16 +75,9 @@ namespace Characters.Player
         private UpperBodyController _upperBodyController;
         private FacialController _facialController;
         private IKController _ikController;
-        private StaminaController _staminaController;       // [耐力系统]
 
-        private MovementParameterProcessor _parameterProcessor;
-        private JumpInteractionProcessor _jumpInteractionProcessor; // [翻越处理]
-        private InputIntentProcessor _inputIntentProcessor; // [输入处理]
-        private EquipIntentProcessor _equipIntentProcessor;
-        private AimIntentProcessor _aimIntentProcessor; // [瞄准处理]
-        private IKIntentProcessor _iKIntentProcessor;
-
-        private ViewRotationProcessor _viewRotationProcessor;
+        private IntentProcessorPipeline _intentProcessorPipeline;
+        private CharacterStatusDriver _characterStatusDriver;
 
         // --- Unity 生命周期方法 ---
         private void Awake()
@@ -103,7 +96,7 @@ namespace Characters.Player
             if (DefaultEquipment != null)
             {
                 // 1. 将默认装备放入槽位 0 (对应按键 1)
-                _equipIntentProcessor.AssignItemToSlot(0,DefaultEquipment);
+                _intentProcessorPipeline.Equip.AssignItemToSlot(0, DefaultEquipment);
             }
             InitializeCamera();
             StateMachine.Initialize(IdleState);
@@ -115,20 +108,14 @@ namespace Characters.Player
             RuntimeData.MoveInput = InputReader.MoveInput;
             RuntimeData.LookInput = InputReader.LookInput;
 
-            // 1.5 生成/更新权威方向源（yaw/pitch）
-            _viewRotationProcessor.Update();
+            // 2. 原始数据 -> 逻辑意图 (含视角、装备、瞄准、运动)
+            _intentProcessorPipeline.UpdateIntentProcessors();
 
-            // 2. 原始数据 -> 逻辑意图
-            _inputIntentProcessor.Update();
-            _jumpInteractionProcessor.Update();
-            _aimIntentProcessor.Update();
+            // 3. 被动状态更新：根据当前角色状态更新核心属性（体力/生命值等）
+            _characterStatusDriver.Update();
 
-            // 3. 意图 -> 状态判定（是否奔跑）
-            _staminaController.Update();
-
-            _equipIntentProcessor.update();
-            // 4. 状态 -> 动画参数（走/跑混合）
-            _parameterProcessor.Update();
+            // 4. 逻辑意图 -> 表现层参数 (含动画参数、IK)
+            _intentProcessorPipeline.UpdateParameterProcessors();
 
             // 5. 更新状态机（状态切换、逻辑更新）
             StateMachine.CurrentState.LogicUpdate();
@@ -139,7 +126,6 @@ namespace Characters.Player
             // 6. 执行物理（执行移动逻辑）
             StateMachine.CurrentState.PhysicsUpdate();
 
-            _iKIntentProcessor.Update();
             _ikController.Update();
 
             // 7. 重置data意图标记    
@@ -171,7 +157,7 @@ namespace Characters.Player
         }
 
         /// <summary>
-        /// 初始化核心处理器（状态机、运动驱动、输入意图、耐力系统）
+        /// 初始化核心处理器（状态机、运动驱动、意图管线、角色状态系统）
         /// </summary>
         private void InitializeProcessors()
         {
@@ -180,15 +166,11 @@ namespace Characters.Player
 
             EquipmentDriver = new EquipmentDriver(this);
 
-            // 处理器注入 Config 和 RuntimeData
-            _parameterProcessor = new MovementParameterProcessor(this);
-            _inputIntentProcessor = new InputIntentProcessor(this); // 注入 Controller 供内部访问
-            _jumpInteractionProcessor = new JumpInteractionProcessor(this); // 同上
-            _staminaController = new StaminaController(this);       // 同上
-            _equipIntentProcessor=new EquipIntentProcessor(this);
-            _aimIntentProcessor = new AimIntentProcessor(this); // 同上
-            _iKIntentProcessor=new IKIntentProcessor(this);
-            _viewRotationProcessor = new ViewRotationProcessor(this);
+            // 初始化意图处理管道 (统一管理视角、移动、瞄准、装备、IK、参数)
+            _intentProcessorPipeline = new IntentProcessorPipeline(this);
+
+            // 初始化角色核心属性 Driver（被动响应）
+            _characterStatusDriver = new CharacterStatusDriver(RuntimeData, Config);
         }
 
         /// <summary>

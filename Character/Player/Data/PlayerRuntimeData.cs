@@ -240,6 +240,13 @@ namespace Characters.Player.Data
 
         #endregion
 
+        /// <summary>
+        /// 当前体力是否耗尽（true=耗尽，false=可奔跑）。
+        /// </summary>
+        public bool IsStaminaDepleted;
+
+        // public float StaminaRecoverThreshold = 0.2f; // 移除，改为SO配置
+
         public PlayerRuntimeData()
         {
             IsRunning = false;

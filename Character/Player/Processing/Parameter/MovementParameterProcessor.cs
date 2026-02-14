@@ -1,7 +1,7 @@
 using UnityEngine;
 using Characters.Player.Data;
 
-namespace Characters.Player.Parameters
+namespace Characters.Player.Processing
 {
     public class MovementParameterProcessor
     {

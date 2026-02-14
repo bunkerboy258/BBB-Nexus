@@ -142,6 +142,10 @@ namespace Characters.Player.Data
         [Tooltip("非奔跑时每秒恢复耐力")]
         public float StaminaRegenRate = 15f;
 
+        [Tooltip("体力耗尽后需要恢复到的百分比（如0.2=20%）才能重新奔跑")]
+        [Range(0f, 1f)]
+        public float StaminaRecoverThreshold = 0.2f;
+
         #endregion
 
         #region Animation Smoothing (动画平滑)

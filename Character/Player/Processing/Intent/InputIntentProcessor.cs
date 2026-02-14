@@ -3,7 +3,7 @@ using Characters.Player.Input;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Characters.Player.Parameters
+namespace Characters.Player.Processing
 {
     /// <summary>
     /// 输入意图处理器

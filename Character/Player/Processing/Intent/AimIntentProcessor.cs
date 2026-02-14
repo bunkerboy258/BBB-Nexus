@@ -1,7 +1,7 @@
 using UnityEngine;
 using Characters.Player.Data;
 
-namespace Characters.Player.Core
+namespace Characters.Player.Processing
 {
     /// <summary>
     /// 职责：处理瞄准相关的输入意图。

@@ -1,7 +1,7 @@
 using Characters.Player.Data;
 using UnityEngine;
 
-namespace Characters.Player.Parameters
+namespace Characters.Player.Processing
 {
     /// <summary>
     /// 视角旋转处理器（权威方向源生成器）。

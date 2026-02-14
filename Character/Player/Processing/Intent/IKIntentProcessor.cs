@@ -2,7 +2,7 @@ using UnityEngine;
 using Characters.Player.Data;
 using Items.Data; // 引用物品数据
 
-namespace Characters.Player.Parameters
+namespace Characters.Player.Processing
 {
     /// <summary>
     /// IK 意图处理器。
