@@ -33,7 +33,7 @@ namespace Characters.Player.States
 
         public override void Enter()
         {
-            Debug.Log($"进入 MoveStart 状态 (LocomotionState: {data.CurrentLocomotionState})");
+            //Debug.Log($"进入 MoveStart 状态 (LocomotionState: {data.CurrentLocomotionState})");
             _stateDuration = 0f;
             _startYaw = player.transform.eulerAngles.y;
             _startLocomotionState = data.CurrentLocomotionState;
@@ -43,11 +43,13 @@ namespace Characters.Player.States
 
             // 播放动画并设置结束回调
             _state = player.Animancer.Layers[0].Play(_currentClipData.Clip);
-            if (_currentClipData.AutoCalculateExitTime)
-            {
-                _state.Speed = _currentClipData.PlaybackSpeed;
-            }
+
+            // 精简：不再有 ExitTime/截断点逻辑，直接使用烘焙倍速。
+            _state.Speed = _currentClipData.PlaybackSpeed;
+
+            // 末相位仍然用于 Loop/Stop 的左右脚选择
             data.ExpectedFootPhase = _currentClipData.EndPhase;
+
             _state.Events(this).OnEnd = () => player.StateMachine.ChangeState(player.MoveLoopState);
         }
 
@@ -68,8 +70,7 @@ namespace Characters.Player.States
             // 如果运动状态在起步中途改变，切到循环状态让其处理状态转换
             else if (data.CurrentLocomotionState != _startLocomotionState)
             {
-                // 标记 MoveLoop 进行淡入过渡
-                player.MoveLoopState.MarkForFadeInTransition();
+                data.LoopFadeInTime = 0.4f;
                 player.StateMachine.ChangeState(player.MoveLoopState);
             }
         }
@@ -103,7 +104,8 @@ namespace Characters.Player.States
                 _ => 0.7f
             };
             data.CurrentAnimBlendY = targetY;
-            Debug.Log($"退出 MoveStart 状态，设置 CurrentAnimBlendY = {targetY}");
+            Debug.Log($"[MoveStartState.Exit] ExpectedFootPhase={data.ExpectedFootPhase}, " +
+    $"LocomotionState={data.CurrentLocomotionState}");
         }
 
         #endregion

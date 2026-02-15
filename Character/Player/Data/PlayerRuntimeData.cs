@@ -246,6 +246,13 @@ namespace Characters.Player.Data
         public float CurrentAnimBlendY;
 
         /// <summary>
+        /// 进入 MoveLoop 时的淡入时间（秒）。
+        /// 由 MoveStartState 在运动状态中途变化时设置，MoveLoopState 在 Enter 时消费并清零。
+        /// 0 表示不淡入（直接切换）。
+        /// </summary>
+        public float LoopFadeInTime;
+
+        /// <summary>
         /// 当前跑步循环相位（0~1）。由 MovementParameterProcessor 维护。
         /// 用途：脚步相位匹配，决定 Loop_L/Loop_R 或 Stop 选择。
         /// </summary>

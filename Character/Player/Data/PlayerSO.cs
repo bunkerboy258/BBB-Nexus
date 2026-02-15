@@ -25,35 +25,14 @@ namespace Characters.Player.Data
         public MotionType Type = MotionType.CurveDriven;
 
         [Header("Process Settings")]
-        [Tooltip("是否由烘焙器自动计算截断点（有效退出时间）")]
-        public bool AutoCalculateExitTime = true;
-
-        [Tooltip("是否使用截断点（某些流程可无视截断点直接完整播放）")]
-        public bool UseExitTime = true;
-
         [Tooltip("期望的目标时长（用于计算 PlaybackSpeed；0 表示不缩放）")]
         public float TargetDuration = 0f;
-
-        [Tooltip("是否手动指定截断点")]
-        public bool ManualExitTime = false;
-
-        [Tooltip("手动截断时间（秒）")]
-        public float ManualExitTimeValue = 0.5f;
 
         [Header("Baked Data")]
         [Tooltip("动画结束时的脚相位（用于 Loop_L/Loop_R 或 Stop 选择）")]
         public FootPhase EndPhase = FootPhase.LeftFootDown;
 
-        [Tooltip("目标相位：用于 Pose Matching（未使用时可忽略）")]
-        public FootPhase TargetFootPhase = FootPhase.LeftFootDown;
-
-        [Tooltip("该资源的最终时长（可能是 TargetDuration 或 EffectiveExitTime）")]
-        public float Duration;
-
-        [Tooltip("有效退出时间（烘焙器计算或手动指定），用于 curve->input 截断")]
-        public float EffectiveExitTime;
-
-        [Tooltip("播放倍速（由 Duration/TargetDuration 推导）")]
+        [Tooltip("播放倍速（由 clipLength/TargetDuration 推导）")]
         public float PlaybackSpeed = 1f;
 
         [Tooltip("烘焙得到的速度曲线（time=>speed）")]
@@ -82,17 +61,6 @@ namespace Characters.Player.Data
     [CreateAssetMenu(fileName = "PlayerConfig", menuName = "Player/PlayerConfig")]
     public class PlayerSO : ScriptableObject
     {
-        #region Reference (烘焙参考)
-
-        [Header("RootMotion 烘焙参考")]
-        [Tooltip("用于 PoseMatching 的跑步循环参考（左脚落地相位）")]
-        public ClipTransition ReferenceRunLoop_L;
-
-        [Tooltip("用于 PoseMatching 的跑步循环参考（右脚落地相位）")]
-        public ClipTransition ReferenceRunLoop_R;
-
-        #endregion
-
         #region Movement (移动参数)
 
         [Header("--- 视角控制 (View) ---")]
@@ -244,12 +212,23 @@ namespace Characters.Player.Data
         [Tooltip("Idle 动画")]
         public ClipTransition IdleAnim;
 
-        [Tooltip("移动循环混合器（左脚相位）")]
-        public MixerTransition2D MoveLoopMixer_L;
+        [Header("--- 离散循环动画 (Discrete Loop Animations) ---")]
+        [Tooltip("行走循环 - 前进（左脚相位）")]
+        public ClipTransition WalkLoopFwd_L;
+        [Tooltip("行走循环 - 前进（右脚相位）")]
+        public ClipTransition WalkLoopFwd_R;
 
-        [Tooltip("移动循环混合器（右脚相位）")]
-        public MixerTransition2D MoveLoopMixer_R;
+        [Tooltip("慢跑循环 - 前进（左脚相位）")]
+        public ClipTransition JogLoopFwd_L;
+        [Tooltip("慢跑循环 - 前进（右脚相位）")]
+        public ClipTransition JogLoopFwd_R;
 
+        [Tooltip("冲刺循环 - 前进（左脚相位）")]
+        public ClipTransition SprintLoopFwd_L;
+        [Tooltip("冲刺循环 - 前进（右脚相位）")]
+        public ClipTransition SprintLoopFwd_R;
+
+        [Header("--- 停止动画 (Stop Animations) ---")]
         [Tooltip("走路停止（左脚）")]
         public ClipTransition WalkStopLeft;
 

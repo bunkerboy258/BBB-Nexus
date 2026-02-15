@@ -6,34 +6,26 @@ namespace Characters.Player.States
 {
     /// <summary>
     /// 玩家的"持续移动"循环状态。
-    /// 职责：
-    /// 1. 使用单一的循环混合器（MoveLoopMixer），供所有运动状态共用。
-    /// 2. 根据脚相位选择左脚/右脚的混合器版本。
-    /// 3. 实时更新动画混合参数（方向X和速度Y）。
-    /// 4. 动画内部根据 Y 值（0.35=Walk / 0.7=Jog / 0.98=Sprint）自动混合对应速度的动画。
-    /// 5. 检测脚相位并维护循环相位。
     /// 
-    /// 参数 Y 值映射（由 MovementParameterProcessor 提供）：
-    /// - 0.35 → Walk（行走）
-    /// - 0.7  → Jog（慢跑）
-    /// - 0.98 → Sprint（冲刺）
+    /// 职责：
+    /// 1. 根据运动状态（Walk/Jog/Sprint）和脚相位选择对应的离散循环动画。
+    /// 2. 直接播放选中的动画（不使用 1D 混合器，避免浮点参数问题）。
+    /// 3. 每帧计算脚步循环相位。
+    /// 4. 检测运动状态变化，切换到对应动画。
+    /// 5. 检测退出条件（无输入、瞄准、跳跃等）。
+    /// 
+    /// 关键点：
+    /// - 使用离散动画代替 1D 混合器，避免浮点参数抖动
+    /// - 当前仅实现前进方向（DesiredLocalMoveAngle ~-45 to 45）
+    /// - 脚相位由 AnimancerState.NormalizedTime 计算
+    /// - 未来可扩展到8个方向或更多
     /// </summary>
     public class PlayerMoveLoopState : PlayerBaseState
     {
-        // [修复] 类型必须是 MixerState<Vector2>，而不是 Transition
-        private MixerState<Vector2> _currentMixerState;
+        private AnimancerState _currentAnimState;
+        private LocomotionState _currentLocomotionState;
 
-        // --- 淡入支持 ---
-        /// <summary>
-        /// 是否从 MoveStartState 中途直接进入（运动状态改变导致）。
-        /// 如果为 true，本次进入会使用淡入时间，之后重置为 false。
-        /// </summary>
-        private bool _shouldFadeInFromStart = false;
-
-        /// <summary>
-        /// 淡入时间（秒）。用于从 MoveStartState 直接切入时的平滑过渡。
-        /// </summary>
-        private const float FadeInTimeFromStart = 0.4f;
+        private const float LocomotionChangeFadeTime = 0.3f;
 
         public PlayerMoveLoopState(PlayerController player) : base(player) { }
 
@@ -41,121 +33,131 @@ namespace Characters.Player.States
 
         public override void Enter()
         {
-            Debug.Log($"进入 MoveLoop 状态");
-            
-            Debug.Log($"当前运动状态: {data.CurrentLocomotionState}, 预期脚相位: {data.ExpectedFootPhase}, 当前动画混合参数: ({data.CurrentAnimBlendX}, {data.CurrentAnimBlendY})");
-            // 1. 根据脚相位选择混合器（左/右脚）
-            var targetMixer = (data.ExpectedFootPhase == FootPhase.LeftFootDown)
-                ? config.MoveLoopMixer_L
-                : config.MoveLoopMixer_R;
+            _currentLocomotionState = data.CurrentLocomotionState;
+            float fadeInTime = data.LoopFadeInTime;
+            data.LoopFadeInTime = 0f;
 
-            if (targetMixer == null)
-            {
-                Debug.LogWarning("移动循环状态的混合器资源未配置！");
-                player.StateMachine.ChangeState(player.IdleState);
-                return;
-            }
+            // 1. 根据运动状态和脚相位选择动画
+            var targetClip = SelectLoopAnimationForState(data.CurrentLocomotionState, data.ExpectedFootPhase);
 
-            // 2. 获取或创建状态 (State)
-            // [修复] 强转为 MixerState<Vector2>
-            var state = player.Animancer.Layers[0].GetOrCreateState(targetMixer) as MixerState<Vector2>;
-            _currentMixerState = state;
+            // 2. 播放动画
+            _currentAnimState = player.Animancer.Layers[0].Play(targetClip, fadeInTime);
 
-            if (state != null)
-            {
-                // 3. 重置时间
-                state.Time = 0f;
-
-                // 4. 设置初始参数（使用当前的动画混合参数）
-                state.Parameter = new Vector2(data.CurrentAnimBlendX, data.CurrentAnimBlendY);
-
-                // 5. 播放（根据是否从MoveStart中途进入来决定淡入时间）
-                float fadeTime = _shouldFadeInFromStart ? FadeInTimeFromStart : 0f;
-                player.Animancer.Layers[0].Play(state, fadeTime);
-                
-                // 重置标志位
-                _shouldFadeInFromStart = false;
-                
-                if (fadeTime > 0f)
-                {
-                    Debug.Log($"从 MoveStart 中途进入，使用淡入时间 {fadeTime}s");
-                }
-            }
         }
 
         public override void LogicUpdate()
         {
+            // 检查退出条件
             if (data.IsAiming)
             {
                 player.StateMachine.ChangeState(player.AimMoveState);
                 return;
             }
-            else if (!HasMoveInput)
+
+            // 使用权威的离散状态而非浮点检查
+            if (data.CurrentLocomotionState == LocomotionState.Idle)
             {
                 player.StateMachine.ChangeState(player.StopState);
                 return;
             }
-            else if (data.WantsToVault)
+
+            if (data.WantsToVault)
             {
                 player.StateMachine.ChangeState(player.VaultState);
                 return;
             }
-            else if (data.WantsToJump)
+
+            if (data.WantsToJump)
             {
                 player.StateMachine.ChangeState(player.JumpState);
                 return;
             }
 
-            // 2. 更新参数
-            if (_currentMixerState != null)
+            // 动画状态安全检查
+            if (_currentAnimState == null)
             {
-                // A. 设置混合参数 (Vector2: X=方向, Y=速度强度)
-                // Y 值由 MovementParameterProcessor 根据 CurrentLocomotionState 提供
-                // (0.35=Walk, 0.7=Jog, 0.98=Sprint)
-                _currentMixerState.Parameter = new Vector2(data.CurrentAnimBlendX, data.CurrentAnimBlendY);
-
-                // B. 更新脚相位
-                UpdateFootPhase();
+                Debug.LogError("[MoveLoopState.LogicUpdate] 动画状态为空，切回 Idle");
+                player.StateMachine.ChangeState(player.IdleState);
+                return;
             }
+
+            // 运动状态变化 → 切换动画
+            if (data.CurrentLocomotionState != _currentLocomotionState)
+            {
+                SwitchLoopAnimation(data.CurrentLocomotionState);
+            }
+
+            // 每帧更新脚相位
+            UpdateFootPhase();
         }
 
         public override void PhysicsUpdate()
         {
-            // 根据当前运动状态计算速度，委托给 MotionDriver 处理移动
             player.MotionDriver.UpdateLocomotionFromInput();
         }
 
         public override void Exit()
         {
-            _currentMixerState = null;
+            _currentAnimState = null;
         }
 
         #endregion
 
-        #region Helper Methods
+        #region Private Methods
 
-        private void UpdateFootPhase()
+        /// <summary>根据运动状态和脚相位，选择对应的循环动画。</summary>
+        private ClipTransition SelectLoopAnimationForState(LocomotionState locomotionState, FootPhase footPhase)
         {
-            if (_currentMixerState == null) return;
+            bool isLeft = footPhase == FootPhase.LeftFootDown;
 
-            float rawTime = _currentMixerState.NormalizedTime;
-            float cycleProgress = rawTime - Mathf.Floor(rawTime);
-
-            if (data.ExpectedFootPhase == FootPhase.RightFootDown)
+            return locomotionState switch
             {
-                cycleProgress = (cycleProgress + 0.5f) % 1.0f;
-            }
-
-            data.CurrentRunCycleTime = cycleProgress;
+                LocomotionState.Walk => isLeft ? config.WalkLoopFwd_L : config.WalkLoopFwd_R,
+                LocomotionState.Jog => isLeft ? config.JogLoopFwd_L : config.JogLoopFwd_R,
+                LocomotionState.Sprint => isLeft ? config.SprintLoopFwd_L : config.SprintLoopFwd_R,
+                _ => isLeft ? config.JogLoopFwd_L : config.JogLoopFwd_R, // 默认 Jog
+            };
         }
 
-        /// <summary>
-        /// 标记下一次进入时应该使用淡入。
-        /// 由 MoveStartState 在检测到运动状态变化时调用。
-        /// </summary>
-        public void MarkForFadeInTransition()
+        /// <summary>切换到新的运动状态循环动画。</summary>
+        private void SwitchLoopAnimation(LocomotionState newState)
         {
-            _shouldFadeInFromStart = true;
+            var fromState = _currentAnimState;
+            float fromNormalizedTime = fromState != null ? fromState.NormalizedTime : 0f;
+
+            _currentLocomotionState = newState;
+
+            var targetClip = SelectLoopAnimationForState(newState, data.ExpectedFootPhase);
+            if (targetClip == null)
+            {
+                Debug.LogWarning($"[MoveLoopState.SwitchLoopAnimation] 运动状态 {newState} 的循环动画未配置");
+                return;
+            }
+
+            // 关键：用淡入播放新动画后，把它的归一化时间对齐到旧动画的相位。
+            // 假设各循环动画的相位在 NormalizedTime 上一致。
+            _currentAnimState = player.Animancer.Layers[0].Play(targetClip, LocomotionChangeFadeTime);
+            if (_currentAnimState != null)
+            {
+                _currentAnimState.NormalizedTime = fromNormalizedTime;
+            }
+        }
+
+        /// <summary>根据当前播放动画的时间，计算脚步循环相位（0~1）。</summary>
+        private void UpdateFootPhase()
+        {
+            if (_currentAnimState == null) return;
+
+            float normalizedTime = _currentAnimState.NormalizedTime;
+            float cycleTime = normalizedTime - Mathf.Floor(normalizedTime);
+
+            // 如果期望右脚着地，偏移 0.5
+            if (data.ExpectedFootPhase == FootPhase.RightFootDown)
+            {
+                cycleTime = (cycleTime + 0.5f) % 1.0f;
+            }
+
+            data.CurrentRunCycleTime = cycleTime;
         }
 
         #endregion
