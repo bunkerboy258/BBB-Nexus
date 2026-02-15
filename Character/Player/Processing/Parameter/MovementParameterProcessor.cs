@@ -34,6 +34,10 @@ namespace Characters.Player.Processing
         private Vector3 _currentLocalDir = Vector3.forward;
         private Vector3 _localDirVelocity;
 
+        // 动画 Y 参数平滑状态
+        private float _currentAnimBlendY;
+        private float _yBlendVelocity;
+
         public MovementParameterProcessor(PlayerController player)
         {
             _config = player.Config;
@@ -43,6 +47,8 @@ namespace Characters.Player.Processing
             _currentIntensity = 0.0f;
             _currentLocalDir = Vector3.forward;
             _localDirVelocity = Vector3.zero;
+            _currentAnimBlendY = 0f;
+            _yBlendVelocity = 0f;
         }
 
         public void Update()
@@ -93,7 +99,7 @@ namespace Characters.Player.Processing
             }
 
             // 使用配置的曲线平滑强度变化
-            float curveTime = 0.3f; // 固定平滑时间
+            float curveTime = 0.3f; 
             if (_config.SprintBlendCurve.length > 0)
             {
                 curveTime = _config.SprintBlendCurve.keys[_config.SprintBlendCurve.length - 1].time;
@@ -152,39 +158,45 @@ namespace Characters.Player.Processing
                 targetLocalDir = targetLocalDir.sqrMagnitude > 0.0001f ? targetLocalDir.normalized : Vector3.forward;
             }
 
-            // SmoothDamp 方向向量：保证连续，不会出现 angle 的 ±180 跳变
-            float smoothTime = Mathf.Max(0.0001f, _config.XAnimBlendSmoothTime);
+            // 方向向量平滑（X轴）
+            float xSmoothTime = Mathf.Max(0.0001f, _config.XAnimBlendSmoothTime);
             _currentLocalDir = Vector3.SmoothDamp(
                 _currentLocalDir,
                 targetLocalDir,
                 ref _localDirVelocity,
-                smoothTime,
+                xSmoothTime,
                 Mathf.Infinity,
                 Time.deltaTime
             );
             _currentLocalDir.y = 0f;
-
             if (_currentLocalDir.sqrMagnitude < 0.0001f)
-            {
                 _currentLocalDir = Vector3.forward;
-            }
             else
-            {
                 _currentLocalDir.Normalize();
-            }
 
-            // 由平滑后的向量求角度（供状态/调试/起步选择使用）
+            // 由平滑后的向量求角度
             float angle = Mathf.Atan2(_currentLocalDir.x, _currentLocalDir.z) * Mathf.Rad2Deg;
             _data.DesiredLocalMoveAngle = angle;
 
             // 极坐标 -> 笛卡尔坐标（Cartesian Mixer）
-            // X 保持不变（由方向和强度合成），Y 由强度驱动
             float rad = angle * Mathf.Deg2Rad;
-            float x = Mathf.Sin(rad) * _currentIntensity;
-            float y = Mathf.Cos(rad) * _currentIntensity;
+            float targetX = Mathf.Sin(rad) * _currentIntensity;
+            float targetY = Mathf.Cos(rad) * _currentIntensity;
 
-            _data.CurrentAnimBlendX = x;
-            _data.CurrentAnimBlendY = y;
+            // X轴直接赋值（方向已平滑）
+            _data.CurrentAnimBlendX = targetX;
+
+            // Y轴平滑（速度/强度）
+            float ySmoothTime = Mathf.Max(0.0001f, _config.YAnimBlendSmoothTime);
+            _currentAnimBlendY = Mathf.SmoothDamp(
+                _currentAnimBlendY,
+                targetY,
+                ref _yBlendVelocity,
+                ySmoothTime,
+                Mathf.Infinity,
+                Time.deltaTime
+            );
+            _data.CurrentAnimBlendY = _currentAnimBlendY;
         }
     }
 }

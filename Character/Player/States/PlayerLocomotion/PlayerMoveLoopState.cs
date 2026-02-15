@@ -23,6 +23,18 @@ namespace Characters.Player.States
         // [修复] 类型必须是 MixerState<Vector2>，而不是 Transition
         private MixerState<Vector2> _currentMixerState;
 
+        // --- 淡入支持 ---
+        /// <summary>
+        /// 是否从 MoveStartState 中途直接进入（运动状态改变导致）。
+        /// 如果为 true，本次进入会使用淡入时间，之后重置为 false。
+        /// </summary>
+        private bool _shouldFadeInFromStart = false;
+
+        /// <summary>
+        /// 淡入时间（秒）。用于从 MoveStartState 直接切入时的平滑过渡。
+        /// </summary>
+        private const float FadeInTimeFromStart = 0.4f;
+
         public PlayerMoveLoopState(PlayerController player) : base(player) { }
 
         #region State Lifecycle
@@ -57,9 +69,17 @@ namespace Characters.Player.States
                 // 4. 设置初始参数（使用当前的动画混合参数）
                 state.Parameter = new Vector2(data.CurrentAnimBlendX, data.CurrentAnimBlendY);
 
-                // 5. 播放
-                player.Animancer.Layers[0].Play(state, 0f);
-                //淡入时间是数据的一部分 而且在动画资源标准的情况下 就是不需要淡入的！
+                // 5. 播放（根据是否从MoveStart中途进入来决定淡入时间）
+                float fadeTime = _shouldFadeInFromStart ? FadeInTimeFromStart : 0f;
+                player.Animancer.Layers[0].Play(state, fadeTime);
+                
+                // 重置标志位
+                _shouldFadeInFromStart = false;
+                
+                if (fadeTime > 0f)
+                {
+                    Debug.Log($"从 MoveStart 中途进入，使用淡入时间 {fadeTime}s");
+                }
             }
         }
 
@@ -127,6 +147,15 @@ namespace Characters.Player.States
             }
 
             data.CurrentRunCycleTime = cycleProgress;
+        }
+
+        /// <summary>
+        /// 标记下一次进入时应该使用淡入。
+        /// 由 MoveStartState 在检测到运动状态变化时调用。
+        /// </summary>
+        public void MarkForFadeInTransition()
+        {
+            _shouldFadeInFromStart = true;
         }
 
         #endregion

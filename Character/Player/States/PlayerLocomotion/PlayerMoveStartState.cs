@@ -68,6 +68,8 @@ namespace Characters.Player.States
             // 如果运动状态在起步中途改变，切到循环状态让其处理状态转换
             else if (data.CurrentLocomotionState != _startLocomotionState)
             {
+                // 标记 MoveLoop 进行淡入过渡
+                player.MoveLoopState.MarkForFadeInTransition();
                 player.StateMachine.ChangeState(player.MoveLoopState);
             }
         }
