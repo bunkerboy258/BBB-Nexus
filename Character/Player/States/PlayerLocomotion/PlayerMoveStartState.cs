@@ -51,6 +51,7 @@ namespace Characters.Player.States
             data.ExpectedFootPhase = _currentClipData.EndPhase;
 
             _state.Events(this).OnEnd = () => player.StateMachine.ChangeState(player.MoveLoopState);
+
         }
 
         public override void LogicUpdate()
@@ -70,7 +71,7 @@ namespace Characters.Player.States
             // 如果运动状态在起步中途改变，切到循环状态让其处理状态转换
             else if (data.CurrentLocomotionState != _startLocomotionState)
             {
-                data.LoopFadeInTime = 0.4f;
+                data.LoopFadeInTime = 0.5f;
                 player.StateMachine.ChangeState(player.MoveLoopState);
             }
         }

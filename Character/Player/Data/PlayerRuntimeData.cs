@@ -277,6 +277,23 @@ namespace Characters.Player.Data
         /// </summary>
         public float DesiredLocalMoveAngle;
 
+        /// <summary>
+        /// 下落高度等级（0-4）。由 MovementParameterProcessor 根据下落距离和运动状态计算。
+        /// 
+        /// 定义：
+        /// 0 = Level 1（最低）
+        /// 1 = Level 2
+        /// 2 = Level 3
+        /// 3 = Level 4（最高）
+        /// 4 = Exceed Limit（超过极限）
+        /// 
+        /// 消费规则（一次性数据）：
+        /// - MovementParameterProcessor 每帧计算并写入此字段
+        /// - PlayerLandState 在 Enter 时读取此值以选择落地动画
+        /// - PlayerLandState.Enter 结束时清零此字段（防止残留影响）
+        /// </summary>
+        public int FallHeightLevel;
+
         #endregion
 
         #region ATTRIBUTE (属性数据：由 CharacterStatusDriver 驱动，描述角色核心数值)

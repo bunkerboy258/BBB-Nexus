@@ -47,6 +47,14 @@ namespace Characters.Player.Core
         {
             HandleAimModeTransitionIfNeeded();
 
+            // [新增] 自动写入“下一段 Loop 的淡入时间”（一次性消费字段）。
+            // 约定：只有当 clipData 配置了 NextLoopFadeInTime 且当前值更大时才覆盖，
+            // 避免某些状态机在 Enter 时手动写入被每帧刷掉。
+            if (clipData != null && clipData.NextLoopFadeInTime > 0f)
+            {
+                _data.LoopFadeInTime = Mathf.Max(_data.LoopFadeInTime, clipData.NextLoopFadeInTime);
+            }
+
             Vector3 horizontalVelocity = 
                 clipData == null? CalculateMotionFromInput():
                 CalculateMotionFromClip(clipData, stateTime, startYaw);

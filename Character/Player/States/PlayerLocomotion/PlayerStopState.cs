@@ -37,6 +37,10 @@ namespace Characters.Player.States
             {
                 player.StateMachine.ChangeState(player.MoveStartState);
             }
+            if(data.WantsToJump)
+            {
+                player.StateMachine.ChangeState(player.JumpState);
+            }
         }
 
         public override void PhysicsUpdate()

@@ -28,6 +28,9 @@ namespace Characters.Player.Data
         [Tooltip("期望的目标时长（用于计算 PlaybackSpeed；0 表示不缩放）")]
         public float TargetDuration = 0f;
 
+        [Tooltip("进入下一段 Loop 动画时建议的淡入时间（秒）。<=0 表示不写入，由状态机自行决定")]
+        public float NextLoopFadeInTime = 0f;
+
         [Header("Baked Data")]
         [Tooltip("动画结束时的脚相位（用于 Loop_L/Loop_R 或 Stop 选择）")]
         public FootPhase EndPhase = FootPhase.LeftFootDown;
@@ -203,6 +206,88 @@ namespace Characters.Player.Data
 
         [Tooltip("落地后到跑动的起步衔接动画")]
         public MotionClipData LandToRunStart;
+
+        [Header("--- Jump Variations (不同状态的跳跃配置) ---")]
+        [Tooltip("Walk/Jog 状态下的跳跃初速度")]
+        public float JumpForceWalk = 5f;
+
+        [Tooltip("Walk/Jog 状态下的跳跃空中动画")]
+        public MotionClipData JumpAirAnimWalk;
+
+        [Tooltip("Sprint 状态下的跳跃初速度（有装备）")]
+        public float JumpForceSprint = 7f;
+
+        [Tooltip("Sprint 状态下的跳跃空中动画（有装备）")]
+        public MotionClipData JumpAirAnimSprint;
+
+        [Tooltip("Sprint 状态下的跳跃初速度（空手）")]
+        public float JumpForceSprintEmpty = 8f;
+
+        [Tooltip("Sprint 状态下的跳跃空中动画（空手）")]
+        public MotionClipData JumpAirAnimSprintEmpty;
+
+        // 新增：下落（Falling）相关配置，供下落状态使用
+        [Header("--- Fall (下落) ---")]
+        [Tooltip("下落空中动画（连续自由下落时使用的动画）；若为空则回退到 JumpAirAnim")]
+        public MotionClipData FallAirAnim;
+
+        [Tooltip("判定为下落前的防抖延迟（秒），用于避免起跳后的短暂下落被识别为真正的下落")]
+        public float FallDetectDelay = 0.2f;
+
+        #endregion
+
+        #region Landing Heights (下落高度与动画配置)
+
+        [Header("--- Landing Height Thresholds (下落高度阈值 - Walk/Jog 共享四档) ---")]
+        [Tooltip("Walk/Jog 下落高度等级1（最低，缓冲）")]
+        public float LandHeightWalkJog_Level1 = 2f;
+
+        [Tooltip("Walk/Jog 下落高度等级2")]
+        public float LandHeightWalkJog_Level2 = 5f;
+
+        [Tooltip("Walk/Jog 下落高度等级3")]
+        public float LandHeightWalkJog_Level3 = 8f;
+
+        [Tooltip("Walk/Jog 下落高度等级4（最高，缓冲但明显）")]
+        public float LandHeightWalkJog_Level4 = 12f;
+
+        // [已移除 Sprint 独立阈值]
+
+        [Tooltip("超过此高度时使用特殊动画（摔倒/踉跄）")]
+        public float LandHeightLimit = 15f;
+
+        [Header("--- Landing Buffer Animations (落地缓冲动画 - Walk/Jog) ---")]
+
+        [Tooltip("Walk/Jog 级别1 落地缓冲")]
+        public MotionClipData LandBuffer_WalkJog_L1;
+
+        [Tooltip("Walk/Jog 级别2 落地缓冲")]
+        public MotionClipData LandBuffer_WalkJog_L2;
+
+        [Tooltip("Walk/Jog 级别3 落地缓冲")]
+        public MotionClipData LandBuffer_WalkJog_L3;
+
+        [Tooltip("Walk/Jog 级别4 落地缓冲")]
+        public MotionClipData LandBuffer_WalkJog_L4;
+
+        [Header("--- Landing Buffer Animations (落地缓冲动画 - Sprint) ---")]
+
+        [Tooltip("Sprint 级别1 落地缓冲")]
+        public MotionClipData LandBuffer_Sprint_L1;
+
+        [Tooltip("Sprint 级别2 落地缓冲")]
+        public MotionClipData LandBuffer_Sprint_L2;
+
+        [Tooltip("Sprint 级别3 落地缓冲")]
+        public MotionClipData LandBuffer_Sprint_L3;
+
+        [Tooltip("Sprint 级别4 落地缓冲")]
+        public MotionClipData LandBuffer_Sprint_L4;
+
+        [Header("--- Landing Special Reaction (超限反应) ---")]
+
+        [Tooltip("超过高度限制时使用（摔倒动画）")]
+        public MotionClipData LandBuffer_ExceedLimit;
 
         #endregion
 

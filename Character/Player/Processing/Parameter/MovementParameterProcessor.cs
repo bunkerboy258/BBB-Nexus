@@ -11,12 +11,7 @@ namespace Characters.Player.Processing
     /// - 计算动画混合参数 X（方向）和 Y（速度强度）
     /// - X 轴：由移动方向和强度合成的极坐标 x 分量（保持不变）
     /// - Y 轴：根据 CurrentLocomotionState 映射到不同强度（Walk/Jog/Sprint）
-    /// 
-    /// 强度映射表（Y 轴）：
-    /// - Walk:  0.3~0.4（缓慢行走）
-    /// - Jog:   0.65~0.75（正常慢跑）
-    /// - Sprint: 0.95~1.0（快速冲刺）
-    /// - Idle:   0.0（停止）
+    /// - 根据垂直速度和重力计算最高点下落距离（内部数据）
     /// </summary>
     public class MovementParameterProcessor
     {
@@ -38,6 +33,11 @@ namespace Characters.Player.Processing
         private float _currentAnimBlendY;
         private float _yBlendVelocity;
 
+        // --- 下落距离计算状态（内部数据）---
+
+        private float _apexY; // 本次空中过程的最高点 Y 坐标
+        private bool _wasGroundedLastFrame;
+
         public MovementParameterProcessor(PlayerController player)
         {
             _config = player.Config;
@@ -49,6 +49,9 @@ namespace Characters.Player.Processing
             _localDirVelocity = Vector3.zero;
             _currentAnimBlendY = 0f;
             _yBlendVelocity = 0f;
+
+            _apexY = _playerTransform.position.y;
+            _wasGroundedLastFrame = _data.IsGrounded;
         }
 
         public void Update()
@@ -61,6 +64,9 @@ namespace Characters.Player.Processing
 
             // 2) 平滑方向并输出 Mixer 参数
             UpdateDirectionBlend();
+
+            // 3) 持续计算下落高度等级（每帧更新，不依赖落地瞬间）
+            UpdateFallHeight();
         }
 
         private void UpdateMovementDerivedData()
@@ -197,6 +203,71 @@ namespace Characters.Player.Processing
                 Time.deltaTime
             );
             _data.CurrentAnimBlendY = _currentAnimBlendY;
+        }
+
+        /// <summary>
+        /// 持续下落等级计算（每帧更新）：
+        /// - 接地：重置 apex，并将 FallHeightLevel 置为 0（避免残留）。
+        /// - 离地：持续维护 apex（最高点），并用 (apex - current) 计算当前“已下落距离”。
+        /// - 这样 LandState 进入时可以直接消费最后一帧算出来的 FallHeightLevel。
+        /// </summary>
+        private void UpdateFallHeight()
+        {
+            bool isGrounded = _data.IsGrounded;
+            float currentY = _playerTransform.position.y;
+
+            // 边沿检测：落地/离地
+            bool justLanded = !_wasGroundedLastFrame && isGrounded;
+            bool justLeftGround = _wasGroundedLastFrame && !isGrounded;
+
+            if (isGrounded)
+            {
+                // 在地面上：为下一次离地预热。
+                _apexY = currentY;
+
+                // 非空中：FallHeightLevel 强制归零，防止上一跳残留。
+                _data.FallHeightLevel = 0;
+
+                //（可选）刚落地可以在这里做一次最终校正，但不依赖它。
+                if (justLanded)
+                {
+                    // no-op
+                }
+            }
+            else
+            {
+                // 刚离地：把 apex 初始化为离地那一刻的高度。
+                if (justLeftGround)
+                {
+                    _apexY = currentY;
+                }
+
+                // 上升阶段刷新最高点。
+                if (currentY > _apexY)
+                {
+                    _apexY = currentY;
+                }
+
+                // 持续计算“从最高点到当前点”的已下落距离（上升阶段为 0）。
+                float fallHeight = Mathf.Max(0f, _apexY - currentY);
+                Debug.Log(fallHeight);
+                // 每帧写入等级（持续计算）。
+                CalculateFallHeightLevel(fallHeight);
+            }
+
+            _wasGroundedLastFrame = isGrounded;
+        }
+
+        /// <summary>
+        /// 纯粹的数学计算，无状态副作用
+        /// </summary>
+        private void CalculateFallHeightLevel(float height)
+        {
+            if (height < _config.LandHeightWalkJog_Level1) _data.FallHeightLevel = 0; // 几乎没掉 (如0.5m)
+            else if (height < _config.LandHeightWalkJog_Level2) _data.FallHeightLevel = 1; // 轻落地 (如2m)
+            else if (height < _config.LandHeightWalkJog_Level3) _data.FallHeightLevel = 2; // 中落地 (如4m)
+            else if (height < _config.LandHeightWalkJog_Level4) _data.FallHeightLevel = 3; // 重落地 (如6m)
+            else _data.FallHeightLevel = 4; // 摔死/翻滚 (极高)
         }
     }
 }
