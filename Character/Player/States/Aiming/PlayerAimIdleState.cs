@@ -20,7 +20,7 @@ namespace Characters.Player.States
             // 我们可以在 PhysicsUpdate 里调用无参版本，或者在这里什么都不做
         }
 
-        public override void LogicUpdate()
+        protected override void UpdateStateLogic()
         {
             // 1. 退出瞄准检测
             if (!data.IsAiming)
@@ -30,12 +30,13 @@ namespace Characters.Player.States
             }
 
             // 2. 进入移动检测
-            else if (data.WantsToJump)
+            if (data.WantsToJump)
             {
                 player.StateMachine.ChangeState(player.JumpState);
+                return;
             }
 
-            else if (HasMoveInput)
+            if (HasMoveInput)
             {
                 player.StateMachine.ChangeState(player.AimMoveState);
             }

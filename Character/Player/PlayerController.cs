@@ -114,21 +114,22 @@ namespace Characters.Player
             // 3. 被动状态更新：根据当前角色状态更新核心属性（体力/生命值等）
             _characterStatusDriver.Update();
 
-            // 4. 逻辑意图 -> 表现层参数 (含动画参数、IK)
-            _intentProcessorPipeline.UpdateParameterProcessors();
-
-            // 5. 更新状态机（状态切换、逻辑更新）
-            StateMachine.CurrentState.LogicUpdate();
-
-            // 5.5. 更新上身分层控制器（装备、瞄准等）
-            _upperBodyController.Update();
-
-            // 6. 执行物理（执行移动逻辑）
+            // 4. 执行物理（执行移动逻辑） — 先于参数处理，让 grounded/vertical 等反映本帧物理结果
             StateMachine.CurrentState.PhysicsUpdate();
 
+            // 5. 逻辑意图 -> 表现层参数 (含动画参数、IK)
+            _intentProcessorPipeline.UpdateParameterProcessors();
+
+            // 6. 更新状态机（状态切换、逻辑更新）
+            StateMachine.CurrentState.LogicUpdate();
+
+            // 6.5. 更新上身分层控制器（装备、瞄准等）
+            _upperBodyController.Update();
+
+            // 7. 更新 IK
             _ikController.Update();
 
-            // 7. 重置data意图标记    
+            // 8. 重置data意图标记    
             RuntimeData.ResetIntetnt();
         }
 

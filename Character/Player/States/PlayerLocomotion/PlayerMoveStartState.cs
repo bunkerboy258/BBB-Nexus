@@ -54,7 +54,7 @@ namespace Characters.Player.States
 
         }
 
-        public override void LogicUpdate()
+        protected override void UpdateStateLogic()
         {
             if (data.IsAiming)
             {

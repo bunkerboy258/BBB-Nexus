@@ -136,6 +136,18 @@ namespace Characters.Player.Data
         /// </summary>
         public float VerticalVelocity;
 
+        /// <summary>
+        /// 本帧刚刚落地（帧事件，由 MovementParameterProcessor 设置）
+        /// 用途：供状态机的全局强制转移检测（JustLanded -> LandState）使用。
+        /// 该字段每帧由 MovementParameterProcessor 更新为当前帧的边沿事件。
+        /// </summary>
+        public bool JustLanded;
+
+        /// <summary>
+        /// 本帧刚刚离地（帧事件，由 MovementParameterProcessor 设置）
+        /// </summary>
+        public bool JustLeftGround;
+
         // --- 行为模式 ---
 
         /// <summary>

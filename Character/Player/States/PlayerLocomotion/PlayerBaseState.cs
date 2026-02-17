@@ -6,24 +6,15 @@ namespace Characters.Player.States
 {
     /// <summary>
     /// 玩家基础状态抽象类
-    /// 作用：所有玩家状态（空闲、移动、转身等）的基类，封装通用的字段、属性和辅助方法，避免重复代码。
-    /// 核心封装：
-    /// 1. 玩家控制器、运行时数据、配置文件的通用引用；
-    /// 2. 移动输入判定、世界/本地移动方向/角度计算的通用方法。
+    /// - 封装通用引用与工具方法
+    /// - 统一 LogicUpdate 执行顺序：先强制转移，再状态自身逻辑
     /// </summary>
     public abstract class PlayerBaseState : BaseState
     {
-        /// <summary>玩家核心控制器引用（访问动画、运动驱动、状态机等核心模块）</summary>
         protected PlayerController player;
-        /// <summary>玩家运行时数据（读写输入、状态标记、动画参数等动态数据）</summary>
         protected PlayerRuntimeData data;
-        /// <summary>玩家配置文件（读取动画、数值、阈值等静态配置）</summary>
         protected PlayerSO config;
 
-        /// <summary>
-        /// 构造函数：初始化通用引用（玩家控制器、运行时数据、配置文件）
-        /// </summary>
-        /// <param name="player">玩家核心控制器实例</param>
         protected PlayerBaseState(PlayerController player)
         {
             this.player = player;
@@ -31,11 +22,49 @@ namespace Characters.Player.States
             this.config = player.Config;
         }
 
-        /// <summary>
-        /// 检测是否有有效移动输入（避免浮点精度问题）
-        /// sqrMagnitude > 0.001f 替代 magnitude > 0：减少浮点误差导致的无效判定
-        /// </summary>
         protected bool HasMoveInput => data.MoveInput.sqrMagnitude > 0.001f;
 
+        /// <summary>
+        /// 统一封闭 LogicUpdate：
+        /// 1) CheckInterrupts：全局强制转移（高优先级）
+        /// 2) UpdateStateLogic：状态自身逻辑
+        /// </summary>
+        public sealed override void LogicUpdate()
+        {
+            if (CheckInterrupts()) return;
+            UpdateStateLogic();
+        }
+
+        /// <summary>
+        /// 全局强制转移检测。默认实现处理：
+        /// - 刚落地（JustLanded）且 FallHeightLevel>0 -> LandState
+        /// - IsAiming 全局优先转到 AimMove/AimIdle（仅当不是正在 Vault/Land）
+        /// 子类可 override 返回 true 来阻止默认行为（例如 Vault/Land 状态）。
+        /// </summary>
+        protected virtual bool CheckInterrupts()
+        {
+            // 1) 刚落地事件 -> 进入 LandState（由 LandState 决定后续切换）
+            if (data.JustLanded && data.FallHeightLevel > 0)
+            {
+                player.StateMachine.ChangeState(player.LandState);
+                return true;
+            }
+
+            // 2) 全局瞄准切换：若进入瞄准则切到 AimMove/AimIdle（除非当前状态阻止）
+            if (data.IsAiming)
+            {
+                bool wantToMove = data.MoveInput.sqrMagnitude > 0.001f;
+                player.StateMachine.ChangeState(wantToMove ? player.AimMoveState : player.AimIdleState);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// 状态自身的正常逻辑。
+        /// 之前写在 LogicUpdate 里的内容应迁移到这里。
+        /// </summary>
+        protected abstract void UpdateStateLogic();
     }
 }

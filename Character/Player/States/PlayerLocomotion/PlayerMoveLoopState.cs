@@ -48,22 +48,8 @@ namespace Characters.Player.States
                 : player.Animancer.Layers[0].Play(targetClip);
         }
 
-        public override void LogicUpdate()
+        protected override void UpdateStateLogic()
         {
-            // 检查退出条件
-            if (data.IsAiming)
-            {
-                player.StateMachine.ChangeState(player.AimMoveState);
-                return;
-            }
-
-            // [恢复] 离地且开始下落 -> 进入落地状态（用于落地缓冲/衔接）
-            // 说明：JumpState 负责“主动跳起”，这里处理“跑步踏空/坠落/台阶落差”等导致的离地。
-            if (!data.IsGrounded && data.VerticalVelocity <= 0f)
-            {
-                player.StateMachine.ChangeState(player.LandState);
-                return;
-            }
 
             // 使用权威的离散状态而非浮点检查
             if (data.CurrentLocomotionState == LocomotionState.Idle)

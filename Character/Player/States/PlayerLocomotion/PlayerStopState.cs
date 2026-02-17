@@ -30,14 +30,16 @@ namespace Characters.Player.States
             state.Events(this).OnEnd = () => player.StateMachine.ChangeState(player.IdleState);
         }
 
-        public override void LogicUpdate()
+        protected override void UpdateStateLogic()
         {
             // 停止时检测输入 -> 重新开始移动
             if (HasMoveInput)
             {
                 player.StateMachine.ChangeState(player.MoveStartState);
+                return;
             }
-            if(data.WantsToJump)
+
+            if (data.WantsToJump)
             {
                 player.StateMachine.ChangeState(player.JumpState);
             }

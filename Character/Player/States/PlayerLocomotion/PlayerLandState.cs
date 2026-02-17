@@ -21,6 +21,9 @@ namespace Characters.Player.States
 
         public PlayerLandState(PlayerController player) : base(player) { }
 
+        // 落地缓冲中一般不希望被通用强制打断（避免反复进入/退出）。
+        protected override bool CheckInterrupts() => false;
+
         public override void Enter()
         {
             _stateDuration = 0f;
@@ -82,7 +85,7 @@ namespace Characters.Player.States
             data.ExpectedFootPhase = _currentClip.EndPhase;
         }
 
-        public override void LogicUpdate()
+        protected override void UpdateStateLogic()
         {
             // LandState 一般不响应切换（避免打断缓冲），只允许高优先级：跳跃
             if (data.WantsToJump)

@@ -99,7 +99,7 @@ namespace Characters.Player.States
             data.IsGrounded = false;
         }
 
-        public override void LogicUpdate()
+        protected override void UpdateStateLogic()
         {
             // 防抖：起跳后至少过 0.2s 才开始检测落地
             if (!_canCheckLand && _state.Time > 0.2f)

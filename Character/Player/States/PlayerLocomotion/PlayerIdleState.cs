@@ -29,24 +29,27 @@ namespace Characters.Player.States
         }
 
         /// <summary>
-        /// 逻辑更新：检测移动/转身意图，触发状态切换
+        /// 更新状态逻辑：检测移动/转身意图，触发状态切换
         /// （检测到意图后return，避免重复判断）
         /// </summary>
-        public override void LogicUpdate()
+        protected override void UpdateStateLogic()
         {
             if (data.IsAiming)
             {
                 player.StateMachine.ChangeState(player.AimIdleState);
+                return;
             }
+
             if (HasMoveInput)
             {
                 player.StateMachine.ChangeState(player.MoveStartState);
+                return;
             }
-            else if (data.WantsToJump)
+
+            if (data.WantsToJump)
             {
                 player.StateMachine.ChangeState(player.JumpState);
             }
-
         }
 
         /// <summary>

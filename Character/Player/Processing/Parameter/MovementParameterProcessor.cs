@@ -220,18 +220,26 @@ namespace Characters.Player.Processing
             bool justLanded = !_wasGroundedLastFrame && isGrounded;
             bool justLeftGround = _wasGroundedLastFrame && !isGrounded;
 
+            // 写入边沿事件，供状态机在 LogicUpdate 时消费
+            _data.JustLanded = justLanded;
+            _data.JustLeftGround = justLeftGround;
+
             if (isGrounded)
             {
                 // 在地面上：为下一次离地预热。
                 _apexY = currentY;
 
-                // 非空中：FallHeightLevel 强制归零，防止上一跳残留。
-                _data.FallHeightLevel = 0;
+                // 仅在非刚落地的情况下清零 FallHeightLevel，
+                // 目的是让 LandState 在 Enter 时能消费 "上一次空中帧" 的 FallHeightLevel。
+                if (!justLanded)
+                {
+                    _data.FallHeightLevel = 0;
+                }
 
                 //（可选）刚落地可以在这里做一次最终校正，但不依赖它。
                 if (justLanded)
                 {
-                    // no-op
+                    // keep FallHeightLevel from the last airborne frame for LandState to consume
                 }
             }
             else
@@ -250,10 +258,15 @@ namespace Characters.Player.Processing
 
                 // 持续计算“从最高点到当前点”的已下落距离（上升阶段为 0）。
                 float fallHeight = Mathf.Max(0f, _apexY - currentY);
-                Debug.Log(fallHeight);
                 // 每帧写入等级（持续计算）。
                 CalculateFallHeightLevel(fallHeight);
             }
+
+            // Debug logs to help tracing landing behavior
+            /*if (justLanded || justLeftGround || _data.FallHeightLevel > 0)
+            {
+                Debug.Log($"[MovementParameterProcessor] justLanded={justLanded} justLeftGround={justLeftGround} wasGroundedLastFrame={_wasGroundedLastFrame} isGrounded={isGrounded} FallHeightLevel={_data.FallHeightLevel}");
+            }*/
 
             _wasGroundedLastFrame = isGrounded;
         }
