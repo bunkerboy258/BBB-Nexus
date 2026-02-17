@@ -17,6 +17,7 @@ namespace Characters.Player.States
         private float _stateDuration;
         private float _startYaw;
         private MotionClipData _currentClip;
+        private bool _endTimeTriggered;
 
         public PlayerLandState(PlayerController player) : base(player) { }
 
@@ -24,6 +25,7 @@ namespace Characters.Player.States
         {
             _stateDuration = 0f;
             _startYaw = player.transform.eulerAngles.y;
+            _endTimeTriggered = false;
 
             bool wantToMove = HasMoveInput;
 
@@ -52,8 +54,15 @@ namespace Characters.Player.States
                 return;
             }
 
+            // 消费一次性淡入（例如从其他状态写入的 LoopFadeInTime）。
+            float fadeInTime = data.LoopFadeInTime;
+            data.LoopFadeInTime = 0f;
+
             // 2) 播放动画
-            _state = player.Animancer.Layers[0].Play(_currentClip.Clip);
+            // fadeInTime <= 0：不要显式传 0（会强制无淡入），使用重载让 Transition 自己决定淡入。
+            _state = fadeInTime > 0f
+                ? player.Animancer.Layers[0].Play(_currentClip.Clip, fadeInTime)
+                : player.Animancer.Layers[0].Play(_currentClip.Clip);
 
             // 3) 结束回调：写相位 + 写淡入时间 + 切换状态
             _state.Events(this).OnEnd = () =>
@@ -70,7 +79,7 @@ namespace Characters.Player.States
                 player.StateMachine.ChangeState(wantToMove ? player.MoveLoopState : player.IdleState);
             };
 
-            data.ExpectedFootPhase= _currentClip.EndPhase;
+            data.ExpectedFootPhase = _currentClip.EndPhase;
         }
 
         public override void LogicUpdate()
@@ -79,6 +88,26 @@ namespace Characters.Player.States
             if (data.WantsToJump)
             {
                 player.StateMachine.ChangeState(player.JumpState);
+                return;
+            }
+
+            // 如果权威运动状态不为 Idle：允许按 EndTime 提前切回 MoveLoop。
+            // 说明：wantToMove 取 Enter 时的快照，这里按“权威状态”判断。
+            if (!_endTimeTriggered &&
+                data.CurrentLocomotionState != LocomotionState.Idle &&
+                _currentClip != null &&
+                _currentClip.EndTime > 0f &&
+                _stateDuration >= _currentClip.EndTime)
+            {
+                _endTimeTriggered = true;
+
+                data.ExpectedFootPhase = _currentClip.EndPhase;
+                if (_currentClip.NextLoopFadeInTime > 0f)
+                {
+                    data.LoopFadeInTime = _currentClip.NextLoopFadeInTime;
+                }
+
+                player.StateMachine.ChangeState(player.MoveLoopState);
             }
         }
 

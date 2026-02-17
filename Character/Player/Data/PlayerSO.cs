@@ -31,6 +31,9 @@ namespace Characters.Player.Data
         [Tooltip("进入下一段 Loop 动画时建议的淡入时间（秒）。<=0 表示不写入，由状态机自行决定")]
         public float NextLoopFadeInTime = 0f;
 
+        [Tooltip("提前结束时间点（单位：秒，基于该段动画的播放时间；<=0 表示不提前结束）。用于 Land 等状态按 endTime 提前切换。")]
+        public float EndTime = 0f;
+
         [Header("Baked Data")]
         [Tooltip("动画结束时的脚相位（用于 Loop_L/Loop_R 或 Stop 选择）")]
         public FootPhase EndPhase = FootPhase.LeftFootDown;

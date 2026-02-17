@@ -41,8 +41,11 @@ namespace Characters.Player.States
             var targetClip = SelectLoopAnimationForState(data.CurrentLocomotionState, data.ExpectedFootPhase);
 
             // 2. 播放动画
-            _currentAnimState = player.Animancer.Layers[0].Play(targetClip, fadeInTime);
-
+            // fadeInTime <= 0：不要显式传 0，否则会强制“无淡入”。
+            // 改用不带 fade 参数的重载，让 Animancer 使用 Transition 自带的 FadeDuration/默认规则。
+            _currentAnimState = fadeInTime > 0f
+                ? player.Animancer.Layers[0].Play(targetClip, fadeInTime)
+                : player.Animancer.Layers[0].Play(targetClip);
         }
 
         public override void LogicUpdate()
