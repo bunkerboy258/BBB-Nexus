@@ -9,7 +9,7 @@ namespace Characters.Player.States
     /// 职责：
     /// A：按 FallHeightLevel 选落地缓冲动画（Walk/Jog/Sprint 四档 + 超限）并播放完再回 MoveLoop/Idle
     /// B：落地时如果 IsAiming 直接进 AimIdle/AimMove（不播落地缓冲）
-    /// C：落地动画末相位写入 ExpectedFootPhase，并通过 MotionClipData.NextLoopFadeInTime 写入 LoopFadeInTime（自动衔接）
+    /// C：落地动画末相位写入 ExpectedFootPhase
     /// </summary>
     public class PlayerLandState : PlayerBaseState
     {
@@ -30,6 +30,9 @@ namespace Characters.Player.States
             _startYaw = player.transform.eulerAngles.y;
             _endTimeTriggered = false;
 
+            // 重置本次空中的二段跳标记（为下次空中做准备）
+            data.HasPerformedDoubleJumpInAir = false;
+
             bool wantToMove = HasMoveInput;
 
             // B) 落地瞬间如果在瞄准：直接切瞄准状态，不播放落地缓冲
@@ -43,9 +46,6 @@ namespace Characters.Player.States
 
             // A) 根据 FallHeightLevel + LocomotionState 选择落地缓冲动画
             _currentClip = SelectLandingBufferClip(data.CurrentLocomotionState, data.FallHeightLevel);
-            Debug.Log(data.FallHeightLevel);
-            // 输出选择的动画名称（ClipTransition.Clip 的名字）
-            Debug.Log(_currentClip?.Clip?.Clip != null ? _currentClip.Clip.Clip.name : "<null landing clip>");
             
             // 消费 FallHeightLevel（一次性消费数据），然后清零
             data.FallHeightLevel = 0;
@@ -57,27 +57,14 @@ namespace Characters.Player.States
                 return;
             }
 
-            // 消费一次性淡入（例如从其他状态写入的 LoopFadeInTime）。
-            float fadeInTime = data.LoopFadeInTime;
-            data.LoopFadeInTime = 0f;
+            _state = player.Animancer.Layers[0].Play(_currentClip.Clip, data.LandFadeInTime);
+            data.LandFadeInTime = 0f; // 播放后重置，避免下次误用
 
-            // 2) 播放动画
-            // fadeInTime <= 0：不要显式传 0（会强制无淡入），使用重载让 Transition 自己决定淡入。
-            _state = fadeInTime > 0f
-                ? player.Animancer.Layers[0].Play(_currentClip.Clip, fadeInTime)
-                : player.Animancer.Layers[0].Play(_currentClip.Clip);
-
-            // 3) 结束回调：写相位 + 写淡入时间 + 切换状态
+            // 3) 结束回调：写相位 + 切换状态
             _state.Events(this).OnEnd = () =>
             {
                 // C) 末相位写入（用于 MoveLoop 选左右脚相位）
                 data.ExpectedFootPhase = _currentClip.EndPhase;
-
-                // C) 将落地动画建议的下一段淡入写给 MoveLoop.Enter 消费
-                if (_currentClip.NextLoopFadeInTime > 0f)
-                {
-                    data.LoopFadeInTime = _currentClip.NextLoopFadeInTime;
-                }
 
                 player.StateMachine.ChangeState(wantToMove ? player.MoveLoopState : player.IdleState);
             };
@@ -96,19 +83,11 @@ namespace Characters.Player.States
 
             // 如果权威运动状态不为 Idle：允许按 EndTime 提前切回 MoveLoop。
             // 说明：wantToMove 取 Enter 时的快照，这里按“权威状态”判断。
-            if (!_endTimeTriggered &&
-                data.CurrentLocomotionState != LocomotionState.Idle &&
-                _currentClip != null &&
-                _currentClip.EndTime > 0f &&
-                _stateDuration >= _currentClip.EndTime)
+            if (!_endTimeTriggered && data.CurrentLocomotionState != LocomotionState.Idle && 
+                _currentClip.EndTime > 0f && _stateDuration >= _currentClip.EndTime)
             {
                 _endTimeTriggered = true;
-
                 data.ExpectedFootPhase = _currentClip.EndPhase;
-                if (_currentClip.NextLoopFadeInTime > 0f)
-                {
-                    data.LoopFadeInTime = _currentClip.NextLoopFadeInTime;
-                }
 
                 player.StateMachine.ChangeState(player.MoveLoopState);
             }
@@ -135,33 +114,52 @@ namespace Characters.Player.States
             // fallHeightLevel: 0-3 => L1-L4, 4 => ExceedLimit
             if (fallHeightLevel >= 4)
             {
+                data.loopFadeInTime = config.LandToLoopFadeInTime_ExceedLimit;
                 return config.LandBuffer_ExceedLimit;
             }
 
             bool isSprinting = locomotionState == LocomotionState.Sprint;
 
-            // Walk/Jog 共用一组缓冲动画
             if (!isSprinting)
             {
-                return fallHeightLevel switch
+                switch (fallHeightLevel)
                 {
-                    0 => config.LandBuffer_WalkJog_L1,
-                    1 => config.LandBuffer_WalkJog_L2,
-                    2 => config.LandBuffer_WalkJog_L3,
-                    3 => config.LandBuffer_WalkJog_L4,
-                    _ => config.LandBuffer_WalkJog_L1,
-                };
+                    case 0:
+                        data.loopFadeInTime = config.LandToLoopFadeInTime_WalkJog_L1;
+                        return config.LandBuffer_WalkJog_L1;
+                    case 1:
+                        data.loopFadeInTime = config.LandToLoopFadeInTime_WalkJog_L2;
+                        return config.LandBuffer_WalkJog_L2;
+                    case 2:
+                        data.loopFadeInTime = config.LandToLoopFadeInTime_WalkJog_L3;
+                        return config.LandBuffer_WalkJog_L3;
+                    case 3:
+                        data.loopFadeInTime = config.LandToLoopFadeInTime_WalkJog_L4;
+                        return config.LandBuffer_WalkJog_L4;
+                    default:
+                        data.loopFadeInTime = config.LandToLoopFadeInTime_WalkJog_L1;
+                        return config.LandBuffer_WalkJog_L1;
+                }
             }
 
-            // Sprint 单独一组缓冲动画
-            return fallHeightLevel switch
+            switch (fallHeightLevel)
             {
-                0 => config.LandBuffer_Sprint_L1,
-                1 => config.LandBuffer_Sprint_L2,
-                2 => config.LandBuffer_Sprint_L3,
-                3 => config.LandBuffer_Sprint_L4,
-                _ => config.LandBuffer_Sprint_L1,
-            };
+                case 0:
+                    data.loopFadeInTime = config.LandToLoopFadeInTime_Sprint_L1;
+                    return config.LandBuffer_Sprint_L1;
+                case 1:
+                    data.loopFadeInTime = config.LandToLoopFadeInTime_Sprint_L2;
+                    return config.LandBuffer_Sprint_L2;
+                case 2:
+                    data.loopFadeInTime = config.LandToLoopFadeInTime_Sprint_L3;
+                    return config.LandBuffer_Sprint_L3;
+                case 3:
+                    data.loopFadeInTime = config.LandToLoopFadeInTime_Sprint_L4;
+                    return config.LandBuffer_Sprint_L4;
+                default:
+                    data.loopFadeInTime = config.LandToLoopFadeInTime_Sprint_L1;
+                    return config.LandBuffer_Sprint_L1;
+            }
         }
     }
 }

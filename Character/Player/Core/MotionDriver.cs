@@ -47,14 +47,6 @@ namespace Characters.Player.Core
         {
             HandleAimModeTransitionIfNeeded();
 
-            // [新增] 自动写入“下一段 Loop 的淡入时间”（一次性消费字段）。
-            // 约定：只有当 clipData 配置了 NextLoopFadeInTime 且当前值更大时才覆盖，
-            // 避免某些状态机在 Enter 时手动写入被每帧刷掉。
-            if (clipData != null && clipData.NextLoopFadeInTime > 0f)
-            {
-                _data.LoopFadeInTime = Mathf.Max(_data.LoopFadeInTime, clipData.NextLoopFadeInTime);
-            }
-
             Vector3 horizontalVelocity = 
                 clipData == null? CalculateMotionFromInput():
                 CalculateMotionFromClip(clipData, stateTime, startYaw);
@@ -250,6 +242,23 @@ namespace Characters.Player.Core
             _data.CurrentYaw = _player.transform.eulerAngles.y;
 
             float speed = data.SpeedCurve.Evaluate(time * data.PlaybackSpeed);
+
+            // [新增] 支持自带局部方向的动画（向左跳/向后闪避等）：
+            // TargetLocalDirection 非零时，曲线阶段的“前进方向”由该局部方向决定。
+            // 注意：这里使用角色当前朝向将 localDir 转成 worldDir，使其随曲线旋转一起变化。
+            Vector3 localDir = data.TargetLocalDirection;
+            if (localDir.sqrMagnitude > 0.0001f)
+            {
+                localDir.y = 0f;
+                localDir.Normalize();
+
+                Vector3 worldDir = _player.transform.TransformDirection(localDir);
+                worldDir.y = 0f;
+                worldDir = worldDir.sqrMagnitude > 0.0001f ? worldDir.normalized : Vector3.zero;
+
+                return worldDir * speed;
+            }
+
             return _player.transform.forward * speed;
         }
 

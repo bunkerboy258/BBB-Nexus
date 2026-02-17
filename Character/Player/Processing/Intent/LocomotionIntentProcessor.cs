@@ -122,9 +122,19 @@ namespace Characters.Player.Processing
                 return;
             }
 
+            // 地面跳跃
             if (_data.IsGrounded)
             {
                 _data.WantsToJump = true;
+                return;
+            }
+
+            // 空中二段跳：必须在空中，且本次空中还未执行过二段跳
+            if (!_data.IsGrounded && !_data.HasPerformedDoubleJumpInAir)
+            {
+                // 二段跳仅向上（Up）
+                _data.DoubleJumpDirection = DoubleJumpDirection.Up;
+                _data.WantsDoubleJump = true;
             }
         }
 

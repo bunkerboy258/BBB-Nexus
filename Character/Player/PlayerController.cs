@@ -67,6 +67,7 @@ namespace Characters.Player
         public PlayerStopState StopState { get; private set; }
         public PlayerVaultState VaultState { get; private set; } 
         public PlayerJumpState JumpState { get; private set; }
+        public PlayerDoubleJumpState DoubleJumpState { get; private set; }
         public PlayerLandState LandState { get; private set; }
         public PlayerAimIdleState AimIdleState { get; private set; }
         public PlayerAimMoveState AimMoveState { get; private set; }
@@ -185,6 +186,7 @@ namespace Characters.Player
             VaultState = new PlayerVaultState(this);    
             StopState = new PlayerStopState(this);
             JumpState = new PlayerJumpState(this);
+            DoubleJumpState = new PlayerDoubleJumpState(this);
             LandState = new PlayerLandState(this);
             AimIdleState=new PlayerAimIdleState(this);
             AimMoveState =new PlayerAimMoveState(this);

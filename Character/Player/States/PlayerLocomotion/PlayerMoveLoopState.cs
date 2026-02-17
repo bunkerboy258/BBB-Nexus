@@ -34,23 +34,18 @@ namespace Characters.Player.States
         public override void Enter()
         {
             _currentLocomotionState = data.CurrentLocomotionState;
-            float fadeInTime = data.LoopFadeInTime;
-            data.LoopFadeInTime = 0f;
 
             // 1. 根据运动状态和脚相位选择动画
             var targetClip = SelectLoopAnimationForState(data.CurrentLocomotionState, data.ExpectedFootPhase);
 
-            // 2. 播放动画
-            // fadeInTime <= 0：不要显式传 0，否则会强制“无淡入”。
-            // 改用不带 fade 参数的重载，让 Animancer 使用 Transition 自带的 FadeDuration/默认规则。
-            _currentAnimState = fadeInTime > 0f
-                ? player.Animancer.Layers[0].Play(targetClip, fadeInTime)
-                : player.Animancer.Layers[0].Play(targetClip);
+            // 2. 播放动画，直接使用资源配置的淡入时长
+            Debug.Log("loopfadeintime:"+data.loopFadeInTime);
+            _currentAnimState = player.Animancer.Layers[0].Play(targetClip,data.loopFadeInTime);
+            data.loopFadeInTime = 0f; // 播放后重置，避免下次误用
         }
 
         protected override void UpdateStateLogic()
         {
-
             // 使用权威的离散状态而非浮点检查
             if (data.CurrentLocomotionState == LocomotionState.Idle)
             {
@@ -63,6 +58,7 @@ namespace Characters.Player.States
                 player.StateMachine.ChangeState(player.VaultState);
                 return;
             }
+
 
             if (data.WantsToJump)
             {

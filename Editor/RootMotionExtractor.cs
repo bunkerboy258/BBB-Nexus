@@ -15,11 +15,15 @@ public class RootMotionExtractorWindow : EditorWindow
     private MotionType _batchMotionType = MotionType.CurveDriven;
     private float _batchTargetDuration = 0f;
 
+    // [新增] 目标局部方向过滤：与 forward 偏差不大则视为 0（避免“微小的方向偏移”导致横向驱动）
+    private float _localDirFilterAngleDeg = 12f;
+    private float _localDirMinDistance = 0.02f;
+
     // =========================
-    // 爆炸反馈（Dashboard + Logs）
+    // 详细日志与仪表盘（Dashboard + Logs）
     // =========================
-    private bool _explosionMode = true;
-    private int _heartbeatEveryNFrames = 15;
+    private bool _verboseLogging = true;
+    private int _logEveryNFrames = 15;
     private int _maxDashboardEvents = 30;
 
     private bool _isBaking;
@@ -48,7 +52,7 @@ public class RootMotionExtractorWindow : EditorWindow
         public Color Color;
     }
 
-    [MenuItem("Tools/Root Motion Extractor (Ultimate)")]
+    [MenuItem("Tools/BBB-Nexus/Root Motion Extractor (Ultimate)")]
     public static void ShowWindow()
     {
         GetWindow<RootMotionExtractorWindow>("RM Baker");
@@ -60,11 +64,11 @@ public class RootMotionExtractorWindow : EditorWindow
 
         using (new EditorGUILayout.VerticalScope(GUI.skin.box))
         {
-            GUILayout.Label("爆炸反馈", EditorStyles.boldLabel);
-            _explosionMode = EditorGUILayout.ToggleLeft("爆炸模式（大量日志 + 仪表盘）", _explosionMode);
-            using (new EditorGUI.DisabledScope(!_explosionMode))
+            GUILayout.Label("日志与仪表盘", EditorStyles.boldLabel);
+            _verboseLogging = EditorGUILayout.ToggleLeft("详细日志（控制台 + 仪表盘）", _verboseLogging);
+            using (new EditorGUI.DisabledScope(!_verboseLogging))
             {
-                _heartbeatEveryNFrames = Mathf.Clamp(EditorGUILayout.IntField("心跳频率（每N帧采样日志）", _heartbeatEveryNFrames), 1, 999);
+                _logEveryNFrames = Mathf.Clamp(EditorGUILayout.IntField("采样频率（每N帧记录）", _logEveryNFrames), 1, 999);
                 _maxDashboardEvents = Mathf.Clamp(EditorGUILayout.IntField("仪表盘事件条数", _maxDashboardEvents), 10, 300);
             }
 
@@ -73,6 +77,14 @@ public class RootMotionExtractorWindow : EditorWindow
                 _events.Clear();
                 Repaint();
             }
+        }
+
+        using (new EditorGUILayout.VerticalScope(GUI.skin.box))
+        {
+            GUILayout.Label("目标局部方向烘焙", EditorStyles.boldLabel);
+            _localDirFilterAngleDeg = Mathf.Clamp(EditorGUILayout.FloatField("过滤角度阈值(°)", _localDirFilterAngleDeg), 0f, 90f);
+            _localDirMinDistance = Mathf.Max(0f, EditorGUILayout.FloatField("最小位移阈值(m)", _localDirMinDistance));
+            EditorGUILayout.HelpBox("根据整段动画水平位移计算 TargetLocalDirection。若与 forward 夹角小于阈值或位移过小，则视为 0。", MessageType.Info);
         }
 
         EditorGUILayout.Space(5);
@@ -183,9 +195,9 @@ public class RootMotionExtractorWindow : EditorWindow
         Repaint();
     }
 
-    private void LogExplode(string msg, string colorTag)
+    private void LogVerbose(string msg, string colorTag)
     {
-        if (!_explosionMode) return;
+        if (!_verboseLogging) return;
         UnityEngine.Debug.Log($"<color={colorTag}>[RM Baker]</color> {msg}");
     }
 
@@ -222,7 +234,7 @@ public class RootMotionExtractorWindow : EditorWindow
             AssetDatabase.SaveAssets();
 
             AddEvent($"批量设置完成：{count} 个 MotionClipData", new Color(0.3f, 0.7f, 1f));
-            LogExplode($"Batch applied => {count} MotionClipData", "#4aa3ff");
+            LogVerbose($"Batch applied => {count} MotionClipData", "#4aa3ff");
         }
         catch (System.Exception ex)
         {
@@ -244,7 +256,7 @@ public class RootMotionExtractorWindow : EditorWindow
         _swAll.Start();
 
         AddEvent($"开始烘焙：{_targetSO.name}", new Color(0.4f, 1f, 0.6f));
-        LogExplode($"=== BakeAll START => {_targetSO.name} ===", "#44ff88");
+        LogVerbose($"=== BakeAll START => {_targetSO.name} ===", "#44ff88");
 
         GameObject agent = Instantiate(_characterPrefab);
         agent.hideFlags = HideFlags.HideAndDontSave;
@@ -281,10 +293,10 @@ public class RootMotionExtractorWindow : EditorWindow
                         _currentStage = "Bake";
                         _currentDetail = "Preparing...";
 
-                        if (_explosionMode)
+                        if (_verboseLogging)
                         {
                             AddEvent($"开始：{_currentClipName}", new Color(1f, 0.92f, 0.35f));
-                            LogExplode($"--> Clip START: {_currentClipName}", "#ffd54a");
+                            LogVerbose($"--> Clip START: {_currentClipName}", "#ffd54a");
                         }
 
                         EditorUtility.DisplayProgressBar(
@@ -300,10 +312,10 @@ public class RootMotionExtractorWindow : EditorWindow
                         _swClip.Stop();
                         _currentClipMs = _swClip.ElapsedMilliseconds;
 
-                        if (_explosionMode)
+                        if (_verboseLogging)
                         {
                             AddEvent($"完成：{_currentClipName}  ({_currentClipMs}ms)", new Color(0.5f, 1f, 0.65f));
-                            LogExplode($"<-- Clip DONE: {_currentClipName} ({_currentClipMs}ms)", "#66ff88");
+                            LogVerbose($"<-- Clip DONE: {_currentClipName} ({_currentClipMs}ms)", "#66ff88");
                         }
 
                         // 强制刷新 UI
@@ -319,7 +331,7 @@ public class RootMotionExtractorWindow : EditorWindow
 
             _swAll.Stop();
             AddEvent($"全部完成：{_swAll.ElapsedMilliseconds}ms", new Color(0.35f, 1f, 0.9f));
-            LogExplode($"=== BakeAll DONE => {_swAll.ElapsedMilliseconds}ms ===", "#44ffee");
+            LogVerbose($"=== BakeAll DONE => {_swAll.ElapsedMilliseconds}ms ===", "#44ffee");
         }
         finally
         {
@@ -362,11 +374,12 @@ public class RootMotionExtractorWindow : EditorWindow
             }
             tempRotCurve.AddKey(time, accRotY);
 
-            if (_explosionMode && _heartbeatEveryNFrames > 0 && i % _heartbeatEveryNFrames == 0)
-            {
-                LogExplode($"{clip.name} [RotateScan] i={i}/{frameCount} t={time:0.00}s accYaw={accRotY:0.0}", "#9b7bff");
-                AddEvent($"♥ RotateScan {i}/{frameCount}", new Color(0.65f, 0.55f, 1f));
-            }
+            // Removed per-frame verbose heartbeat to reduce log spam
+            // if (_verboseLogging && _logEveryNFrames > 0 && i % _logEveryNFrames == 0)
+            // {
+            //     LogVerbose($"{clip.name} [RotateScan] i={i}/{frameCount} t={time:0.00}s accYaw={accRotY:0.0}", "#9b7bff");
+            //     AddEvent($"♥ RotateScan {i}/{frameCount}", new Color(0.65f, 0.55f, 1f));
+            // }
         }
 
         data.RotationFinishedTime = CalculateRotationFinishedTime(tempRotCurve, totalTime);
@@ -401,6 +414,11 @@ public class RootMotionExtractorWindow : EditorWindow
         lastRotY = 0f;
         accRotY = 0f;
 
+        // [新增] 记录起点/终点水平位移，用于推导 TargetLocalDirection
+        Vector3 startPos = Vector3.zero;
+        Vector3 endPos = Vector3.zero;
+        float startRootYaw = 0f;
+
         for (int i = 0; i <= frameCount; i++)
         {
             float originalTime = Mathf.Min(i * interval, totalTime);
@@ -409,6 +427,13 @@ public class RootMotionExtractorWindow : EditorWindow
             clip.SampleAnimation(animator.gameObject, originalTime);
             Vector3 currentPos = animator.transform.position;
             float currentRotY = animator.transform.eulerAngles.y;
+
+            if (i == 0)
+            {
+                startPos = currentPos;
+                startRootYaw = currentRotY;
+            }
+            if (i == frameCount) endPos = currentPos;
 
             if (i > 0)
             {
@@ -431,12 +456,16 @@ public class RootMotionExtractorWindow : EditorWindow
 
             lastPos = currentPos;
             lastRotY = currentRotY;
+        }
 
-            if (_explosionMode && _heartbeatEveryNFrames > 0 && i % _heartbeatEveryNFrames == 0)
-            {
-                LogExplode($"{clip.name} [Curves] i={i}/{frameCount} t={originalTime:0.00}s speedKey={data.SpeedCurve.length} rotKey={data.RotationCurve.length}", "#4aa3ff");
-                AddEvent($"♥ Curves {i}/{frameCount}", new Color(0.3f, 0.7f, 1f));
-            }
+        // [新增] 推导 TargetLocalDirection（基于整段水平位移：end-start）
+        if (data.AllowBakeTargetLocalDirection)
+        {
+            BakeTargetLocalDirection(data, startPos, endPos, startRootYaw);
+        }
+        else
+        {
+            data.TargetLocalDirection = Vector3.zero;
         }
 
         _currentSpeedKeys = data.SpeedCurve.length;
@@ -449,11 +478,41 @@ public class RootMotionExtractorWindow : EditorWindow
         SmoothCurve(data.SpeedCurve, 3);
         SmoothCurve(data.RotationCurve, 5);
 
-        if (_explosionMode)
+        if (_verboseLogging)
         {
-            LogExplode($"{clip.name} DONE => EndPhase={data.EndPhase}, RotFinish={data.RotationFinishedTime:0.00}s, PlaybackSpeed={data.PlaybackSpeed:0.000}", "#66ff88");
+            LogVerbose($"{clip.name} DONE => EndPhase={data.EndPhase}, RotFinish={data.RotationFinishedTime:0.00}s, PlaybackSpeed={data.PlaybackSpeed:0.000}", "#66ff88");
             AddEvent($"DONE {clip.name} => {data.EndPhase}", new Color(0.4f, 1f, 0.6f));
         }
+    }
+
+    private void BakeTargetLocalDirection(MotionClipData data, Vector3 startPos, Vector3 endPos, float startRootYaw)
+    {
+        Vector3 delta = endPos - startPos;
+        delta.y = 0f;
+
+        // 位移太小：直接视为无方向
+        if (delta.magnitude < _localDirMinDistance)
+        {
+            data.TargetLocalDirection = Vector3.zero;
+            return;
+        }
+
+        // local space：以“起始根骨 yaw”为参考系。
+        // 目的：针对“本身不旋转但带方向”的动画（闪避/左右跳），确保方向提取不受微小 rootYaw 漂移影响。
+        Quaternion startYawRot = Quaternion.Euler(0f, startRootYaw, 0f);
+        Vector3 localDir = Quaternion.Inverse(startYawRot) * delta.normalized;
+        localDir.y = 0f;
+        localDir = localDir.sqrMagnitude > 0.0001f ? localDir.normalized : Vector3.zero;
+
+        // 过滤“微小的方向偏移”：与 local forward 偏差不大一律视为 0
+        float angleToForward = Vector3.Angle(Vector3.forward, localDir);
+        if (angleToForward <= _localDirFilterAngleDeg)
+        {
+            data.TargetLocalDirection = Vector3.zero;
+            return;
+        }
+
+        data.TargetLocalDirection = localDir;
     }
 
     private struct PoseInfo { public Vector3 LeftLocal; public Vector3 RightLocal; }

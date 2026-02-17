@@ -24,6 +24,22 @@ namespace Characters.Player.Data
     }
 
     /// <summary>
+    /// 二段跳方向枚举
+    /// 根据输入方向和角色朝向判定的二段跳类型
+    /// </summary>
+    public enum DoubleJumpDirection
+    {
+        /// <summary>垂直向上二段跳</summary>
+        Up = 0,
+
+        /// <summary>向左二段跳</summary>
+        Left = 1,
+
+        /// <summary>向右二段跳</summary>
+        Right = 2,
+    }
+
+    /// <summary>
     /// 装备快照（“当前身上装备了什么”的运行时结果）。
     /// 
     /// 注意：
@@ -206,22 +222,26 @@ namespace Characters.Player.Data
         public bool WantsToJump;
 
         /// <summary>
+        /// 本帧是否请求二段跳。由 LocomotionIntentProcessor 在收到跳跃按键且在空中未执行过二段跳时设置。
+        /// 消费者：MoveLoopState（决定是否切换到 PlayerDoubleJumpState）。
+        /// </summary>
+        public bool WantsDoubleJump;
+
+        /// <summary>
+        /// 本帧二段跳方向。由 LocomotionIntentProcessor 在空中时计算。
+        /// 根据 DesiredLocalMoveAngle 判定：
+        /// - Up (-45~45°)：垂直向上
+        /// - Left (45~135°)：向左二段跳
+        /// - Right (-135~-45°)：向右二段跳
+        /// 仅在空中时更新，落地后保留上一次的方向。
+        /// </summary>
+        public DoubleJumpDirection DoubleJumpDirection = DoubleJumpDirection.Up;
+
+        /// <summary>
         /// 本帧是否请求翻越。由 LocomotionIntentProcessor 在收到跳跃按键且检测到障碍时设置。
         /// 消费者：状态机（决定是切换到 VaultState 还是 JumpState）。
         /// </summary>
         public bool WantsToVault;
-
-        // --- 装备意图 ---
-
-        /// <summary>
-        /// 装备意图：玩家希望装备到的物品定义。
-        /// 由 EquipIntentProcessor 设置（通过快捷键数字1-5）。
-        /// 为 null 表示"想要空手状态"。
-        /// 
-        /// 注意：不等同于 CurrentEquipment.Definition（后者是实际已装备结果）。
-        /// 这个字段表示"我想切换到什么"，EquipmentDriver 负责执行这个意图。
-        /// </summary>
-        public ItemDefinitionSO DesiredItemDefinition;
 
         // --- IK 意图 ---
 
@@ -241,6 +261,29 @@ namespace Characters.Player.Data
         /// </summary>
         public bool WantsLookAtIK;
 
+        // --- 装备意图 ---
+
+        /// <summary>
+        /// 装备意图：玩家希望装备到的物品定义。
+        /// 由 EquipIntentProcessor 设置（通过快捷键数字1-5）。
+        /// 为 null 表示"想要空手状态"。
+        /// 
+        /// 注意：不等同于 CurrentEquipment.Definition（后者是实际已装备结果）。
+        /// 这个字段表示"我想切换到什么"，EquipmentDriver 负责执行这个意图。
+        /// </summary>
+        public ItemDefinitionSO DesiredItemDefinition;
+
+        #endregion
+
+        #region AIRBORNE_STATE (空中状态追踪：用于限制二段跳次数)
+
+        /// <summary>
+        /// 当前空中周期是否已执行过二段跳。由 PlayerDoubleJumpState 在执行跳跃时设置为 true。
+        /// 在落地时由 PlayerLandState 重置为 false。
+        /// 用途：防止在一次空中时执行多次二段跳。
+        /// </summary>
+        public bool HasPerformedDoubleJumpInAir;
+
         #endregion
 
         #region PARAMETER (参数数据：由 ParameterProcessor 计算，供动画层使用)
@@ -256,13 +299,6 @@ namespace Characters.Player.Data
         /// 输入给：Animator 2D 混合树的纵轴。
         /// </summary>
         public float CurrentAnimBlendY;
-
-        /// <summary>
-        /// 进入 MoveLoop 时的淡入时间（秒）。
-        /// 由 MoveStartState 在运动状态中途变化时设置，MoveLoopState 在 Enter 时消费并清零。
-        /// 0 表示不淡入（直接切换）。
-        /// </summary>
-        public float LoopFadeInTime;
 
         /// <summary>
         /// 当前跑步循环相位（0~1）。由 MovementParameterProcessor 维护。
@@ -305,6 +341,9 @@ namespace Characters.Player.Data
         /// - PlayerLandState.Enter 结束时清零此字段（防止残留影响）
         /// </summary>
         public int FallHeightLevel;
+
+        public float LandFadeInTime;
+        public float loopFadeInTime;
 
         #endregion
 
@@ -386,13 +425,16 @@ namespace Characters.Player.Data
         /// 
         /// 清理内容：
         /// - WantToRun：运动意图（已在 CharacterStatusDriver.Update 后消费）
-        /// - WantsToJump、WantsToVault：交互意图（已在 StateMachine.LogicUpdate 消费）
+        /// - WantsToJump、WantsToVault、WantsDoubleJump：交互意图（已在 StateMachine.LogicUpdate 消费）
         /// </summary>
         public void ResetIntetnt()
         {
             WantsToVault = false;
             WantToRun = false;
             WantsToJump = false;
+            WantsDoubleJump = false;
         }
+
+
     }
 }

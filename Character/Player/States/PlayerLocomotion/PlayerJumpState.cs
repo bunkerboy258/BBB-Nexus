@@ -68,6 +68,7 @@ namespace Characters.Player.States
                     // Walk/Jog/Idle 状态：使用默认的 Walk 配置
                     _clipData = config.JumpAirAnimWalk ?? config.JumpAirAnim; // fallback to default if not set
                     _jumpForce = config.JumpForceWalk;
+                    data.LandFadeInTime = config.JumpToLandFadeInTime_WalkJog;
                     break;
 
                 case LocomotionState.Sprint:
@@ -76,12 +77,14 @@ namespace Characters.Player.States
                         // Sprint + 空手：使用特殊的空手配置
                         _clipData = config.JumpAirAnimSprintEmpty ?? config.JumpAirAnim; // fallback to default if not set
                         _jumpForce = config.JumpForceSprintEmpty;
+                        data.LandFadeInTime = config.JumpToLandFadeInTime_SprintEmpty;
                     }
                     else
                     {
                         // Sprint + 有装备：使用 Sprint 配置
                         _clipData = config.JumpAirAnimSprint ?? config.JumpAirAnim; // fallback to default if not set
                         _jumpForce = config.JumpForceSprint;
+                        data.LandFadeInTime = config.JumpToLandFadeInTime_Sprint;
                     }
                     break;
 
@@ -89,6 +92,7 @@ namespace Characters.Player.States
                     // Fallback: use default jump settings
                     _clipData = config.JumpAirAnim;
                     _jumpForce = config.JumpForce;
+                    data.LandFadeInTime = config.JumpToLandFadeInTime;
                     break;
             }
         }
@@ -101,6 +105,11 @@ namespace Characters.Player.States
 
         protected override void UpdateStateLogic()
         {
+            if (data.WantsDoubleJump)
+            {
+                player.StateMachine.ChangeState(player.DoubleJumpState);
+                return; 
+            }
             // 防抖：起跳后至少过 0.2s 才开始检测落地
             if (!_canCheckLand && _state.Time > 0.2f)
             {

@@ -10,7 +10,7 @@ public class OutfitBoneMerger : EditorWindow
     private List<SkinnedMeshRenderer> _outfitRenderers = new List<SkinnedMeshRenderer>();
     private bool _isAnalyzed = false;
 
-    [MenuItem("Tools/Outfit Bone Merger (骨骼合并工具)")]
+    [MenuItem("Tools/BBB-Nexus/Outfit Bone Merger (骨骼合并工具)")]
     public static void ShowWindow()
     {
         GetWindow<OutfitBoneMerger>("Bone Merger");

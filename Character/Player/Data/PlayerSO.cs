@@ -28,11 +28,14 @@ namespace Characters.Player.Data
         [Tooltip("期望的目标时长（用于计算 PlaybackSpeed；0 表示不缩放）")]
         public float TargetDuration = 0f;
 
-        [Tooltip("进入下一段 Loop 动画时建议的淡入时间（秒）。<=0 表示不写入，由状态机自行决定")]
-        public float NextLoopFadeInTime = 0f;
-
         [Tooltip("提前结束时间点（单位：秒，基于该段动画的播放时间；<=0 表示不提前结束）。用于 Land 等状态按 endTime 提前切换。")]
         public float EndTime = 0f;
+
+        [Tooltip("是否允许由烘焙器自动写入 TargetLocalDirection。默认关闭；只有闪避/左右跳等“无旋转但有方向”的动画建议开启。")]
+        public bool AllowBakeTargetLocalDirection = false;
+
+        [Tooltip("目标局部方向（相对于角色自身 local space）。非零时：曲线阶段速度会沿该方向推进；常用于自带局部方向的动画（向左跳/向后闪避等）。")]
+        public Vector3 TargetLocalDirection = Vector3.zero;
 
         [Header("Baked Data")]
         [Tooltip("动画结束时的脚相位（用于 Loop_L/Loop_R 或 Stop 选择）")]
@@ -201,14 +204,20 @@ namespace Characters.Player.Data
         #region Jump (跳跃系统)
 
         [Header("Jump")]
-        [Tooltip("跳跃初速度/力度")]
+        [Tooltip("跳跃默认回退初速度/力度")]
         public float JumpForce = 6f;
 
         [Tooltip("空中动画数据（通常为曲线驱动或输入驱动）")]
         public MotionClipData JumpAirAnim;
 
+        [Tooltip("从 Jump 状态切到 Land 状态时，落地动画淡入时间（默认 Jump）。")]
+        public float JumpToLandFadeInTime = 0.2f;
+
         [Tooltip("落地后到跑动的起步衔接动画")]
         public MotionClipData LandToRunStart;
+
+        [Tooltip("从 Land 缓冲切到 MoveLoop 时的循环动画淡入时间（默认 Land）。")]
+        public float LandToLoopFadeInTime = 0.3f;
 
         [Header("--- Jump Variations (不同状态的跳跃配置) ---")]
         [Tooltip("Walk/Jog 状态下的跳跃初速度")]
@@ -217,11 +226,17 @@ namespace Characters.Player.Data
         [Tooltip("Walk/Jog 状态下的跳跃空中动画")]
         public MotionClipData JumpAirAnimWalk;
 
+        [Tooltip("Walk/Jog/Idle 跳跃：切到 Land 的淡入时间")]
+        public float JumpToLandFadeInTime_WalkJog = 0.2f;
+
         [Tooltip("Sprint 状态下的跳跃初速度（有装备）")]
         public float JumpForceSprint = 7f;
 
         [Tooltip("Sprint 状态下的跳跃空中动画（有装备）")]
         public MotionClipData JumpAirAnimSprint;
+
+        [Tooltip("Sprint(有装备) 跳跃：切到 Land 的淡入时间")]
+        public float JumpToLandFadeInTime_Sprint = 0.3f;
 
         [Tooltip("Sprint 状态下的跳跃初速度（空手）")]
         public float JumpForceSprintEmpty = 8f;
@@ -229,13 +244,30 @@ namespace Characters.Player.Data
         [Tooltip("Sprint 状态下的跳跃空中动画（空手）")]
         public MotionClipData JumpAirAnimSprintEmpty;
 
-        // 新增：下落（Falling）相关配置，供下落状态使用
-        [Header("--- Fall (下落) ---")]
-        [Tooltip("下落空中动画（连续自由下落时使用的动画）；若为空则回退到 JumpAirAnim")]
-        public MotionClipData FallAirAnim;
+        [Tooltip("Sprint(空手) 跳跃：切到 Land 的淡入时间")]
+        public float JumpToLandFadeInTime_SprintEmpty = 0.4f;
 
-        [Tooltip("判定为下落前的防抖延迟（秒），用于避免起跳后的短暂下落被识别为真正的下落")]
-        public float FallDetectDelay = 0.2f;
+        #endregion
+
+        #region DoubleJump (二段跳系统)
+
+        [Header("--- Double Jump (二段跳) ---")]
+        [Tooltip("二段跳向上初速度/力度（独立于地面 JumpForce）。")]
+        public float DoubleJumpForceUp = 6f;
+
+        [Tooltip("二段跳向上的动画；若为空则降级到标准跳跃动画")]
+        public MotionClipData DoubleJumpUp;
+        [Tooltip("二段跳动画淡入时间")]
+        public float DoubleJumpFadeInTime = 0.2f;
+        [Tooltip("二段跳落地时 Land 动画的淡入时间")]
+        public float DoubleJumpToLandFadeInTime = 0.2f;
+
+        [Tooltip("Sprint+空手时的二段跳翻滚动画")]
+        public MotionClipData DoubleJumpSprintRoll;
+        [Tooltip("Sprint+空手二段跳翻滚动画淡入时间")]
+        public float DoubleJumpSprintRollFadeInTime = 0.2f;
+        [Tooltip("Sprint+空手二段跳翻滚落地时 Land 动画的淡入时间")]
+        public float DoubleJumpSprintRollToLandFadeInTime = 0.2f;
 
         #endregion
 
@@ -263,34 +295,53 @@ namespace Characters.Player.Data
 
         [Tooltip("Walk/Jog 级别1 落地缓冲")]
         public MotionClipData LandBuffer_WalkJog_L1;
+        [Tooltip("Walk/Jog 级别1落地后切Loop的淡入时间")]
+        public float LandToLoopFadeInTime_WalkJog_L1 = 0.2f;
 
         [Tooltip("Walk/Jog 级别2 落地缓冲")]
         public MotionClipData LandBuffer_WalkJog_L2;
+        [Tooltip("Walk/Jog 级别2落地后切Loop的淡入时间")]
+        public float LandToLoopFadeInTime_WalkJog_L2 = 0.3f;
 
         [Tooltip("Walk/Jog 级别3 落地缓冲")]
         public MotionClipData LandBuffer_WalkJog_L3;
+        [Tooltip("Walk/Jog 级别3落地后切Loop的淡入时间")]
+        public float LandToLoopFadeInTime_WalkJog_L3 = 0.4f;
 
         [Tooltip("Walk/Jog 级别4 落地缓冲")]
         public MotionClipData LandBuffer_WalkJog_L4;
+        [Tooltip("Walk/Jog 级别4落地后切Loop的淡入时间")]
+        public float LandToLoopFadeInTime_WalkJog_L4 = 0.5f;
 
         [Header("--- Landing Buffer Animations (落地缓冲动画 - Sprint) ---")]
 
+
         [Tooltip("Sprint 级别1 落地缓冲")]
         public MotionClipData LandBuffer_Sprint_L1;
+        [Tooltip("Sprint 级别1落地后切Loop的淡入时间")]
+        public float LandToLoopFadeInTime_Sprint_L1 = 0.2f;
 
         [Tooltip("Sprint 级别2 落地缓冲")]
         public MotionClipData LandBuffer_Sprint_L2;
+        [Tooltip("Sprint 级别2落地后切Loop的淡入时间")]
+        public float LandToLoopFadeInTime_Sprint_L2 = 0.3f;
 
         [Tooltip("Sprint 级别3 落地缓冲")]
         public MotionClipData LandBuffer_Sprint_L3;
+        [Tooltip("Sprint 级别3落地后切Loop的淡入时间")]
+        public float LandToLoopFadeInTime_Sprint_L3 = 0.4f;
 
         [Tooltip("Sprint 级别4 落地缓冲")]
         public MotionClipData LandBuffer_Sprint_L4;
+        [Tooltip("Sprint 级别4落地后切Loop的淡入时间")]
+        public float LandToLoopFadeInTime_Sprint_L4 = 0.8f;
 
         [Header("--- Landing Special Reaction (超限反应) ---")]
 
         [Tooltip("超过高度限制时使用（摔倒动画）")]
         public MotionClipData LandBuffer_ExceedLimit;
+        [Tooltip("超限落地：切到 MoveLoop 的淡入时间")]
+        public float LandToLoopFadeInTime_ExceedLimit = 0.7f;
 
         #endregion
 

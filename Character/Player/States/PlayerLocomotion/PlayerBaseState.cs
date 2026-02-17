@@ -44,15 +44,19 @@ namespace Characters.Player.States
         protected virtual bool CheckInterrupts()
         {
             // 1) 刚落地事件 -> 进入 LandState（由 LandState 决定后续切换）
-            if (data.JustLanded && data.FallHeightLevel > 0)
+            if (data.JustLanded && data.FallHeightLevel > 0&&this is not PlayerLandState)
             {
                 player.StateMachine.ChangeState(player.LandState);
                 return true;
             }
 
-            // 2) 全局瞄准切换：若进入瞄准则切到 AimMove/AimIdle（除非当前状态阻止）
+            // 2) 全局瞄准切换：只在“非瞄准状态”时做一次性切换，避免每帧打断 Aim 状态自身逻辑。
             if (data.IsAiming)
             {
+                // 如果当前已经在瞄准状态（AimIdle/AimMove），不要在这里截断，让状态自身 UpdateStateLogic 正常运行。
+                if (this is PlayerAimIdleState || this is PlayerAimMoveState||this is not PlayerLandState)
+                    return false;
+
                 bool wantToMove = data.MoveInput.sqrMagnitude > 0.001f;
                 player.StateMachine.ChangeState(wantToMove ? player.AimMoveState : player.AimIdleState);
                 return true;

@@ -71,7 +71,7 @@ namespace Characters.Player.States
             // 如果运动状态在起步中途改变，切到循环状态让其处理状态转换
             else if (data.CurrentLocomotionState != _startLocomotionState)
             {
-                data.LoopFadeInTime = 0.5f;
+                data.loopFadeInTime = 0.4f;
                 player.StateMachine.ChangeState(player.MoveLoopState);
             }
         }
@@ -105,8 +105,7 @@ namespace Characters.Player.States
                 _ => 0.7f
             };
             data.CurrentAnimBlendY = targetY;
-            Debug.Log($"[MoveStartState.Exit] ExpectedFootPhase={data.ExpectedFootPhase}, " +
-    $"LocomotionState={data.CurrentLocomotionState}");
+            //Debug.Log($"[MoveStartState.Exit] ExpectedFootPhase={data.ExpectedFootPhase}, " + $"LocomotionState={data.CurrentLocomotionState}");
         }
 
         #endregion
