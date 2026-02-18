@@ -24,7 +24,8 @@ namespace Characters.Player.States
             // 根据运动状态和脚相位选择对应的急停动画
             ClipTransition stopClip = SelectStopClipForLocomotionState(data.CurrentLocomotionState, data.CurrentRunCycleTime);
 
-            var state = player.Animancer.Layers[0].Play(stopClip);
+            var state = player.Animancer.Layers[0].Play(stopClip,0.4f);
+            data.stopFadeInTime = 0f;
 
             // 动画完毕 -> 回到 Idle
             state.Events(this).OnEnd = () => player.StateMachine.ChangeState(player.IdleState);
@@ -33,9 +34,10 @@ namespace Characters.Player.States
         protected override void UpdateStateLogic()
         {
             // 停止时检测输入 -> 重新开始移动
-            if (HasMoveInput)
+            if (data.CurrentLocomotionState != LocomotionState.Idle)
             {
-                player.StateMachine.ChangeState(player.MoveStartState);
+                data.loopFadeInTime = 0.4f;
+                player.StateMachine.ChangeState(player.MoveLoopState);
                 return;
             }
 

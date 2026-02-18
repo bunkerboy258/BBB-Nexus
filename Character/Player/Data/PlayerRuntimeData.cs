@@ -342,8 +342,10 @@ namespace Characters.Player.Data
         /// </summary>
         public int FallHeightLevel;
 
+        public float moveStartFadeInTime;
         public float LandFadeInTime;
         public float loopFadeInTime;
+        public float stopFadeInTime;
 
         #endregion
 

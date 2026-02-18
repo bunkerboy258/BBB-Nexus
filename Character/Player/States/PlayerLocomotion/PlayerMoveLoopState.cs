@@ -39,7 +39,7 @@ namespace Characters.Player.States
             var targetClip = SelectLoopAnimationForState(data.CurrentLocomotionState, data.ExpectedFootPhase);
 
             // 2. 播放动画，直接使用资源配置的淡入时长
-            Debug.Log("loopfadeintime:"+data.loopFadeInTime);
+            //Debug.Log("loopfadeintime:"+data.loopFadeInTime);
             _currentAnimState = player.Animancer.Layers[0].Play(targetClip,data.loopFadeInTime);
             data.loopFadeInTime = 0f; // 播放后重置，避免下次误用
         }

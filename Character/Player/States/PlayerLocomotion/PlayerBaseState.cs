@@ -22,7 +22,6 @@ namespace Characters.Player.States
             this.config = player.Config;
         }
 
-        protected bool HasMoveInput => data.MoveInput.sqrMagnitude > 0.001f;
 
         /// <summary>
         /// 统一封闭 LogicUpdate：
@@ -57,8 +56,7 @@ namespace Characters.Player.States
                 if (this is PlayerAimIdleState || this is PlayerAimMoveState||this is not PlayerLandState)
                     return false;
 
-                bool wantToMove = data.MoveInput.sqrMagnitude > 0.001f;
-                player.StateMachine.ChangeState(wantToMove ? player.AimMoveState : player.AimIdleState);
+                player.StateMachine.ChangeState(data.CurrentLocomotionState==LocomotionState.Idle ? player.AimMoveState : player.AimIdleState);
                 return true;
             }
 

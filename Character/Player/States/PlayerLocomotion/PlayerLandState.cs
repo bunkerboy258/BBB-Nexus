@@ -33,7 +33,7 @@ namespace Characters.Player.States
             // 重置本次空中的二段跳标记（为下次空中做准备）
             data.HasPerformedDoubleJumpInAir = false;
 
-            bool wantToMove = HasMoveInput;
+            bool wantToMove = data.CurrentLocomotionState != LocomotionState.Idle;
 
             // B) 落地瞬间如果在瞄准：直接切瞄准状态，不播放落地缓冲
             if (data.IsAiming)

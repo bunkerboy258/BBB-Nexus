@@ -36,7 +36,7 @@ namespace Characters.Player.States
                 return;
             }
 
-            if (HasMoveInput)
+            if (data.CurrentLocomotionState!=LocomotionState.Idle)
             {
                 player.StateMachine.ChangeState(player.AimMoveState);
             }

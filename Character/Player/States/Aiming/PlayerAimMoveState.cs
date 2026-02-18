@@ -23,7 +23,7 @@ namespace Characters.Player.States
         {
             if (!data.IsAiming)
             {
-                player.StateMachine.ChangeState(HasMoveInput ? (BaseState)player.MoveLoopState : player.IdleState);
+                player.StateMachine.ChangeState(data.CurrentLocomotionState == LocomotionState.Idle ? (BaseState)player.MoveLoopState : player.IdleState);
                 return;
             }
 
@@ -33,7 +33,7 @@ namespace Characters.Player.States
                 return;
             }
 
-            if (!HasMoveInput)
+            if (data.CurrentLocomotionState==LocomotionState.Idle)
             {
                 player.StateMachine.ChangeState(player.AimIdleState);
                 return;

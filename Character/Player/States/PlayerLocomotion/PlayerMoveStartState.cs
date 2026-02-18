@@ -42,7 +42,8 @@ namespace Characters.Player.States
             _currentClipData = SelectClipForLocomotionState(data.DesiredLocalMoveAngle, data.CurrentLocomotionState);
 
             // 播放动画并设置结束回调
-            _state = player.Animancer.Layers[0].Play(_currentClipData.Clip);
+            _state = player.Animancer.Layers[0].Play(_currentClipData.Clip,data.moveStartFadeInTime);
+            data.moveStartFadeInTime = 0f;
 
             // 精简：不再有 ExitTime/截断点逻辑，直接使用烘焙倍速。
             _state.Speed = _currentClipData.PlaybackSpeed;

@@ -48,6 +48,9 @@ namespace Characters.Player
         [Tooltip("如果配置了此项，游戏开始时会自动装备这个物品")]
         public ItemDefinitionSO DefaultEquipment;
 
+        public bool statedebug = false;
+        private PlayerBaseState laststate;
+
         // [Removed] CameraRoot 同步已迁移到 Core.CameraSystem.CameraRigDriver（场景独立物体）。
 
         // --- 核心系统引用（供外部系统访问） ---
@@ -105,6 +108,7 @@ namespace Characters.Player
 
         private void Update()
         {
+            laststate = StateMachine.CurrentState as PlayerBaseState;
             // 1. 输入 -> 原始数据
             RuntimeData.MoveInput = InputReader.MoveInput;
             RuntimeData.LookInput = InputReader.LookInput;
@@ -132,6 +136,9 @@ namespace Characters.Player
 
             // 8. 重置data意图标记    
             RuntimeData.ResetIntetnt();
+
+            if(statedebug&& StateMachine.CurrentState.GetType().Name!=laststate.GetType().Name) Debug.Log(StateMachine.CurrentState.GetType().Name);  
+
         }
 
         // [Removed] LateUpdate：CameraRoot 同步由 CameraRigDriver 负责。

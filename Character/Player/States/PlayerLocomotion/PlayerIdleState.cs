@@ -1,5 +1,6 @@
 using UnityEngine;
 using Animancer;
+using Characters.Player.Data;
 
 namespace Characters.Player.States
 {
@@ -34,13 +35,8 @@ namespace Characters.Player.States
         /// </summary>
         protected override void UpdateStateLogic()
         {
-            if (data.IsAiming)
-            {
-                player.StateMachine.ChangeState(player.AimIdleState);
-                return;
-            }
 
-            if (HasMoveInput)
+            if (data.CurrentLocomotionState!=LocomotionState.Idle)
             {
                 player.StateMachine.ChangeState(player.MoveStartState);
                 return;
