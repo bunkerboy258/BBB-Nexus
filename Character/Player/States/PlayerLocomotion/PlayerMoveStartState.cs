@@ -61,7 +61,7 @@ namespace Characters.Player.States
             {
                 player.StateMachine.ChangeState(player.AimMoveState);
             }
-            else if (!HasMoveInput)
+            else if (data.CurrentLocomotionState == LocomotionState.Idle)
             {
                 player.StateMachine.ChangeState(player.IdleState);
             }
