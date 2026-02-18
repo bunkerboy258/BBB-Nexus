@@ -52,11 +52,11 @@ namespace Characters.Player.States
             // 2) 全局瞄准切换：只在“非瞄准状态”时做一次性切换，避免每帧打断 Aim 状态自身逻辑。
             if (data.IsAiming)
             {
-                // 如果当前已经在瞄准状态（AimIdle/AimMove），不要在这里截断，让状态自身 UpdateStateLogic 正常运行。
-                if (this is PlayerAimIdleState || this is PlayerAimMoveState||this is not PlayerLandState)
+                // 如果当前已经在瞄准状态（AimIdle/AimMove），且不处于强制状态,让状态正常运行。
+                if ((this is PlayerAimIdleState || this is PlayerAimMoveState)&&this is not PlayerLandState)
                     return false;
 
-                player.StateMachine.ChangeState(data.CurrentLocomotionState==LocomotionState.Idle ? player.AimMoveState : player.AimIdleState);
+                player.StateMachine.ChangeState(data.CurrentLocomotionState==LocomotionState.Idle ? player.AimIdleState : player.AimMoveState);
                 return true;
             }
 

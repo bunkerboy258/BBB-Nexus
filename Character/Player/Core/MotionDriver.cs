@@ -111,21 +111,14 @@ namespace Characters.Player.Core
         /// </summary>
         private Vector3 CalculateFreeLookDrivenVelocity(float speedMult = 1f)
         {
-            float yaw = _data.AuthorityYaw;
-            Quaternion yawRot = Quaternion.Euler(0f, yaw, 0f);
+            // 单一来源：DesiredWorldMoveDir 由 LocomotionIntentProcessor 计算。
+            Vector3 moveDir = _data.DesiredWorldMoveDir;
 
-            Vector3 basisForward = yawRot * Vector3.forward;
-            Vector3 basisRight = yawRot * Vector3.right;
-
-            Vector2 input = _data.MoveInput;
-            if (input.sqrMagnitude < 0.001f)
+            if (moveDir.sqrMagnitude < 0.0001f)
             {
                 _data.CurrentYaw = _player.transform.eulerAngles.y;
                 return Vector3.zero;
             }
-
-            Vector3 moveDir = basisRight * input.x + basisForward * input.y;
-            moveDir = moveDir.sqrMagnitude > 0.0001f ? moveDir.normalized : Vector3.zero;
 
             // 角色朝向：朝向移动方向（而不是强制朝 AuthorityYaw）
             float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;

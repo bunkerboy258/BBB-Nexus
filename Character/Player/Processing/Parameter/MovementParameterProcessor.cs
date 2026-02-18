@@ -7,11 +7,12 @@ namespace Characters.Player.Processing
     /// 动画参数处理器：将意图转换为动画混合参数。
     /// 
     /// 职责：
-    /// - 计算世界空间移动方向（DesiredWorldMoveDir）
     /// - 计算动画混合参数 X（方向）和 Y（速度强度）
-    /// - X 轴：由移动方向和强度合成的极坐标 x 分量（保持不变）
-    /// - Y 轴：根据 CurrentLocomotionState 映射到不同强度（Walk/Jog/Sprint）
+    /// - X/Y：由移动方向和强度合成的极坐标分量
     /// - 根据垂直速度和重力计算最高点下落距离（内部数据）
+    /// 
+    /// 约定：
+    /// - DesiredWorldMoveDir 的单一来源在 LocomotionIntentProcessor，这里只读。
     /// </summary>
     public class MovementParameterProcessor
     {
@@ -27,9 +28,10 @@ namespace Characters.Player.Processing
 
         // 方向向量平滑（替代角度平滑，避免 -180/180 跳变）
         private Vector3 _currentLocalDir = Vector3.forward;
-        private Vector3 _localDirVelocity;
 
-        // 动画 Y 参数平滑状态
+        // 动画 X/Y 参数平滑状态
+        private float _currentAnimBlendX;
+        private float _xBlendVelocity;
         private float _currentAnimBlendY;
         private float _yBlendVelocity;
 
@@ -46,7 +48,9 @@ namespace Characters.Player.Processing
 
             _currentIntensity = 0.0f;
             _currentLocalDir = Vector3.forward;
-            _localDirVelocity = Vector3.zero;
+
+            _currentAnimBlendX = 0f;
+            _xBlendVelocity = 0f;
             _currentAnimBlendY = 0f;
             _yBlendVelocity = 0f;
 
@@ -56,7 +60,7 @@ namespace Characters.Player.Processing
 
         public void Update()
         {
-            // 0) 统一计算移动派生数据（状态机/动画共用）
+            // 0) 仅维护本模块负责的派生数据：DesiredLocalMoveAngle 等。
             UpdateMovementDerivedData();
 
             // 1) 根据运动状态更新强度目标
@@ -71,20 +75,9 @@ namespace Characters.Player.Processing
 
         private void UpdateMovementDerivedData()
         {
-            // 默认值
-            _data.DesiredWorldMoveDir = Vector3.zero;
+            // 注意：DesiredWorldMoveDir 的单一来源在 LocomotionIntentProcessor。
+            // 这里只维护本模块输出的派生参数的默认值。
             _data.DesiredLocalMoveAngle = 0f;
-
-            Vector2 input = _data.MoveInput;
-            if (input.sqrMagnitude < 0.001f) return;
-
-            // 以 AuthorityYaw 为参考系得到世界方向
-            float worldAngle = Mathf.Atan2(input.x, input.y) * Mathf.Rad2Deg + _data.AuthorityYaw;
-            Vector3 worldDir = Quaternion.Euler(0f, worldAngle, 0f) * Vector3.forward;
-            worldDir.y = 0f;
-            _data.DesiredWorldMoveDir = worldDir.sqrMagnitude > 0.0001f ? worldDir.normalized : Vector3.zero;
-
-            // 这里不再直接用角度驱动 Mixer（角度会在 ±180 发生跳变），角度在 UpdateDirectionBlend 中由平滑后的向量得到。
         }
 
         /// <summary>
@@ -150,35 +143,50 @@ namespace Characters.Player.Processing
 
         private void UpdateDirectionBlend()
         {
-            // 目标局部方向：由 DesiredWorldMoveDir 转成本地向量
+            // 目标局部方向：
+            // - Aim 模式：直接用 MoveInput 的本地语义（X=左右,Y=前后），避免引入 AuthorityYaw/角色追随带来的二次抖动。
+            // - FreeLook 模式：以 DesiredWorldMoveDir 为准（来自 IntentProcessor 的单一来源），再转到角色本地。
             Vector3 targetLocalDir;
-            if (_data.DesiredWorldMoveDir.sqrMagnitude < 0.0001f)
+
+            if (_data.MoveInput.sqrMagnitude < 0.001f)
             {
                 // 无输入时回到正前方，防止停下后保留侧向导致混合停在 Lean 上
                 targetLocalDir = Vector3.forward;
             }
+            else if (_data.IsAiming)
+            {
+                // Aim：直接使用输入语义作为“局部方向”
+                Vector2 input = _data.MoveInput.normalized;
+                targetLocalDir = new Vector3(input.x, 0f, input.y);
+            }
             else
             {
-                targetLocalDir = _playerTransform.InverseTransformDirection(_data.DesiredWorldMoveDir);
-                targetLocalDir.y = 0f;
-                targetLocalDir = targetLocalDir.sqrMagnitude > 0.0001f ? targetLocalDir.normalized : Vector3.forward;
+                // FreeLook：把相机参考系的世界方向转入角色本地
+                Vector3 worldDir = _data.DesiredWorldMoveDir;
+                if (worldDir.sqrMagnitude < 0.0001f)
+                {
+                    targetLocalDir = Vector3.forward;
+                }
+                else
+                {
+                    targetLocalDir = _playerTransform.InverseTransformDirection(worldDir);
+                    targetLocalDir.y = 0f;
+                    if (targetLocalDir.sqrMagnitude > 0.0001f)
+                        targetLocalDir.Normalize();
+                    else
+                        targetLocalDir = Vector3.forward;
+                }
             }
 
-            // 方向向量平滑（X轴）
+            // 方向向量平滑：使用 RotateTowards 在 180° 反向时更稳定（不会穿过接近 0 的向量长度）。
             float xSmoothTime = Mathf.Max(0.0001f, _config.XAnimBlendSmoothTime);
-            _currentLocalDir = Vector3.SmoothDamp(
-                _currentLocalDir,
-                targetLocalDir,
-                ref _localDirVelocity,
-                xSmoothTime,
-                Mathf.Infinity,
-                Time.deltaTime
-            );
+            float maxRadiansDelta = Mathf.PI * Time.deltaTime / xSmoothTime;
+            _currentLocalDir = Vector3.RotateTowards(_currentLocalDir, targetLocalDir, maxRadiansDelta, Mathf.Infinity);
             _currentLocalDir.y = 0f;
-            if (_currentLocalDir.sqrMagnitude < 0.0001f)
-                _currentLocalDir = Vector3.forward;
-            else
+            if (_currentLocalDir.sqrMagnitude > 0.0001f)
                 _currentLocalDir.Normalize();
+            else
+                _currentLocalDir = Vector3.forward;
 
             // 由平滑后的向量求角度
             float angle = Mathf.Atan2(_currentLocalDir.x, _currentLocalDir.z) * Mathf.Rad2Deg;
@@ -189,11 +197,19 @@ namespace Characters.Player.Processing
             float targetX = Mathf.Sin(rad) * _currentIntensity;
             float targetY = Mathf.Cos(rad) * _currentIntensity;
 
-            // X轴直接赋值（方向已平滑）
-            _data.CurrentAnimBlendX = targetX;
-
-            // Y轴平滑（速度/强度）
+            // X/Y 都平滑，避免快速换向时 X 突跳导致权重抖动。
             float ySmoothTime = Mathf.Max(0.0001f, _config.YAnimBlendSmoothTime);
+
+            _currentAnimBlendX = Mathf.SmoothDamp(
+                _currentAnimBlendX,
+                targetX,
+                ref _xBlendVelocity,
+                xSmoothTime,
+                Mathf.Infinity,
+                Time.deltaTime
+            );
+            _data.CurrentAnimBlendX = _currentAnimBlendX;
+
             _currentAnimBlendY = Mathf.SmoothDamp(
                 _currentAnimBlendY,
                 targetY,

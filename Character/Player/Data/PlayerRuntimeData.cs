@@ -313,8 +313,8 @@ namespace Characters.Player.Data
 
         /// <summary>
         /// 期望的世界空间移动方向（已融合 MoveInput + AuthorityYaw）。
-        /// 由 MovementParameterProcessor 每帧计算。
-        /// 约定：状态机与动画层只读此值，避免重复计算导致不一致。
+        /// 单一来源：由 LocomotionIntentProcessor 每帧计算并写入。
+        /// 约定：MotionDriver 与 MovementParameterProcessor 只读此值，避免重复计算导致不一致。
         /// </summary>
         public Vector3 DesiredWorldMoveDir;
 
