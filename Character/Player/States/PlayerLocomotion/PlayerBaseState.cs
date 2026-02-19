@@ -45,6 +45,7 @@ namespace Characters.Player.States
             // 1) 刚落地事件 -> 进入 LandState（由 LandState 决定后续切换）
             if (data.JustLanded && data.FallHeightLevel > 0&&this is not PlayerLandState)
             {
+                data.LandFadeInTime = 0.3f;
                 player.StateMachine.ChangeState(player.LandState);
                 return true;
             }
