@@ -42,6 +42,7 @@ namespace Characters.Player.States
             _currentClipData = SelectClipForLocomotionState(data.DesiredLocalMoveAngle, data.CurrentLocomotionState);
 
             // 播放动画并设置结束回调
+            //Debug.Log(data.moveStartFadeInTime);
             _state = player.Animancer.Layers[0].Play(_currentClipData.Clip,data.moveStartFadeInTime);
             data.moveStartFadeInTime = 0f;
 

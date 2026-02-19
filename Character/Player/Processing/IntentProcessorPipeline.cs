@@ -46,7 +46,7 @@ namespace Characters.Player.Processing
             _viewRotationProcessor.Update();
 
             // 2. 处理装备切换意图
-            _equipIntentProcessor.update();
+            _equipIntentProcessor.Update();
 
             // 3. 处理瞄准状态意图
             _aimIntentProcessor.Update();

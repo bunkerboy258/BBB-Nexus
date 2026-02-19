@@ -23,7 +23,7 @@ namespace Characters.Player.Processing
             _player.InputReader.OnNumber5Pressed += () => TryEquipSlot(4);
         }
 
-        public void update()
+        public void Update()
         {
 
         }

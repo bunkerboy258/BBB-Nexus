@@ -30,7 +30,8 @@ namespace Characters.Player
         [Header("Configuration")]
         [Tooltip("玩家的配置文件（ScriptableObject）")]
         public PlayerSO Config;
-
+        [Header("IK System")]
+        public PlayerIKSourceBase IKSource;
 
         [Tooltip("玩家摄像机（可选，未指定时自动获取 MainCamera）")]
         public Transform PlayerCamera;
@@ -221,13 +222,6 @@ namespace Characters.Player
             RuntimeData.CameraTransform = PlayerCamera;
         }
 
-        // 这是 Unity 引擎的硬性规定 如果使用原生ik必须带上这个方法
-        // 并且Unity只会在挂载了 Animator 组件的同一个 GameObject 上的脚本里 寻找并调用这个方法......
-        private void OnAnimatorIK(int layerIndex)
-        {
-            // 转发给管理器
-            _ikController?.OnAnimatorIK_Internal(layerIndex);
-        }
         // --- 对外 API ---
         public void PlayHurtExpression() => _facialController.PlayHurtExpression();
         public void NotifyEquipmentChanged()

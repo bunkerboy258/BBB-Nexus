@@ -1,5 +1,5 @@
 using UnityEngine;
-using Characters.Player.Core.IK;
+using Characters.Player.Core;      
 using Characters.Player.Data;
 
 namespace Characters.Player.Layers
@@ -9,20 +9,22 @@ namespace Characters.Player.Layers
     /// 职责：
     /// 1. 每帧读取 RuntimeData 中的 IK 意图 (WantsHandIK, Targets)。
     /// 2. 计算权重的平滑过渡 (SmoothDamp)。
-    /// 3. 将最终数据传递给底层的 IK 策略 (Native/FinalIK)。
+    /// 3. 将最终数据传递给底层的 IK 策略 (UAR/FinalIK)。
     /// </summary>
     public class IKController
     {
         private PlayerController _player;
         private PlayerRuntimeData _data;
         private PlayerSO _config;
-        private IPlayerIKSource _ikSource; // 底层策略
+
+        // 引用 PlayerController 中的 IK 源 (MonoBehaviour)
+        private IPlayerIKSource _ikSource => _player.IKSource;
 
         // --- 运行时平滑状态 ---
         private float _leftHandWeight;
         private float _leftHandVelocity;
 
-        private float _rightHandWeight;  
+        private float _rightHandWeight;
         private float _rightHandVelocity;
 
         private float _lookAtWeight;
@@ -34,54 +36,83 @@ namespace Characters.Player.Layers
             _data = player.RuntimeData;
             _config = player.Config;
 
-            // 策略选择：这里使用 Native
-            _ikSource = new NativeIKSource(player.animator);
+            // _ikSource 不需要初始化，它是通过属性直接访问 PlayerController 上的组件
         }
 
         /// <summary>
-        /// 在 PlayerController.Update 中调用。
-        /// 负责计算权重的平滑过渡，不涉及具体的 IK 求解。
+        /// 在 PlayerController.Update (或 LateUpdate) 中调用。
+        /// 负责计算权重的平滑过渡，并将数据同步到底层 IK 源。
         /// </summary>
         public void Update()
         {
-            // 1. 左手权重平滑
-            float targetLeftW = _data.WantsLeftHandIK ? 1f : 0f;
-            _leftHandWeight = Mathf.SmoothDamp(_leftHandWeight, targetLeftW, ref _leftHandVelocity, 0.15f);
+            if (_ikSource == null)
+            {
+                Debug.LogError("[IKController] IK Source is NULL! Please ensure PlayerController has a valid IK Source component.");
+                return;
+            }
 
-            // 2. 右手权重平滑
-            float targetRightW = _data.WantsRightHandIK ? 1f : 0f; // 假设双手共用一个开关，也可以分开
+            // =================================================================================
+            // 1. 左手 IK 处理
+            // =================================================================================
+            float targetLeftW = _data.WantsLeftHandIK ? 1f : 0f;
+            _leftHandWeight = Mathf.SmoothDamp(_leftHandWeight, targetLeftW, ref _leftHandVelocity, 0.15f); // 0.15f 可提取配置
+
+            if (_leftHandWeight > 0.01f && _data.LeftHandGoal != null)
+            {
+                // 有目标且权重 > 0：设置 Target 并应用权重
+                _ikSource.SetIKTarget(IKTarget.LeftHand, _data.LeftHandGoal, _leftHandWeight);
+            }
+            else
+            {
+                // 无目标或权重归零：仅淡出权重 (目标位置保持不变或设为null，取决于实现)
+                _ikSource.UpdateIKWeight(IKTarget.LeftHand, 0f);
+
+                // 重置平滑速度，防止下次激活时突变
+                if (_leftHandWeight < 0.01f) _leftHandVelocity = 0f;
+            }
+
+            // =================================================================================
+            // 2. 右手 IK 处理
+            // =================================================================================
+            float targetRightW = _data.WantsRightHandIK ? 1f : 0f;
             _rightHandWeight = Mathf.SmoothDamp(_rightHandWeight, targetRightW, ref _rightHandVelocity, 0.15f);
 
-            // 3. 注视权重平滑
+            if (_rightHandWeight > 0.01f && _data.RightHandGoal != null)
+            {
+                _ikSource.SetIKTarget(IKTarget.RightHand, _data.RightHandGoal, _rightHandWeight);
+            }
+            else
+            {
+                _ikSource.UpdateIKWeight(IKTarget.RightHand, 0f);
+                if (_rightHandWeight < 0.01f) _rightHandVelocity = 0f;
+            }
+
+            // =================================================================================
+            // 3. 头部注视 (LookAt) 处理
+            // =================================================================================
             float targetLookW = _data.WantsLookAtIK ? 1f : 0f;
-            _lookAtWeight = Mathf.SmoothDamp(_lookAtWeight, targetLookW, ref _lookAtVelocity, 0.2f);
-
-        }
-
-        /// <summary>
-        /// 在 PlayerController.OnAnimatorIK 中调用。
-        /// 负责将数据应用到底层 IK 系统。
-        /// </summary>
-        public void OnAnimatorIK_Internal(int layerIndex)
-        {
-            // 只有当权重 > 0 时才传递目标，节省开销
-            if (_leftHandWeight > 0.01f)
-                _ikSource.SetLeftHandIK(_data.LeftHandGoal, _leftHandWeight);
-            else
-                _ikSource.SetLeftHandIK(null, 0f);
-
-            if (_rightHandWeight > 0.01f)
-                _ikSource.SetRightHandIK(_data.RightHandGoal, _rightHandWeight);
-            else
-                _ikSource.SetRightHandIK(null, 0f);
+            _lookAtWeight = Mathf.SmoothDamp(_lookAtWeight, targetLookW, ref _lookAtVelocity, 0.2f); // 0.2f 可提取配置
 
             if (_lookAtWeight > 0.01f)
-                _ikSource.SetLookAtTarget(_data.LookAtPosition, _lookAtWeight);
+            {
+                // LookAt 使用 Vector3 坐标 (不需要旋转)
+                // RuntimeData.LookAtPoint 通常由 AimIntentProcessor 计算
+                _ikSource.SetIKTarget(
+                    IKTarget.HeadLook,
+                    _data.LookAtPosition, // 注意：确保 RuntimeData 里有这个字段 (Vector3)
+                    Quaternion.identity,
+                    _lookAtWeight
+                );
+            }
             else
-                _ikSource.SetLookAtTarget(Vector3.zero, 0f);
+            {
+                _ikSource.UpdateIKWeight(IKTarget.HeadLook, 0f);
+                if (_lookAtWeight < 0.01f) _lookAtVelocity = 0f;
+            }
 
-            // 驱动底层
-            _ikSource.OnUpdateIK(layerIndex);
+            // UAR 不需要显式的 OnAnimatorIK 或 OnUpdateIK 调用，
+            // 只要设置了 Target 和 Weight，Constraint 就会自动生效。
         }
     }
 }
+

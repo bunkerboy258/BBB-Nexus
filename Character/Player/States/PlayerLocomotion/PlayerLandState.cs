@@ -57,6 +57,7 @@ namespace Characters.Player.States
                 return;
             }
 
+            //Debug.Log(data.LandFadeInTime);
             _state = player.Animancer.Layers[0].Play(_currentClip.Clip, data.LandFadeInTime);
             data.LandFadeInTime = 0f; // 播放后重置，避免下次误用
 
