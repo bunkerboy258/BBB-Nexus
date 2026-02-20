@@ -5,14 +5,8 @@ using UnityEngine;
 namespace Characters.Player.Processing
 {
     /// <summary>
-    /// 统一处理移动与跳跃意图的处理器。
+    /// 统一处理移动意图的处理器。
     /// 职责：根据输入、体力、移动状态判定当前的运动状态（Idle/Walk/Jog/Sprint）。
-    /// 
-    /// 优先级判定（从高到低）：
-    /// 1. Sprint（Shift 按住 + 体力充足 + 有移动输入）
-    /// 2. Walk（Ctrl 按住 + 有移动输入）
-    /// 3. Jog（无特殊按键 + 有移动输入）
-    /// 4. Idle（无移动输入）
     /// </summary>
     public class LocomotionIntentProcessor
     {
@@ -28,13 +22,7 @@ namespace Characters.Player.Processing
             _data = player.RuntimeData;
             _config = player.Config;
 
-            // 监听跳跃键
-            _input.OnJumpPressed += HandleJumpInput;
-        }
-
-        ~LocomotionIntentProcessor()
-        {
-            if (_input != null) _input.OnJumpPressed -= HandleJumpInput;
+            // Jump handling moved to JumpOrVaultIntentProcessor
         }
 
         public void Update()
@@ -68,12 +56,6 @@ namespace Characters.Player.Processing
 
         /// <summary>
         /// 处理运动状态与体力意图。
-        /// 
-        /// 逻辑流程：
-        /// 1. 判定用户输入意图（Ctrl/Shift 按键 + 移动输入）
-        /// 2. 检查体力耗尽限制
-        /// 3. 根据优先级决定最终的运动状态
-        /// 4. 维护 WantToRun 意图标记（用于参数计算、UI 反馈）
         /// </summary>
         private void ProcessLocomotionStateAndStaminaIntent()
         {
@@ -86,67 +68,26 @@ namespace Characters.Player.Processing
             }
 
             // 根据优先级判定最终的运动状态
-            // 优先级：Sprint > Walk > Jog > Idle
             if (!isMoving)
             {
-                // 无移动输入 → Idle
                 _data.CurrentLocomotionState = LocomotionState.Idle;
                 _data.WantToRun = false;
             }
             else if (_input.IsSprinting && !_data.IsStaminaDepleted && _data.CurrentStamina > 0)
             {
-                // Shift 按住 + 体力充足 + 有移动输入 → Sprint
                 _data.CurrentLocomotionState = LocomotionState.Sprint;
                 _data.WantToRun = true;
             }
             else if (_input.IsWalking)
             {
-                // Ctrl 按住 + 有移动输入 → Walk
                 _data.CurrentLocomotionState = LocomotionState.Walk;
                 _data.WantToRun = false;
             }
             else
             {
-                // 默认情况：有移动输入 + 无特殊键 → Jog
                 _data.CurrentLocomotionState = LocomotionState.Jog;
                 _data.WantToRun = false;
             }
-        }
-
-        private void HandleJumpInput()
-        {
-            // 优先级判定逻辑
-            if (CheckObstacle())
-            {
-                _data.WantsToVault = true;
-                return;
-            }
-
-            // 地面跳跃
-            if (_data.IsGrounded)
-            {
-                _data.WantsToJump = true;
-                return;
-            }
-
-            // 空中二段跳：必须在空中，且本次空中还未执行过二段跳
-            if (!_data.IsGrounded && !_data.HasPerformedDoubleJumpInAir)
-            {
-                // 二段跳仅向上（Up）
-                _data.DoubleJumpDirection = DoubleJumpDirection.Up;
-                _data.WantsDoubleJump = true;
-            }
-        }
-
-        private bool CheckObstacle()
-        {
-            // [调试开关] 临时逻辑
-            return false; // 强行禁用翻越，测试跳跃
-
-            // 真正的检测逻辑 (可扩展)
-            // Vector3 origin = _player.transform.position;
-            // Vector3 dir = _player.transform.forward;
-            // ...
         }
     }
 }

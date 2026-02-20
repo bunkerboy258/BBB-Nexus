@@ -4,6 +4,19 @@ using UnityEngine;
 
 namespace Characters.Player.Data
 {
+    public struct VaultObstacleInfo
+    {
+        public bool IsValid;          // 是否检测到可翻越的障碍
+        public Vector3 WallPoint;     // 墙面上的交点 (决定角色的贴墙位置)
+        public Vector3 WallNormal;    // 墙面的法线 (决定角色翻越时的朝向)
+        public float Height;          // 障碍物的高度 (决定播放哪种动画)
+        public Vector3 LedgePoint;    // 墙沿中心点 (用于计算手部位置)
+
+        // IK 目标点
+        public Vector3 LeftHandPos;
+        public Vector3 RightHandPos;
+        public Quaternion HandRot;    // 双手的目标旋转 (贴合墙面)
+    }
     /// <summary>
     /// 移动状态枚举
     /// 描述角色当前的移动速度和行为状态
@@ -250,11 +263,9 @@ namespace Characters.Player.Data
         /// </summary>
         public DoubleJumpDirection DoubleJumpDirection = DoubleJumpDirection.Up;
 
-        /// <summary>
-        /// 本帧是否请求翻越。由 LocomotionIntentProcessor 在收到跳跃按键且检测到障碍时设置。
-        /// 消费者：状态机（决定是切换到 VaultState 还是 JumpState）。
-        /// </summary>
-        public bool WantsToVault;
+        [Header("Vaulting Intent")]
+        public bool WantsToVault;     // 翻越意图开关
+        public VaultObstacleInfo CurrentVaultInfo; // 当前检测到的障碍物信息
 
         // --- IK 意图 ---
 

@@ -13,6 +13,7 @@ namespace Characters.Player.Processing
         private readonly AimIntentProcessor _aimIntentProcessor;
         private readonly EquipIntentProcessor _equipIntentProcessor;
         private readonly IKIntentProcessor _ikIntentProcessor;
+        private readonly JumpOrVaultIntentProcessor _jumpOrVaultIntentProcessor;
 
         // 参数生成器
         private readonly MovementParameterProcessor _movementParameterProcessor;
@@ -25,7 +26,8 @@ namespace Characters.Player.Processing
             _equipIntentProcessor = new EquipIntentProcessor(player);
             _aimIntentProcessor = new AimIntentProcessor(player);
             _locomotionIntentProcessor = new LocomotionIntentProcessor(player);
-            
+            _jumpOrVaultIntentProcessor = new JumpOrVaultIntentProcessor(player);
+
             _movementParameterProcessor = new MovementParameterProcessor(player);
             _ikIntentProcessor = new IKIntentProcessor(player);
         }
@@ -53,6 +55,9 @@ namespace Characters.Player.Processing
 
             // 4. 处理最终的运动方向与行为意图（依赖上述所有状态）
             _locomotionIntentProcessor.Update();
+
+            // 5. 处理跳跃/翻越意图
+            _jumpOrVaultIntentProcessor.Update();
         }
 
         /// <summary>
@@ -72,5 +77,6 @@ namespace Characters.Player.Processing
         public LocomotionIntentProcessor Locomotion => _locomotionIntentProcessor;
         public EquipIntentProcessor Equip => _equipIntentProcessor;
         public AimIntentProcessor Aim => _aimIntentProcessor;
+        public JumpOrVaultIntentProcessor JumpOrVault => _jumpOrVaultIntentProcessor;
     }
 }
