@@ -17,6 +17,10 @@ namespace Characters.Player.Layers
         private PlayerRuntimeData _data;
         private PlayerSO _config;
 
+        private Vector3 _currentLookAtPosition;
+        private Vector3 _lookAtPositionVelocity;
+        private float _lookAtPositionSmoothTime = 0.1f;
+
         // 引用 PlayerController 中的 IK 源 (MonoBehaviour)
         private IPlayerIKSource _ikSource => _player.IKSource;
 
@@ -91,15 +95,22 @@ namespace Characters.Player.Layers
             // 3. 头部注视 (LookAt) 处理
             // =================================================================================
             float targetLookW = _data.WantsLookAtIK ? 1f : 0f;
-            _lookAtWeight = Mathf.SmoothDamp(_lookAtWeight, targetLookW, ref _lookAtVelocity, 0.2f); // 0.2f 可提取配置
+            _lookAtWeight = Mathf.SmoothDamp(_lookAtWeight, targetLookW, ref _lookAtVelocity, 0.2f);
 
             if (_lookAtWeight > 0.01f)
             {
-                // LookAt 使用 Vector3 坐标 (不需要旋转)
-                // RuntimeData.LookAtPoint 通常由 AimIntentProcessor 计算
+                // 【核心修改】：平滑注视点的位置
+                // 这样即使相机准星坐标突变，角色的头也会有一个“转过去”的过程
+                _currentLookAtPosition = Vector3.SmoothDamp(
+                    _currentLookAtPosition,
+                    _data.LookAtPosition, // 这是黑板上瞬间更新的目标点
+                    ref _lookAtPositionVelocity,
+                    _lookAtPositionSmoothTime
+                );
+
                 _ikSource.SetIKTarget(
                     IKTarget.HeadLook,
-                    _data.LookAtPosition, // 注意：确保 RuntimeData 里有这个字段 (Vector3)
+                    _currentLookAtPosition, // 传入平滑后的坐标
                     Quaternion.identity,
                     _lookAtWeight
                 );
@@ -107,7 +118,12 @@ namespace Characters.Player.Layers
             else
             {
                 _ikSource.UpdateIKWeight(IKTarget.HeadLook, 0f);
-                if (_lookAtWeight < 0.01f) _lookAtVelocity = 0f;
+                if (_lookAtWeight < 0.01f)
+                {
+                    _lookAtVelocity = 0f;
+                    // 当取消瞄准时，可以将当前注视点重置为前方，防止下次瞄准时头从奇怪的地方转过来
+                    _currentLookAtPosition = _player.transform.position + _player.transform.forward * 5f;
+                }
             }
 
             // UAR 不需要显式的 OnAnimatorIK 或 OnUpdateIK 调用，

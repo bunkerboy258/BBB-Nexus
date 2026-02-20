@@ -208,6 +208,19 @@ namespace Characters.Player.Data
         #endregion
 
         #region INTENT (意图数据：由 IntentProcessor 每帧产生，每帧末 Reset)
+        [Header("Aiming Intent (From Camera/AI)")]
+
+        /// <summary>
+        /// 权威的瞄准目标点 (世界坐标)。
+        /// 摄像机准星在世界中实际击中的点。供 IK LookAt 和武器开火方向使用。
+        /// </summary>
+        public Vector3 TargetAimPoint;
+
+        /// <summary>
+        /// 摄像机(或视线)的真实朝向单位向量。
+        /// 如果射线没打中任何东西，或者需要计算上半身旋转时使用。
+        /// </summary>
+        public Vector3 CameraLookDirection;
 
         /// <summary>
         /// 本帧是否想要奔跑（输入意图）。由 LocomotionIntentProcessor 设置。

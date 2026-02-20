@@ -29,6 +29,13 @@ namespace Characters.Player.States
                 return;
             }
 
+            // 新增：在瞄准空闲状态也响应空中二段跳意图
+            if (data.WantsDoubleJump)
+            {
+                player.StateMachine.ChangeState(player.DoubleJumpState);
+                return;
+            }
+
             // 2. 进入移动检测
             if (data.WantsToJump)
             {

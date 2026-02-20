@@ -5,12 +5,9 @@ namespace Core.CameraSystem
 {
     /// <summary>
     /// CameraRigDriver
-    /// 职责：将 PlayerRuntimeData 中的“权威方向源(AuthorityRotation)”同步到场景独立的 CameraRig(或 CameraRoot)。
-    /// 约定：
-    /// - 本脚本应挂在场景中的 CameraRig 根物体上（不要作为 Player 子物体）；
-    /// - LateUpdate 执行，以便在角色/MotionDriver 更新完权威数据后，再驱动 Rig。
-    /// - 执行顺序：需要早于 CinemachineBrain（否则 Brain 可能读到上一帧的 Rig）。
-    ///   如项目里显式设置了 CinemachineBrain 的 Script Execution Order，请确保其顺序值大于本脚本。
+    /// 职责：
+    /// 1. 将 PlayerRuntimeData 中的“权威方向源(AuthorityRotation)”同步到场景独立的 CameraRig。
+    /// 2. (新增) 计算真实的物理瞄准点，并反向推送到 PlayerRuntimeData，供 IK 和逻辑使用。
     /// </summary>
     [DefaultExecutionOrder(-200)]
     public class CameraRigDriver : MonoBehaviour
@@ -21,7 +18,6 @@ namespace Core.CameraSystem
         [Header("Follow")]
         [Tooltip("跟随的目标。为空时默认使用 Player.transform")]
         [SerializeField] private Transform _followTarget;
-
         [Tooltip("跟随偏移。建议用于把 Rig 放到角色胸口/骨盆/头部附近的稳定点（世界空间偏移）。")]
         [SerializeField] private Vector3 _followOffset = Vector3.zero;
 
@@ -29,24 +25,42 @@ namespace Core.CameraSystem
         [Tooltip("是否同步 Pitch。若关闭，仅同步 Yaw（常用于某些第三人称探索模式）。")]
         [SerializeField] private bool _syncPitch = true;
 
-        [Header("Debug")]
-        [Tooltip("开启后每隔 N 帧打印一次 CameraRigDriver 的 LateUpdate 执行信息，用于对比 CinemachineBrain 的执行顺序。")]
-        [SerializeField] private bool _debugExecutionOrder = false;
+        [Header("Aiming (Data Push)")]
+        [Tooltip("是否计算并向 Player 输送权威瞄准点数据")]
+        [SerializeField] private bool _pushAimData = true;
+        [Tooltip("准星射线检测的最大距离")]
+        [SerializeField] private float _aimRaycastDistance = 100f;
+        [Tooltip("哪些层可以被准星击中？(千万要排除 Player 自身所在的 Layer！否则准星会打在自己后脑勺上)")]
+        [SerializeField] private LayerMask _aimCollisionMask = ~0; // 默认 everything
 
-        [Tooltip("每隔多少帧打印一次（避免刷屏）。")]
+        [Header("Debug")]
+        [Tooltip("开启后绘制射线并打印信息")]
+        [SerializeField] private bool _debugExecutionOrder = false;
         [SerializeField] private int _debugLogEveryNFrames = 10;
+
+        private Camera _mainCamera;
+
+        private void Awake()
+        {
+            // 缓存主摄像机
+            _mainCamera = Camera.main;
+            if (_mainCamera == null)
+            {
+                Debug.LogWarning("[CameraRigDriver] 场景中未找到 MainCamera！瞄准点计算将失效。");
+            }
+        }
 
         private void LateUpdate()
         {
             if (_player == null) return;
+            var data = _player.RuntimeData;
 
+            // ==========================================
+            // 1. Rig 跟随与旋转同步 (原有逻辑)
+            // ==========================================
             Transform target = _followTarget != null ? _followTarget : _player.transform;
-
-            // 位置：只做跟随（不从属），避免继承 Player 的层级旋转/缩放。
             transform.position = target.position + _followOffset;
 
-            // 旋转：来自权威方向源（由 ViewRotationProcessor 维护）。
-            var data = _player.RuntimeData;
             if (_syncPitch)
             {
                 transform.rotation = data.AuthorityRotation;
@@ -56,6 +70,17 @@ namespace Core.CameraSystem
                 transform.rotation = Quaternion.Euler(0f, data.AuthorityYaw, 0f);
             }
 
+            // ==========================================
+            // 2. 瞄准点计算与数据推送 (新增逻辑)
+            // ==========================================
+            if (_pushAimData && _mainCamera != null)
+            {
+                CalculateAndPushAimPoint(data);
+            }
+
+            // ==========================================
+            // 3. Debug
+            // ==========================================
             if (_debugExecutionOrder)
             {
                 int n = Mathf.Max(1, _debugLogEveryNFrames);
@@ -64,6 +89,38 @@ namespace Core.CameraSystem
                     Debug.Log($"[CamDebug] F{Time.frameCount} CameraRigDriver.LateUpdate rigYaw={transform.eulerAngles.y:0.00}");
                 }
             }
+        }
+
+        /// <summary>
+        /// 从屏幕中心发射射线，寻找实际的物理交点，并写入黑板。
+        /// </summary>
+        private void CalculateAndPushAimPoint(Characters.Player.Data.PlayerRuntimeData data)
+        {
+            // 获取屏幕正中心的射线 (即准星位置)
+            Ray screenRay = _mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            Vector3 finalAimPoint;
+
+            // 执行射线检测
+            if (Physics.Raycast(screenRay, out RaycastHit hitInfo, _aimRaycastDistance, _aimCollisionMask))
+            {
+                // 打中实体，瞄准点就是击中点
+                finalAimPoint = hitInfo.point;
+
+                if (_debugExecutionOrder)
+                    Debug.DrawLine(screenRay.origin, hitInfo.point, Color.red);
+            }
+            else
+            {
+                // 没打中任何东西，瞄准点就是射线尽头的一个虚拟点
+                finalAimPoint = screenRay.GetPoint(_aimRaycastDistance);
+
+                if (_debugExecutionOrder)
+                    Debug.DrawLine(screenRay.origin, finalAimPoint, Color.yellow);
+            }
+
+            // 【核心解耦点】：将计算结果推入黑板
+            data.TargetAimPoint = finalAimPoint;
+            data.CameraLookDirection = _mainCamera.transform.forward;
         }
     }
 }

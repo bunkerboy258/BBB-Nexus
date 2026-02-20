@@ -27,13 +27,19 @@ namespace Characters.Player.States
                 return;
             }
 
+            if (data.WantsDoubleJump)
+            {
+                player.StateMachine.ChangeState(player.DoubleJumpState);
+                return;
+            }
+
             if (data.WantsToJump)
             {
                 player.StateMachine.ChangeState(player.JumpState);
                 return;
             }
 
-            if (data.CurrentLocomotionState==LocomotionState.Idle)
+            if (data.CurrentLocomotionState == LocomotionState.Idle)
             {
                 player.StateMachine.ChangeState(player.AimIdleState);
                 return;

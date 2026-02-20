@@ -68,12 +68,11 @@ namespace Characters.Player.Processing
             if (isAiming)
             {
                 _data.WantsLookAtIK = true;
-
-                // 计算注视点 (相机前方)
-                if (_data.CameraTransform != null)
-                {
-                    _data.LookAtPosition = _data.CameraTransform.position + _data.CameraTransform.forward * 20f;
-                }
+                _data.LookAtPosition = _data.TargetAimPoint;
+            }
+            else
+            {
+                _data.WantsLookAtIK=false;
             }
         }
     }
