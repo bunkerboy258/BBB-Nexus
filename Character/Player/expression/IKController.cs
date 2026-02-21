@@ -70,7 +70,7 @@ namespace Characters.Player.Layers
                     _ikSource.SetIKTarget(IKTarget.LeftHand, _data.WarpIKTarget_LeftHand, _data.WarpIKRotation_Hand, warpHandWeight);
                     _ikSource.SetIKTarget(IKTarget.RightHand, _data.WarpIKTarget_RightHand, _data.WarpIKRotation_Hand, warpHandWeight);
                     //Debug.Log(_data.WarpIKTarget_LeftHand);
-                    if(warpHandWeight>0.1) Debug.Log(warpHandWeight);
+                    //if(warpHandWeight>0.1) Debug.Log(warpHandWeight);
 
                     // 只要 Warp IK 处于激活状态，直接 return 阻断普通的持枪 IK
                     return;

@@ -545,15 +545,8 @@ namespace Characters.Player.Data
         [Header("Upper Body Layer")]
         [Tooltip("上半身分层遮罩")]
         public AvatarMask UpperBodyMask;
-        public ClipTransition RiflePose;
-        public ClipTransition AimPose;
-        public ClipTransition OneHandedPose;
-        public ClipTransition TwoHandedPose;
-
         [Header("Actions")]
-        public ClipTransition WaveAnim;
         public ClipTransition AttackAnim;
-        public ClipTransition HitReactionAnim;
 
         [Header("Facial Layer")]
         [Tooltip("面部表情分层遮罩")]

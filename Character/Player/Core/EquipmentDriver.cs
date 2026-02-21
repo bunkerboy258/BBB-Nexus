@@ -45,33 +45,62 @@ namespace Characters.Player.Core
 
                 if (instance != null)
                 {
+                    // 关键：保证约束偏移是基于 HandBone，而不是 Prefab 自带 Transform。
+                    go.transform.localPosition = Vector3.zero;
+                    go.transform.localRotation = Quaternion.identity;
+                    go.transform.localScale = Vector3.one;
+
                     // 4. 绑定约束 (ParentConstraint)
                     ParentConstraint constraint = go.AddComponent<ParentConstraint>();
-                    ConstraintSource source = new ConstraintSource();
-                    source.sourceTransform = _player.RightHandBone;
-                    source.weight = 1f;
+
+                    // 先初始化，再设置 source/offset，最后激活。
+                    // 有些情况下如果不 lock，会被约束系统认为 offset 尚未校准。
+                    constraint.constraintActive = false;
+                    constraint.locked = false;
+
+                    ConstraintSource source = new ConstraintSource
+                    {
+                        sourceTransform = _player.RightHandBone,
+                        weight = 1f
+                    };
+
                     constraint.AddSource(source);
 
                     // 应用配置的偏移
                     constraint.SetTranslationOffset(0, instance.SpawnPosOffset);
                     constraint.SetRotationOffset(0, instance.SpawnRotOffset);
+
+                    // 激活并锁定（使 offset 固化并开始驱动 transform）
                     constraint.constraintActive = true;
+                    constraint.locked = true;
+
+                    // 强制刷新一次 offset（避免某些情况下 inspector 显示/运行时不应用）
+                    constraint.translationAtRest = instance.SpawnPosOffset;
+                    constraint.rotationAtRest = instance.SpawnRotOffset;
+                    constraint.translationOffsets = constraint.translationOffsets; // 触发内部更新（无分配）
+                    constraint.rotationOffsets = constraint.rotationOffsets;
+
+                    if (instance.SpawnPosOffset == Vector3.zero && instance.SpawnRotOffset == Vector3.zero)
+                    {
+                        Debug.LogWarning($"[EquipmentDriver] {equipDef.name} SpawnPosOffset/SpawnRotOffset are both zero. If this weapon should have an offset, check InteractableItem values on the Prefab root.");
+                    }
 
                     // 5. 初始化组件
                     instance.Initialize();
 
                     // 6. 记录实例
                     _data.CurrentEquipment.Instance = instance;
-                    // 7.嘗試獲取邏輯組件 并且根據類型初始化邏輯組件
-                    var logiccomponent= go.GetComponent<DeviceController>();
-                    if(logiccomponent!=null)
+
+                    // 7. 尝试获取逻辑组件 并根据类型初始化
+                    var logiccomponent = go.GetComponent<DeviceController>();
+                    if (logiccomponent != null)
                     {
-                        if(desiredDef is RangedWeaponSO rangerdweaponDef)
+                        if (desiredDef is RangedWeaponSO rangerdweaponDef)
                         {
-                            logiccomponent.Initialize(rangerdweaponDef,_player.gameObject);
+                            logiccomponent.Initialize(rangerdweaponDef, _player.gameObject);
                         }
 
-                        _data.CurrentEquipment.DeviceLogic= logiccomponent;
+                        _data.CurrentEquipment.DeviceLogic = logiccomponent;
                     }
                 }
                 else
@@ -102,7 +131,7 @@ namespace Characters.Player.Core
             // 清空 Current，保留 Desired (状态机会根据 Desired 决定下一步)
             _data.CurrentEquipment.Definition = null;
             _data.CurrentEquipment.Instance = null;
-            _data.CurrentEquipment.DeviceLogic= null;
+            _data.CurrentEquipment.DeviceLogic = null;
 
             _player.NotifyEquipmentChanged();
         }

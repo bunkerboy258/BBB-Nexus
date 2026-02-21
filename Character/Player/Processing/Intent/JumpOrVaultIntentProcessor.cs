@@ -126,7 +126,8 @@ namespace Characters.Player.Processing
         public bool TryGetVaultIntent(PlayerRuntimeData data, out VaultObstacleInfo info, float minHeight, float maxHeight)
         {
             info = new VaultObstacleInfo { IsValid = false };
-            if (!data.IsGrounded) return false;
+            // 允许在地面上检测，也允许在已执行过二段跳的空中情况检测翻越（便于二段跳结束后接翻越）
+            if (!data.IsGrounded && !data.HasPerformedDoubleJumpInAir) return false;
 
             // 按下按键时，调用静默模式(不画线)的检测，获取最新数据
             return DetectObstacle(out info, minHeight, maxHeight, true);

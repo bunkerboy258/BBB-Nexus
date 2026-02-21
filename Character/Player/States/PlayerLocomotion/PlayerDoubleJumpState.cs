@@ -123,9 +123,9 @@ namespace Characters.Player.States
 
             // Debug 输出：记录选择结果，便于在控制台追踪问题
             var clipName = _clipData?.Clip != null ? _clipData.Clip.Name : "none";
-            Debug.Log($"[PlayerDoubleJumpState.SelectDoubleJumpAnimation] " +
+            /*Debug.Log($"[PlayerDoubleJumpState.SelectDoubleJumpAnimation] " +
                       $"LocomotionState={data.CurrentLocomotionState}, IsHandsEmpty={isHandsEmpty}, " +
-                      $"SelectedClip={clipName}, JumpForce={_jumpForce}");
+                      $"SelectedClip={clipName}, JumpForce={_jumpForce}");*/
         }
 
         private void PerformJumpPhysics()

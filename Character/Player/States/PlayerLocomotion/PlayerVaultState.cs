@@ -9,6 +9,7 @@ namespace Characters.Player.States
         private AnimancerState _state;
         private float _stateDuration;
         private float _startYaw;
+        private bool _endTimeTriggered; // 标记是否已根据 EndTime 提前退出
 
         // 【关键修改】：类型变更为 WarpedMotionData
         private WarpedMotionData _selectedWarpData;
@@ -24,6 +25,7 @@ namespace Characters.Player.States
             _stateDuration = 0f;
             _startYaw = player.transform.eulerAngles.y;
             data.IsVaulting = true;
+            _endTimeTriggered = false; // 重置提前退出标记
 
             // --- 1. 选择动画 ---
             // 注意：您需要在 PlayerSO 中将 lowVaultAnim 和 highVaultAnim 改为 WarpedMotionData 类型
@@ -100,7 +102,10 @@ namespace Characters.Player.States
             _state.Events(this).OnEnd = () =>
             {
                 if (data.MoveInput.sqrMagnitude > 0.01f)
+                { 
+                    data.loopFadeInTime = 0.4f;
                     player.StateMachine.ChangeState(player.MoveLoopState);
+                }
                 else
                     player.StateMachine.ChangeState(player.IdleState);
             };
@@ -124,9 +129,30 @@ namespace Characters.Player.States
             // 防止动画结束时传入大于 1 的值导致计算越界
             normalizedTime = Mathf.Clamp01(normalizedTime);
 
+            // 累计播放时长（用于 EndTime 检测）
+            _stateDuration += Time.deltaTime * _state.Speed;
+
+            // 如果配置了 EndTime 并且已达到，提前结束翻越（行为与 PlayerLandState 保持一致）
+            if (!_endTimeTriggered  && data.CurrentLocomotionState != LocomotionState.Idle&& _selectedWarpData.EndTime > 0f && _stateDuration >= _selectedWarpData.EndTime)
+            {
+                _endTimeTriggered = true;
+                if (data.MoveInput.sqrMagnitude > 0.01f)
+                {
+                    data.loopFadeInTime = 0.4f;
+                    player.StateMachine.ChangeState(player.MoveLoopState);
+                }
+                else
+                {
+                    player.StateMachine.ChangeState(player.IdleState);
+                }
+                return;
+            }
+
             // 【关键修改】：主动调用专门的 UpdateWarpMotion
             // 不再使用单曲线的 UpdateMotion
             player.MotionDriver.UpdateWarpMotion(normalizedTime);
+
+
         }
 
         public override void Exit()
