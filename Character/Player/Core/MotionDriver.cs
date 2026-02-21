@@ -28,6 +28,16 @@ namespace Characters.Player.Core
         // 模式切换消耗性标记：用于在 FreeLook<->Aiming 切换时做一次性的 yaw 同步（防止角度跳变）
         private bool _wasAimingLastFrame;
 
+        // ==========================================
+        // Motion Warping (特殊扭曲驱动模块)
+        // ==========================================
+        private WarpedMotionData _warpData;
+        private Vector3[] _warpTargets;
+        private int _currentWarpIndex;
+        private float _segmentStartTime;
+        private Vector3 _segmentStartPosition;
+        private Vector3 _currentCompensationVel;
+
         public MotionDriver(PlayerController player)
         {
             _player = player;
@@ -280,6 +290,125 @@ namespace Characters.Player.Core
             }
 
             return new Vector3(0f, _data.VerticalVelocity, 0f);
+        }
+
+
+        /// <summary>
+        /// 由特殊状态 (如 VaultState) 在 Enter() 时调用。
+        /// 仅用于载入本次扭曲运动的数据和世界目标点。
+        /// </summary>
+        public void InitializeWarpData(WarpedMotionData data, Vector3[] targets)
+        {
+            if (data == null || data.WarpPoints.Count == 0 || targets == null || targets.Length != data.WarpPoints.Count)
+            {
+                Debug.LogError("[MotionDriver] 初始化 Warp 数据失败：参数为空或数量不匹配。");
+                return;
+            }
+
+            _warpData = data;
+            _warpTargets = targets;
+            _currentWarpIndex = 0;
+            _segmentStartTime = 0f;
+            _segmentStartPosition = _player.transform.position;
+
+            // 预计算第一段的补偿速度
+            RecalculateCompensation();
+        }
+
+        /// <summary>
+        /// 由特殊状态在每帧的 UpdateStateLogic() 中【主动调用】。
+        /// 替代原本的普通 UpdateMotion 逻辑。
+        /// </summary>
+        /// <param name="normalizedTime">当前动画的归一化播放进度 (0.0~1.0)</param>
+        public void UpdateWarpMotion(float normalizedTime)
+        {
+            if (_warpData == null) return;
+
+            // 1. 检查是否跨越特征点，更新阶段
+            CheckAndAdvanceWarpSegment(normalizedTime);
+
+            // 2. 基础速度：读取烘焙的 XYZ 曲线
+            Vector3 localVel = new Vector3(
+                _warpData.LocalVelocityX.Evaluate(normalizedTime),
+                _warpData.LocalVelocityY.Evaluate(normalizedTime),
+                _warpData.LocalVelocityZ.Evaluate(normalizedTime)
+            );
+            Vector3 baseWorldVel = _player.transform.TransformDirection(localVel);
+
+            // 3. 合成最终速度：基础速度 + 补偿速度
+            Vector3 finalVelocity = baseWorldVel + _currentCompensationVel;
+
+            // 4. 旋转：读取 Yaw 曲线
+            float rotVelY = _warpData.LocalRotationY.Evaluate(normalizedTime);
+
+            // 5. 执行物理移动
+            _cc.Move(finalVelocity * Time.deltaTime);
+            _player.transform.Rotate(0f, rotVelY * Time.deltaTime, 0f, Space.World);
+        }
+
+        /// <summary>
+        /// 检查时间进度，决定是否进入下一个特征点区间
+        /// </summary>
+        private void CheckAndAdvanceWarpSegment(float normalizedTime)
+        {
+            if (_currentWarpIndex < _warpData.WarpPoints.Count)
+            {
+                float targetTime = _warpData.WarpPoints[_currentWarpIndex].NormalizedTime;
+
+                if (normalizedTime >= targetTime)
+                {
+                    // 跨越了节点！更新基准数据
+                    _currentWarpIndex++;
+                    _segmentStartTime = targetTime;
+                    _segmentStartPosition = _player.transform.position;
+
+                    // 重新计算下一段的补偿速度
+                    RecalculateCompensation();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 重新计算当前区间的补偿速度 (Delta Error / Time)
+        /// </summary>
+        private void RecalculateCompensation()
+        {
+            if (_currentWarpIndex >= _warpData.WarpPoints.Count)
+            {
+                _currentCompensationVel = Vector3.zero;
+                return;
+            }
+
+            var warpPoint = _warpData.WarpPoints[_currentWarpIndex];
+
+            // 计算本段动画时长
+            float segmentNormDuration = warpPoint.NormalizedTime - _segmentStartTime;
+            float segmentSeconds = segmentNormDuration * _warpData.BakedDuration;
+
+            if (segmentSeconds < 0.01f)
+            {
+                _currentCompensationVel = Vector3.zero;
+                return;
+            }
+
+            // 预期现实位移
+            Vector3 realDelta = _warpTargets[_currentWarpIndex] - _segmentStartPosition;
+
+            // 动画原始位移 (Local 转 World)
+            Vector3 animDelta = _player.transform.TransformVector(warpPoint.BakedLocalOffset);
+
+            // 算出误差，平摊到每秒
+            _currentCompensationVel = (realDelta - animDelta) / segmentSeconds;
+        }
+
+        /// <summary>
+        /// 由特殊状态在 Exit() 时调用，清理数据。
+        /// </summary>
+        public void ClearWarpData()
+        {
+            _warpData = null;
+            _warpTargets = null;
+            _currentCompensationVel = Vector3.zero;
         }
     }
 }

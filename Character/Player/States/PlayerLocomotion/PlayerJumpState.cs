@@ -105,7 +105,8 @@ namespace Characters.Player.States
 
         protected override void UpdateStateLogic()
         {
-            if (data.WantsDoubleJump)
+            // 只有在离地后才能进行二段跳
+            if (data.WantsDoubleJump && !data.IsGrounded)
             {
                 player.StateMachine.ChangeState(player.DoubleJumpState);
                 return; 

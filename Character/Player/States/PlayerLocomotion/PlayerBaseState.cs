@@ -50,6 +50,11 @@ namespace Characters.Player.States
                 return true;
             }
 
+            if(data.WantsToVault&&this is not PlayerVaultState)
+            {
+                player.StateMachine.ChangeState(player.VaultState);
+                return true;
+            }
             // 2) 全局瞄准切换：只在“非瞄准状态”时做一次性切换，避免每帧打断 Aim 状态自身逻辑。
             if (data.IsAiming)
             {

@@ -56,6 +56,29 @@ namespace Characters.Player.Layers
             }
 
             // =================================================================================
+            // 1. 通用 Warp IK 拦截 (最高优先级)
+            // =================================================================================
+            if (_data.IsWarping)
+            {
+                Debug.Log(_data.ActiveWarpData.Clip.Name);
+                // 直接从当前的 Warp 数据表里抽取权重
+                float warpHandWeight = _data.ActiveWarpData.HandIKWeightCurve.Evaluate(_data.NormalizedWarpTime);
+
+                if (warpHandWeight > 0.01f)
+                {
+                    // 无脑把手放到 RuntimeData 里指定的点上
+                    _ikSource.SetIKTarget(IKTarget.LeftHand, _data.WarpIKTarget_LeftHand, _data.WarpIKRotation_Hand, warpHandWeight);
+                    _ikSource.SetIKTarget(IKTarget.RightHand, _data.WarpIKTarget_RightHand, _data.WarpIKRotation_Hand, warpHandWeight);
+                    //Debug.Log(_data.WarpIKTarget_LeftHand);
+                    if(warpHandWeight>0.1) Debug.Log(warpHandWeight);
+
+                    // 只要 Warp IK 处于激活状态，直接 return 阻断普通的持枪 IK
+                    return;
+                }
+
+                return;
+            }
+            // =================================================================================
             // 1. 左手 IK 处理
             // =================================================================================
             float targetLeftW = _data.WantsLeftHandIK ? 1f : 0f;

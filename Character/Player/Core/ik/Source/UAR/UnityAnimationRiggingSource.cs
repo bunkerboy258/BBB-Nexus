@@ -62,16 +62,36 @@ namespace Characters.Player.Core
 
         public override void SetIKTarget(IKTarget target, Vector3 position, Quaternion rotation, float weight)
         {
-            if (target == IKTarget.HeadLook && _lookAtTarget != null)
+            switch (target)
             {
-                // 对于 LookAt，直接设置代理 Target 的世界坐标
-                _lookAtTarget.position = position;
+                case IKTarget.LeftHand:
+                    if (_leftHandIK != null && _leftHandTarget != null)
+                    {
+                        _leftHandTarget.position = position;
+                        _leftHandTarget.rotation = rotation;
+                        _leftHandIK.weight = weight;
+                    }
+                    break;
 
-                // MultiAimConstraint 不关心 rotation，只关心位置
-                if (_headLookAtIK != null)
-                {
-                    _headLookAtIK.weight = weight;
-                }
+                case IKTarget.RightHand:
+                    if (_rightHandIK != null && _rightHandTarget != null)
+                    {
+                        _rightHandTarget.position = position;
+                        _rightHandTarget.rotation = rotation;
+                        _rightHandIK.weight = weight;
+                    }
+                    break;
+
+                case IKTarget.HeadLook:
+                    if (_lookAtTarget != null)
+                    {
+                        _lookAtTarget.position = position;
+                        if (_headLookAtIK != null)
+                        {
+                            _headLookAtIK.weight = weight;
+                        }
+                    }
+                    break;
             }
         }
 
@@ -94,4 +114,3 @@ namespace Characters.Player.Core
         }
     }
 }
-    

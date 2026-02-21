@@ -59,12 +59,12 @@ namespace Characters.Player.States
                 return;
             }
 
-
             if (data.WantsToJump)
             {
                 player.StateMachine.ChangeState(player.JumpState);
                 return;
             }
+
 
             // 动画状态安全检查
             if (_currentAnimState == null)

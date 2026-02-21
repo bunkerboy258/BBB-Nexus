@@ -86,7 +86,7 @@ namespace Core.CameraSystem
                 int n = Mathf.Max(1, _debugLogEveryNFrames);
                 if (Time.frameCount % n == 0)
                 {
-                    Debug.Log($"[CamDebug] F{Time.frameCount} CameraRigDriver.LateUpdate rigYaw={transform.eulerAngles.y:0.00}");
+                    //Debug.Log($"[CamDebug] F{Time.frameCount} CameraRigDriver.LateUpdate rigYaw={transform.eulerAngles.y:0.00}");
                 }
             }
         }

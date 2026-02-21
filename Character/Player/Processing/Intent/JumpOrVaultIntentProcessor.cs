@@ -8,169 +8,226 @@ namespace Characters.Player.Processing
     {
         private PlayerController _player;
         private PlayerSO _config;
+        private LayerMask _obstacleMask;
 
-        // [建议放入 PlayerSO 的配置项，这里为了直观暂时硬编码]
-        private float _forwardRayLength = 1.5f; // 前方检测距离
-        private float _forwardRayHeight = 1.0f; // 前方射线的起点高度 (胸部位置)
-        private float _downwardRayOffset = 0.5f; // 向下射线距离墙面的偏移量 (越过墙沿多少距离开始往下打)
-        private float _downwardRayLength = 2.0f; // 向下射线长度
-        private float _handSpread = 0.4f; // 双手在墙沿上的间距 (米)
-        private LayerMask _obstacleMask; // 哪些层被认为是障碍物
+        // --- Debug 缓存变量 ---
+        private VaultObstacleInfo _lastValidLowVaultInfo;
+        private float _lastValidLowVaultTime;
+        private VaultObstacleInfo _lastValidHighVaultInfo;
+        private float _lastValidHighVaultTime;
+
+        // 可在 PlayerSO 中配置，这里硬编码为 2 秒，方便您观察
+        private float _debugHoldDuration = 2.0f;
 
         public JumpOrVaultIntentProcessor(PlayerController player)
         {
             _player = player;
             _config = player.Config;
-            _obstacleMask = LayerMask.GetMask("Default", "Environment"); // 根据您的项目修改
+            _obstacleMask = _config.ObstacleLayers;
+
+            // 订阅跳跃按键按下事件
+            _player.InputReader.OnJumpPressed += OnJumpPressed;
+        }
+
+        ~JumpOrVaultIntentProcessor()
+        {
+            if (_player?.InputReader != null)
+            {
+                _player.InputReader.OnJumpPressed -= OnJumpPressed;
+            }
         }
 
         /// <summary>
-        /// 每帧更新：监听 Jump 按键并在 Jump 按下时仲裁 Vault/Jump/DoubleJump 意图。
-        /// 如果 Jump 未按下，则清理跳跃/翻越意图。
+        /// Update 负责每帧的环境扫描（用于 Debug 绘制）和清理残留意图
         /// </summary>
         public void Update()
         {
             var data = _player.RuntimeData;
 
-            if (_player.InputReader != null && _player.InputReader.IsJumpPressed)
+            // --- 1. 实时扫描环境并更新 Debug 缓存 (即使不按键) ---
+            // 只有在地面上才去扫描墙壁，节省性能
+            if (data.IsGrounded)
             {
-                // 先检测是否可以翻越
-                if (TryGetVaultIntent(data, out VaultObstacleInfo info))
+                // 尝试扫描低墙
+                if (DetectObstacle(out VaultObstacleInfo lowInfo, _config.LowVaultMinHeight, _config.LowVaultMaxHeight, false))
                 {
-                    data.WantsToVault = true;
-                    data.CurrentVaultInfo = info;
-
-                    // 确保普通跳跃意图被拦截
-                    data.WantsToJump = false;
-                    data.WantsDoubleJump = false;
-                    return;
+                    _lastValidLowVaultInfo = lowInfo;
+                    _lastValidLowVaultTime = Time.time;
                 }
 
-                // 地面跳跃
-                if (data.IsGrounded)
+                // 尝试扫描高墙
+                if (DetectObstacle(out VaultObstacleInfo highInfo, _config.HighVaultMinHeight, _config.HighVaultMaxHeight, false))
                 {
-                    data.WantsToJump = true;
-                    data.WantsToVault = false;
-                    data.WantsDoubleJump = false;
-                    return;
+                    _lastValidHighVaultInfo = highInfo;
+                    _lastValidHighVaultTime = Time.time;
                 }
-
-                // 空中二段跳
-                if (!data.IsGrounded && !data.HasPerformedDoubleJumpInAir)
-                {
-                    data.DoubleJumpDirection = DoubleJumpDirection.Up;
-                    data.WantsDoubleJump = true;
-                    data.WantsToJump = false;
-                    data.WantsToVault = false;
-                    return;
-                }
-
-                // 如果按下Jump但未满足任何条件，保持意图为 false
-                data.WantsToVault = false;
-                data.WantsToJump = false;
-                data.WantsDoubleJump = false;
             }
-            else
+
+            // --- 2. 持续绘制有效的 Debug 信息 ---
+            // 如果最近 2 秒内扫描到过低墙
+            if (Time.time - _lastValidLowVaultTime < _debugHoldDuration && _lastValidLowVaultInfo.IsValid)
             {
-                // 未按下 Jump：重置跳跃与翻越相关的一次性意图
-                data.WantsToVault = false;
-                data.WantsToJump = false;
-                data.WantsDoubleJump = false;
+                DrawDebugInfo(_lastValidLowVaultInfo, "Low Vault");
             }
+            // 如果最近 2 秒内扫描到过高墙
+            else if (Time.time - _lastValidHighVaultTime < _debugHoldDuration && _lastValidHighVaultInfo.IsValid)
+            {
+                DrawDebugInfo(_lastValidHighVaultInfo, "High Vault");
+            }
+
+            // （原有的意图清理逻辑已注释，保持原样）
+            //data.WantsLowVault = false;
+            //data.WantsHighVault = false;
+            //data.WantsToJump = false;
+            //data.WantsDoubleJump = false;
         }
 
         /// <summary>
-        /// 检测当前是否可触发翻越。
+        /// 跳跃键按下回调：仲裁意图
         /// </summary>
-        public bool TryGetVaultIntent(PlayerRuntimeData data, out VaultObstacleInfo info)
+        private void OnJumpPressed()
         {
-            info = new VaultObstacleInfo { IsValid = false };
+            var data = _player.RuntimeData;
 
-            // 默认规则：必须在地面才允许触发翻越（跑酷可放宽）
-            if (!data.IsGrounded) return false;
+            // 先检测矮翻越
+            if (TryGetVaultIntent(data, out VaultObstacleInfo info, _config.LowVaultMinHeight, _config.LowVaultMaxHeight))
+            {
+                data.WantsToVault = true;
+                data.WantsLowVault = true;
+                data.CurrentVaultInfo = info;
+                return;
+            }
 
-            return DetectObstacle(out info);
+            // 再检测高翻越
+            if (TryGetVaultIntent(data, out info, _config.HighVaultMinHeight, _config.HighVaultMaxHeight))
+            {
+                data.WantsToVault = true;
+                data.WantsHighVault = true;
+                data.CurrentVaultInfo = info;
+                return;
+            }
+
+            // 地面跳跃
+            if (data.IsGrounded)
+            {
+                data.WantsToJump = true;
+                return;
+            }
+
+            // 空中二段跳
+            if (!data.IsGrounded && !data.HasPerformedDoubleJumpInAir)
+            {
+                data.DoubleJumpDirection = DoubleJumpDirection.Up;
+                data.WantsDoubleJump = true;
+                return;
+            }
         }
 
-        private bool DetectObstacle(out VaultObstacleInfo info)
+        public bool TryGetVaultIntent(PlayerRuntimeData data, out VaultObstacleInfo info, float minHeight, float maxHeight)
+        {
+            info = new VaultObstacleInfo { IsValid = false };
+            if (!data.IsGrounded) return false;
+
+            // 按下按键时，调用静默模式(不画线)的检测，获取最新数据
+            return DetectObstacle(out info, minHeight, maxHeight, true);
+        }
+
+        /// <summary>
+        /// 纯粹的数学和物理检测逻辑 (无绘制开销)
+        /// </summary>
+        private bool DetectObstacle(out VaultObstacleInfo info, float minHeight, float maxHeight, bool isSilent)
         {
             info = new VaultObstacleInfo { IsValid = false };
 
             Transform root = _player.transform;
-            Vector3 rayStart = root.position + Vector3.up * _forwardRayHeight;
+            Vector3 rayStart = root.position + Vector3.up * _config.VaultForwardRayHeight;
             Vector3 forward = root.forward;
 
-            DrawBasics.Ray(rayStart, forward, Color.yellow);
+            if (!isSilent) DrawBasics.Ray(rayStart, forward, Color.yellow, 0.02f); // 用细黄线表示正在扫描
 
-            // --- 第一步：向前打射线找墙 ---
-            if (Physics.Raycast(rayStart, forward, out RaycastHit wallHit, _forwardRayLength, _obstacleMask))
+            // --- 第一步：向前找墙 ---
+            if (Physics.Raycast(rayStart, forward, out RaycastHit wallHit, _config.VaultForwardRayLength, _obstacleMask))
             {
-                // 确保打中的是一堵墙（法线比较水平）
                 if (Vector3.Dot(wallHit.normal, Vector3.up) > 0.1f) return false;
 
-                DrawBasics.Point(wallHit.point, "Wall Hit", Color.red, 0.05f, 0.0f, Color.red);
-                DrawBasics.Vector(wallHit.point, wallHit.point + wallHit.normal * 0.5f, Color.red, 0.0f, "Wall Normal");
+                // --- 第二步：向下找墙沿 ---
+                Vector3 downRayStart = wallHit.point + Vector3.up * _config.VaultDownwardRayLength + forward * _config.VaultDownwardRayOffset;
 
-                // --- 第二步：从墙面上方，往墙后稍微偏移一点，向下打射线找墙沿 ---
-                // 起点：击中点往上抬起一定高度，并沿着角色正前方(越过墙沿)偏移
-                Vector3 downRayStart = wallHit.point + Vector3.up * _downwardRayLength + forward * _downwardRayOffset;
-
-                DrawBasics.Ray(downRayStart, Vector3.down, Color.cyan);
-
-                if (Physics.Raycast(downRayStart, Vector3.down, out RaycastHit ledgeHit, _downwardRayLength, _obstacleMask))
+                if (Physics.Raycast(downRayStart, Vector3.down, out RaycastHit ledgeHit, _config.VaultDownwardRayLength, _obstacleMask))
                 {
-                    // 确保打中的是水平面（墙顶）
                     if (Vector3.Dot(ledgeHit.normal, Vector3.up) < 0.9f) return false;
 
-                    // 计算墙高 (Ledge的Y 减去 角色脚底的Y)
                     float height = ledgeHit.point.y - root.position.y;
+                    if (height < minHeight || height > maxHeight) return false;
 
-                    // 检查高度是否在允许翻越的范围内 (比如 0.5m ~ 2.5m)
-                    if (height < 0.5f || height > 2.5f) return false;
+                    // --- 第三步：寻找墙后落地点 ---
+                    Vector3 vaultForwardDir = -wallHit.normal;
+                    Vector3 landRayStart = ledgeHit.point + vaultForwardDir * _config.VaultLandDistance + Vector3.up * 0.5f;
+                    Vector3 finalLandPoint = Vector3.zero;
+                    bool foundGround = false;
 
-                    DrawBasics.Point(ledgeHit.point, "Ledge Hit", Color.green, 0.05f);
+                    if (Physics.Raycast(landRayStart, Vector3.down, out RaycastHit landHit, _config.VaultLandRayLength, _obstacleMask))
+                    {
+                        if (Vector3.Dot(landHit.normal, Vector3.up) >= 0.7f)
+                        {
+                            finalLandPoint = landHit.point;
+                            foundGround = true;
+                        }
+                    }
 
-                    // --- 第三步：计算最终数据 ---
+                    if (_config.RequireGroundBehindWall && !foundGround) return false;
+
+                    if (!foundGround)
+                    {
+                        finalLandPoint = landRayStart + Vector3.down * 0.5f;
+                    }
+
+                    // --- 第四步：组装数据 ---
                     info.IsValid = true;
                     info.WallPoint = wallHit.point;
                     info.WallNormal = wallHit.normal;
                     info.Height = height;
+                    info.ExpectedLandPoint = finalLandPoint;
 
-                    // 墙沿边线点：把向下射线的击中点(LedgeHit)，沿着墙面法线往回推，推到和墙面(WallHit)平齐的位置
-                    // 这是为了防止手抓得太深
                     Vector3 ledgeEdge = new Vector3(wallHit.point.x, ledgeHit.point.y, wallHit.point.z);
                     info.LedgePoint = ledgeEdge;
 
-                    // 计算双手 IK 目标点
-                    // 沿着墙沿（即法线的叉乘方向）左右分开
                     Vector3 rightDir = Vector3.Cross(Vector3.up, wallHit.normal).normalized;
-
-                    info.LeftHandPos = ledgeEdge + rightDir * (_handSpread / 2f);
-                    info.RightHandPos = ledgeEdge - rightDir * (_handSpread / 2f);
-
-                    // 计算双手旋转：手掌朝下，手指朝前（也就是墙的法线反方向）
-                    // 假设模型的 Z 轴是手背，Y 轴是手指 (这取决于您的具体骨骼朝向，可能需要调整)
+                    info.LeftHandPos = ledgeEdge + rightDir * (_config.VaultHandSpread / 2f);
+                    info.RightHandPos = ledgeEdge - rightDir * (_config.VaultHandSpread / 2f);
                     info.HandRot = Quaternion.LookRotation(-wallHit.normal, Vector3.up);
-
-                    // Draw IK target points
-                    // 修复：DrawShapes.Sphere 的预期签名与传入参数不匹配，改为使用 DrawBasics.Point（接受 Vector3 位置）
-                    DrawBasics.Point(info.LeftHandPos, "L_IK", Color.magenta, 0.03f);
-                    DrawBasics.Point(info.RightHandPos, "R_IK", Color.magenta, 0.03f);
-
-                    // Draw coordinate system using Vector drawing
-                    Vector3 xAxis = info.HandRot * Vector3.right * 0.2f;
-                    Vector3 yAxis = info.HandRot * Vector3.up * 0.2f;
-                    Vector3 zAxis = info.HandRot * Vector3.forward * 0.2f;
-
-                    DrawBasics.Vector(info.LeftHandPos, info.LeftHandPos + xAxis, Color.red, 0.0f);
-                    DrawBasics.Vector(info.LeftHandPos, info.LeftHandPos + yAxis, Color.green, 0.0f);
-                    DrawBasics.Vector(info.LeftHandPos, info.LeftHandPos + zAxis, Color.blue, 0.0f);
 
                     return true;
                 }
             }
-
             return false;
+        }
+
+        /// <summary>
+        /// 专门负责把有效数据画出来的函数
+        /// </summary>
+        private void DrawDebugInfo(VaultObstacleInfo info, string vaultType)
+        {
+            // 在墙上打个字，告诉您现在扫到的是高墙还是矮墙
+            DrawBasics.Point(info.WallPoint, vaultType, Color.red, 0.1f, 0.0f, Color.red);
+            DrawBasics.Vector(info.WallPoint, info.WallPoint + info.WallNormal * 0.5f, Color.red, 0.02f, "Normal");
+
+            DrawBasics.Point(info.LedgePoint, "Ledge Hit", Color.green, 0.1f);
+
+            // 如果落地点是个坑（虚拟点），画灰色；如果是实地，画蓝色
+            Color landColor = (info.ExpectedLandPoint.y > info.LedgePoint.y - 10f) ? Color.blue : Color.gray;
+            DrawBasics.Point(info.ExpectedLandPoint, "Land Point", landColor, 0.2f);
+
+            DrawBasics.Point(info.LeftHandPos, "L_IK", Color.magenta, 0.1f);
+            DrawBasics.Point(info.RightHandPos, "R_IK", Color.magenta, 0.1f);
+
+            Vector3 xAxis = info.HandRot * Vector3.right * 0.3f;
+            Vector3 yAxis = info.HandRot * Vector3.up * 0.3f;
+            Vector3 zAxis = info.HandRot * Vector3.forward * 0.3f;
+
+            DrawBasics.Vector(info.LeftHandPos, info.LeftHandPos + xAxis, Color.red, 0.02f);
+            DrawBasics.Vector(info.LeftHandPos, info.LeftHandPos + yAxis, Color.green, 0.02f);
+            DrawBasics.Vector(info.LeftHandPos, info.LeftHandPos + zAxis, Color.blue, 0.02f);
         }
     }
 }

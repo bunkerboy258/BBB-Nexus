@@ -1,5 +1,6 @@
 using Animancer;
 using Items.Data;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Characters.Player.Data
@@ -60,6 +61,72 @@ namespace Characters.Player.Data
         }
     }
 
+    [System.Serializable]
+    /// <summary>
+    /// 定义动画中一个特定的“特征时刻”。
+    /// 烘焙工具会自动计算在这个时刻，动画相对于上一阶段起点的预期位移。
+    /// </summary>
+    public class WarpPointDef
+    {
+        [Tooltip("特征点名称，方便识别 (如: 'LedgeContact', 'Landing')")]
+        public string PointName;
+
+        [Tooltip("动画播放到什么比例时 (0.0~1.0)，角色必须到达这个特征点？")]
+        [Range(0f, 1f)]
+        public float NormalizedTime;
+
+        // --- 以下数据由烘焙工具自动生成，运行时只读 ---
+
+        [Tooltip("[只读] 从上一个 WarpPoint(或起点) 到此时刻，动画产生的局部位置偏移")]
+        public Vector3 BakedLocalOffset;
+
+        [Tooltip("[只读] 此时刻，角色的局部旋转 (相对于起点)")]
+        public Quaternion BakedLocalRotation = Quaternion.identity;
+    }
+
+    /// <summary>
+    /// 专用于高级空间扭曲 (Motion Warping) 的动画数据。
+    /// </summary>
+    [System.Serializable]
+    public class WarpedMotionData
+    {
+        [Header("Source")]
+        [Tooltip("要播放的动画过渡（Animancer Transition 资源）")]
+        public ClipTransition Clip;
+
+        [Header("Process Settings")]
+        [Tooltip("提前结束时间点（单位：秒。<=0 表示不提前结束）")]
+        public float EndTime = 0f;
+
+        [Header("Baked Data (Warping Source)")]
+        [Tooltip("动画结束时的脚相位")]
+        public FootPhase EndPhase = FootPhase.LeftFootDown;
+
+        [Tooltip("动画总时长 (烘焙时自动写入)")]
+        public float BakedDuration;
+
+        [Tooltip("严格还原动画的局部 X 轴速度")]
+        public AnimationCurve LocalVelocityX = new AnimationCurve();
+
+        [Tooltip("严格还原动画的局部 Y 轴速度")]
+        public AnimationCurve LocalVelocityY = new AnimationCurve();
+
+        [Tooltip("严格还原动画的局部 Z 轴速度")]
+        public AnimationCurve LocalVelocityZ = new AnimationCurve();
+
+        [Tooltip("动画原生的局部 Y 轴旋转速度 (度/秒)")]
+        public AnimationCurve LocalRotationY = new AnimationCurve();
+
+        [Header("Warp Points (特征点序列)")]
+        [Tooltip("定义动画中需要被强制对齐的空间关键时刻。必须按时间顺序排列！")]
+        public List<WarpPointDef> WarpPoints = new List<WarpPointDef>();
+
+        public AnimationCurve HandIKWeightCurve=new AnimationCurve();
+
+        [Tooltip("烘焙时计算出的动画总局部位移 (仅供参考)")]
+        [HideInInspector]
+        public Vector3 TotalBakedLocalOffset;
+    }
     /// <summary>
     /// 玩家配置文件（所有可配置参数和动画资源）。
     /// 
@@ -70,6 +137,7 @@ namespace Characters.Player.Data
     [CreateAssetMenu(fileName = "PlayerConfig", menuName = "Player/PlayerConfig")]
     public class PlayerSO : ScriptableObject
     {
+        public WarpedMotionData defaultclip;
         #region Movement (移动参数)
 
         [Header("--- 视角控制 (View) ---")]
@@ -428,17 +496,47 @@ namespace Characters.Player.Data
         [Tooltip("可翻越物体层")]
         public LayerMask ObstacleLayers;
 
-        [Tooltip("可翻越最小高度")]
-        public float VaultMinHeight = 0.5f;
-
-        [Tooltip("可翻越最大高度")]
-        public float VaultMaxHeight = 1.2f;
-
-        [Tooltip("翻越检测距离")]
-        public float VaultCheckDistance = 1.0f;
-
         [Tooltip("翻越动画数据")]
-        public MotionClipData VaultFenceAnim;
+        public WarpedMotionData lowVaultAnim;
+        public WarpedMotionData highVaultAnim;
+
+        [Header("Vault Height Thresholds")]
+        [Tooltip("矮翻越最小高度 (m)")]
+        public float LowVaultMinHeight = 0.5f;
+
+        [Tooltip("矮翻越最大高度 (m)")]
+        public float LowVaultMaxHeight = 1.2f;
+
+        [Tooltip("高翻越最小高度 (m)")]
+        public float HighVaultMinHeight = 1.2f;
+
+        [Tooltip("高翻越最大高度 (m)")]
+        public float HighVaultMaxHeight = 2.5f;
+
+        [Header("Vault Raycast Detection")]
+        [Tooltip("前方墙面检测距离 (m)")]
+        public float VaultForwardRayLength = 1.5f;
+
+        [Tooltip("前方射线起点高度 (m，胸部位置)")]
+        public float VaultForwardRayHeight = 1.0f;
+
+        [Tooltip("向下射线距离墙面的偏移量 (m)")]
+        public float VaultDownwardRayOffset = 0.5f;
+
+        [Tooltip("向下射线长度 (m)")]
+        public float VaultDownwardRayLength = 2.0f;
+
+        [Tooltip("双手在墙沿上的间距 (m)")]
+        public float VaultHandSpread = 0.4f;
+
+        [Tooltip("越过墙面多远距离开始寻找落地点？(比如 1.5米 代表角色会翻过墙体 1.5米远)")]
+        public float VaultLandDistance = 1.5f;
+
+        [Tooltip("寻找落地点的射线长度 (防止跳进无底洞)")]
+        public float VaultLandRayLength = 3.0f;
+
+        [Tooltip("是否必须找到墙后的地面才能翻越？如果关闭，即使后面是悬崖也能翻过去(然后自由落体)")]
+        public bool RequireGroundBehindWall = true;
 
         #endregion
 

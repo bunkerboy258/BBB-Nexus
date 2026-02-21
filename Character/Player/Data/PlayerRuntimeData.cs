@@ -1,5 +1,6 @@
 using Items.Data;
 using Items.Logic;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Characters.Player.Data
@@ -16,6 +17,9 @@ namespace Characters.Player.Data
         public Vector3 LeftHandPos;
         public Vector3 RightHandPos;
         public Quaternion HandRot;    // 双手的目标旋转 (贴合墙面)
+
+        [Tooltip("翻越完成后的预期世界坐标")]
+        public Vector3 ExpectedLandPoint;
     }
     /// <summary>
     /// 移动状态枚举
@@ -92,6 +96,16 @@ namespace Characters.Player.Data
 
     public class PlayerRuntimeData
     {
+        [Header("Generic Warping State (通用扭曲状态)")]
+        public bool IsWarping;                    // 当前是否处于任何一种空间扭曲状态
+        public WarpedMotionData ActiveWarpData;   // 当前正在执行的 Warp 数据
+        public float NormalizedWarpTime;          // 当前 Warp 动画的进度 (0.0~1.0)
+
+        // 我们需要一个通用的容器来存放运行时计算出的 IK 目标点
+        // 因为不仅是双手，以后可能还有双脚，甚至是武器
+        public Vector3 WarpIKTarget_LeftHand;
+        public Vector3 WarpIKTarget_RightHand;
+        public Quaternion WarpIKRotation_Hand;
         #region INPUT (输入数据：由 InputReader 写入)
 
         /// <summary>
@@ -266,6 +280,16 @@ namespace Characters.Player.Data
         [Header("Vaulting Intent")]
         public bool WantsToVault;     // 翻越意图开关
         public VaultObstacleInfo CurrentVaultInfo; // 当前检测到的障碍物信息
+
+        /// <summary>
+        /// 本帧是否请求矮翻越。由 JumpOrVaultIntentProcessor 判定。
+        /// </summary>
+        public bool WantsLowVault;
+
+        /// <summary>
+        /// 本帧是否请求高翻越。由 JumpOrVaultIntentProcessor 判定。
+        /// </summary>
+        public bool WantsHighVault;
 
         // --- IK 意图 ---
 
@@ -460,7 +484,6 @@ namespace Characters.Player.Data
             WantsToJump = false;
             WantsDoubleJump = false;
         }
-
 
     }
 }
