@@ -1,5 +1,4 @@
 using Characters.Player.Data;
-using DrawXXL;
 using UnityEngine;
 
 namespace Characters.Player.Processing
@@ -29,13 +28,6 @@ namespace Characters.Player.Processing
             _player.InputReader.OnJumpPressed += OnJumpPressed;
         }
 
-        ~JumpOrVaultIntentProcessor()
-        {
-            if (_player?.InputReader != null)
-            {
-                _player.InputReader.OnJumpPressed -= OnJumpPressed;
-            }
-        }
 
         /// <summary>
         /// Update 负责每帧的环境扫描（用于 Debug 绘制）和清理残留意图
@@ -63,23 +55,6 @@ namespace Characters.Player.Processing
                 }
             }
 
-            // --- 2. 持续绘制有效的 Debug 信息 ---
-            // 如果最近 2 秒内扫描到过低墙
-            if (Time.time - _lastValidLowVaultTime < _debugHoldDuration && _lastValidLowVaultInfo.IsValid)
-            {
-                DrawDebugInfo(_lastValidLowVaultInfo, "Low Vault");
-            }
-            // 如果最近 2 秒内扫描到过高墙
-            else if (Time.time - _lastValidHighVaultTime < _debugHoldDuration && _lastValidHighVaultInfo.IsValid)
-            {
-                DrawDebugInfo(_lastValidHighVaultInfo, "High Vault");
-            }
-
-            // （原有的意图清理逻辑已注释，保持原样）
-            //data.WantsLowVault = false;
-            //data.WantsHighVault = false;
-            //data.WantsToJump = false;
-            //data.WantsDoubleJump = false;
         }
 
         /// <summary>
@@ -144,8 +119,6 @@ namespace Characters.Player.Processing
             Vector3 rayStart = root.position + Vector3.up * _config.VaultForwardRayHeight;
             Vector3 forward = root.forward;
 
-            if (!isSilent) DrawBasics.Ray(rayStart, forward, Color.yellow, 0.02f); // 用细黄线表示正在扫描
-
             // --- 第一步：向前找墙 ---
             if (Physics.Raycast(rayStart, forward, out RaycastHit wallHit, _config.VaultForwardRayLength, _obstacleMask))
             {
@@ -204,31 +177,6 @@ namespace Characters.Player.Processing
             return false;
         }
 
-        /// <summary>
-        /// 专门负责把有效数据画出来的函数
-        /// </summary>
-        private void DrawDebugInfo(VaultObstacleInfo info, string vaultType)
-        {
-            // 在墙上打个字，告诉您现在扫到的是高墙还是矮墙
-            DrawBasics.Point(info.WallPoint, vaultType, Color.red, 0.1f, 0.0f, Color.red);
-            DrawBasics.Vector(info.WallPoint, info.WallPoint + info.WallNormal * 0.5f, Color.red, 0.02f, "Normal");
 
-            DrawBasics.Point(info.LedgePoint, "Ledge Hit", Color.green, 0.1f);
-
-            // 如果落地点是个坑（虚拟点），画灰色；如果是实地，画蓝色
-            Color landColor = (info.ExpectedLandPoint.y > info.LedgePoint.y - 10f) ? Color.blue : Color.gray;
-            DrawBasics.Point(info.ExpectedLandPoint, "Land Point", landColor, 0.2f);
-
-            DrawBasics.Point(info.LeftHandPos, "L_IK", Color.magenta, 0.1f);
-            DrawBasics.Point(info.RightHandPos, "R_IK", Color.magenta, 0.1f);
-
-            Vector3 xAxis = info.HandRot * Vector3.right * 0.3f;
-            Vector3 yAxis = info.HandRot * Vector3.up * 0.3f;
-            Vector3 zAxis = info.HandRot * Vector3.forward * 0.3f;
-
-            DrawBasics.Vector(info.LeftHandPos, info.LeftHandPos + xAxis, Color.red, 0.02f);
-            DrawBasics.Vector(info.LeftHandPos, info.LeftHandPos + yAxis, Color.green, 0.02f);
-            DrawBasics.Vector(info.LeftHandPos, info.LeftHandPos + zAxis, Color.blue, 0.02f);
-        }
     }
 }

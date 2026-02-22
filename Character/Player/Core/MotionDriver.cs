@@ -63,6 +63,7 @@ namespace Characters.Player.Core
 
             Vector3 verticalVelocity = CalculateGravity();
             _cc.Move((horizontalVelocity + verticalVelocity) * Time.deltaTime);
+            _data.CurrentSpeed = _cc.velocity.magnitude;
         }
 
         /// <summary>
@@ -72,6 +73,7 @@ namespace Characters.Player.Core
         {
             Vector3 verticalVelocity = CalculateGravity();
             _cc.Move(verticalVelocity * Time.deltaTime);
+            _data.CurrentSpeed = _cc.velocity.magnitude;
         }
 
         /// <summary>
@@ -84,6 +86,7 @@ namespace Characters.Player.Core
             Vector3 horizontalVelocity = CalculateMotionFromInput(speedMult);
             Vector3 verticalVelocity = CalculateGravity();
             _cc.Move((horizontalVelocity + verticalVelocity) * Time.deltaTime);
+            _data.CurrentSpeed = _cc.velocity.magnitude;
         }
 
         private Vector3 CalculateMotionFromClip(MotionClipData clipData, float stateTime, float startYaw)
@@ -292,11 +295,6 @@ namespace Characters.Player.Core
             return new Vector3(0f, _data.VerticalVelocity, 0f);
         }
 
-
-        /// <summary>
-        /// 由特殊状态 (如 VaultState) 在 Enter() 时调用。
-        /// 仅用于载入本次扭曲运动的数据和世界目标点。
-        /// </summary>
         public void InitializeWarpData(WarpedMotionData data, Vector3[] targets)
         {
             if (data == null || data.WarpPoints.Count == 0 || targets == null || targets.Length != data.WarpPoints.Count)
@@ -306,7 +304,27 @@ namespace Characters.Player.Core
             }
 
             _warpData = data;
-            _warpTargets = targets;
+
+            //在初始化时，根据配置计算出包含偏移的最终目标点数组
+            _warpTargets = new Vector3[targets.Length];
+
+            for (int i = 0; i < targets.Length; i++)
+            {
+                // 1. 获取传入的原始物理目标点
+                Vector3 rawPos = targets[i];
+
+                // 2. 获取该特征点配置的局部偏移量
+                Vector3 configuredOffset = _warpData.WarpPoints[i].TargetPositionOffset;
+
+                // 3. 将局部偏移量转换到当前世界方向上 (假设翻越是沿着角色 forward 方向的)
+                // 注意：这里用 transform.TransformDirection 是假设角色在翻越前已经对准了墙面
+                // 如果您的 VaultIntentProcessor 里算出了精确的 WallNormal，最好用 WallNormal 来转换
+                Vector3 worldOffset = _player.transform.TransformDirection(configuredOffset);
+
+                // 4. 计算出最终角色 Root 应该到达的绝对位置
+                _warpTargets[i] = rawPos + worldOffset;
+            }
+
             _currentWarpIndex = 0;
             _segmentStartTime = 0f;
             _segmentStartPosition = _player.transform.position;
@@ -344,6 +362,7 @@ namespace Characters.Player.Core
             // 5. 执行物理移动
             _cc.Move(finalVelocity * Time.deltaTime);
             _player.transform.Rotate(0f, rotVelY * Time.deltaTime, 0f, Space.World);
+            _data.CurrentSpeed = _cc.velocity.magnitude;
         }
 
         /// <summary>

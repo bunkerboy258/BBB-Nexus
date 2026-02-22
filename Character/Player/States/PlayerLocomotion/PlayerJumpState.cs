@@ -89,10 +89,10 @@ namespace Characters.Player.States
                     break;
 
                 default:
-                    // Fallback: use default jump settings
+                    Debug.Log(" JumpAirAnim 配置缺失，使用默认跳跃动画");
                     _clipData = config.JumpAirAnim;
                     _jumpForce = config.JumpForce;
-                    data.LandFadeInTime = config.JumpToLandFadeInTime;
+                    data.LandFadeInTime = 0.2f;
                     break;
             }
         }

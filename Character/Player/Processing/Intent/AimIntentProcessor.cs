@@ -54,15 +54,6 @@ namespace Characters.Player.Processing
                 _data.IsAiming = false;
             }
 
-            // 如果玩家没按键，且当前处于瞄准状态 (意味着是松手后的延迟期)
-            if (!_isAimInputHeld && _data.IsAiming)
-            {
-                // 检查延迟是否结束
-                if (Time.time - _timeSinceAimCanceled >= _config.AimHoldDuration) 
-                {
-                    _data.IsAiming = false;
-                }
-            }
         }
 
         // --- 事件回调 ---
