@@ -24,6 +24,9 @@ namespace Characters.Player.Layers
         // 引用 PlayerController 中的 IK 源 (MonoBehaviour)
         private IPlayerIKSource _ikSource => _player.IKSource;
 
+        // 上一次的基准点，避免每帧重复调用 SetIKTarget 消耗性能
+        private Transform _lastAimReference=null;
+
         // --- 运行时平滑状态 ---
         private float _leftHandWeight;
         private float _leftHandVelocity;
@@ -77,6 +80,44 @@ namespace Characters.Player.Layers
                 }
 
                 return;
+            }
+
+            if (_data.IsAiming)
+            {
+                if (_ikSource == null) return;
+
+
+                // 同步指向基准物
+                // 只有当玩家换了物品，或者基准点发生变化时，才通知底层 IK
+                if (_data.CurrentAimReference != _lastAimReference)
+                {
+                    // 将黑板上的基准 Transform 发送给底层 (FinalIKSource 收到后会把它赋给 AimIK.solver.transform)
+                    _ikSource.SetIKTarget(IKTarget.AimReference, _data.CurrentAimReference, 1f);
+                    _lastAimReference = _data.CurrentAimReference;
+                }
+
+                // =================================================================================
+                // 1. 上半身指向 (LookAt / Aim) 处理
+                // =================================================================================
+                // 这里的逻辑保持不变，依然是消费 TargetAimPoint (Vector3)
+                float targetLookw = _data.WantsLookAtIK ? 1f : 0f;
+                _lookAtWeight = Mathf.SmoothDamp(_lookAtWeight, targetLookw, ref _lookAtVelocity, 0.2f);
+
+                if (_lookAtWeight > 0.01f)
+                {
+                    // 底层（FinalIKSource）现在已经知道该用“谁”去指向这个坐标了！
+                    _ikSource.SetIKTarget(
+                        IKTarget.HeadLook,
+                        _data.TargetAimPoint, // 之前由摄像机驱动器算出的精确世界坐标
+                        Quaternion.identity,
+                        _lookAtWeight
+                    );
+                }
+                else
+                {
+                    _ikSource.UpdateIKWeight(IKTarget.HeadLook, 0f);
+                    if (_lookAtWeight < 0.01f) _lookAtVelocity = 0f;
+                }
             }
             // =================================================================================
             // 1. 左手 IK 处理

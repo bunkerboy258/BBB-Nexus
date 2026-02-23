@@ -25,11 +25,11 @@ namespace Characters.Player.Core
         private readonly PlayerRuntimeData _data;
         private readonly PlayerSO _config;
 
-        // 模式切换消耗性标记：用于在 FreeLook<->Aiming 切换时做一次性的 yaw 同步（防止角度跳变）
+        // 模式切换消耗性标记：用于在 FreeLook<->Aiming 切换时做一次性的 yaw 同步防止角度跳变
         private bool _wasAimingLastFrame;
 
         // ==========================================
-        // Motion Warping (特殊扭曲驱动模块)
+        // Motion Warping (特殊驱动)
         // ==========================================
         private WarpedMotionData _warpData;
         private Vector3[] _warpTargets;

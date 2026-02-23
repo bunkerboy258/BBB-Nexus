@@ -149,6 +149,16 @@ namespace Characters.Player.Data
         public Vector3 LookAtPosition;
         #endregion
 
+        [Header("Item & Aiming Reference (物品与指向基准)")]
+
+        /// <summary>
+        /// 当前用于执行“指向”动作的基准 Transform。
+        /// 例如：如果玩家拿着一个手电筒，这里就是手电筒灯泡的 Transform。
+        /// IK 系统会让这个 Transform 的 Z 轴精确对准 TargetAimPoint。
+        /// 如果为空，通常默认使用角色的头部进行指向。
+        /// </summary>
+        public Transform CurrentAimReference;
+
         #region ATTRIBUTES & TRACKING - 数值与周期追踪
         [Header("Attributes")]
         public float CurrentStamina;

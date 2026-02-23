@@ -38,6 +38,7 @@ namespace Characters.Player.States
             _startYaw = player.transform.eulerAngles.y;
             _startLocomotionState = data.CurrentLocomotionState;
 
+            //Debug.Log(data.DesiredLocalMoveAngle);
             // 根据当前运动状态和移动方向选择起步动画
             _currentClipData = SelectClipForLocomotionState(data.DesiredLocalMoveAngle, data.CurrentLocomotionState);
 

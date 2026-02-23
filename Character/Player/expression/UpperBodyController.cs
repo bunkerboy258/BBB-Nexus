@@ -29,6 +29,10 @@ namespace Characters.Player.Layers
             layer.Weight = 1f;
             layer.ApplyAnimatorIK = true;
 
+            // Set layer to additive mode so played clips are applied additively to base animation
+            // 将上半身层设置为 Additive 模式，使其动画以叠加方式应用于下层基础动作
+            //layer.IsAdditive = true;
+
             // State Machine Setup
             _stateMachine = new StateMachine();
             IdleState = new UpperBodyIdleState(player, this);

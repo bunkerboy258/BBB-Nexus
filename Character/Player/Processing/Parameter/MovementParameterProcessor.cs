@@ -60,8 +60,6 @@ namespace Characters.Player.Processing
 
         public void Update()
         {
-            // 0) 仅维护本模块负责的派生数据：DesiredLocalMoveAngle 等。
-            UpdateMovementDerivedData();
 
             // 1) 根据运动状态更新强度目标
             UpdateIntensityLogic();
@@ -73,12 +71,6 @@ namespace Characters.Player.Processing
             UpdateFallHeight();
         }
 
-        private void UpdateMovementDerivedData()
-        {
-            // 注意：DesiredWorldMoveDir 的单一来源在 LocomotionIntentProcessor。
-            // 这里只维护本模块输出的派生参数的默认值。
-            _data.DesiredLocalMoveAngle = 0f;
-        }
 
         /// <summary>
         /// Y 轴逻辑（强度/速度混合）
@@ -178,19 +170,20 @@ namespace Characters.Player.Processing
                 }
             }
 
-            // 方向向量平滑：使用 RotateTowards 在 180° 反向时更稳定（不会穿过接近 0 的向量长度）。
-            float xSmoothTime = Mathf.Max(0.0001f, _config.XAnimBlendSmoothTime);
-            float maxRadiansDelta = Mathf.PI * Time.deltaTime / xSmoothTime;
-            _currentLocalDir = Vector3.RotateTowards(_currentLocalDir, targetLocalDir, maxRadiansDelta, Mathf.Infinity);
+            // 重点修复：不平滑方向,DesiredLocalMoveAngle是逻辑层 应该瞬时响应
+            // 方向本身的平滑应该是交给后续表现层的 Blend X/Y SmoothDamp 处理
+            // 之前的平滑逻辑导致了movestart只能读取到开始平滑的值 造成只能选择正前方起步动画的问题
+            _currentLocalDir = targetLocalDir;
             _currentLocalDir.y = 0f;
             if (_currentLocalDir.sqrMagnitude > 0.0001f)
                 _currentLocalDir.Normalize();
             else
                 _currentLocalDir = Vector3.forward;
 
-            // 由平滑后的向量求角度
+            // 由方向向量求角度
             float angle = Mathf.Atan2(_currentLocalDir.x, _currentLocalDir.z) * Mathf.Rad2Deg;
             _data.DesiredLocalMoveAngle = angle;
+            //if(angle>0) Debug.Log(angle);
 
             // 极坐标 -> 笛卡尔坐标（Cartesian Mixer）
             float rad = angle * Mathf.Deg2Rad;
@@ -198,6 +191,7 @@ namespace Characters.Player.Processing
             float targetY = Mathf.Cos(rad) * _currentIntensity;
 
             // X/Y 都平滑，避免快速换向时 X 突跳导致权重抖动。
+            float xSmoothTime = Mathf.Max(0.0001f, _config.XAnimBlendSmoothTime);
             float ySmoothTime = Mathf.Max(0.0001f, _config.YAnimBlendSmoothTime);
 
             _currentAnimBlendX = Mathf.SmoothDamp(

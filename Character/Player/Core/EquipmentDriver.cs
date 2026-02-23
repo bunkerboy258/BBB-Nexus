@@ -102,6 +102,20 @@ namespace Characters.Player.Core
 
                         _data.CurrentEquipment.DeviceLogic = logiccomponent;
                     }
+
+                    // 寻找该物品上的特定指向基准点 
+                    Transform referencePoint = instance.transform.Find("Muzzle"); // 请根据您的 Prefab 结构修改名称
+
+                    if (referencePoint != null)
+                    {
+                        // 登记基准点数据
+                        _player.RuntimeData.CurrentAimReference = referencePoint;
+                    }
+                    else
+                    {
+                        // 如果物品没有特定的基准点 让 IK 恢复默认
+                        _player.RuntimeData.CurrentAimReference = null;
+                    }
                 }
                 else
                 {
@@ -132,6 +146,8 @@ namespace Characters.Player.Core
             _data.CurrentEquipment.Definition = null;
             _data.CurrentEquipment.Instance = null;
             _data.CurrentEquipment.DeviceLogic = null;
+
+            _player.RuntimeData.CurrentAimReference = null;
 
             _player.NotifyEquipmentChanged();
         }

@@ -1,5 +1,6 @@
-using UnityEngine;
+using Animancer;
 using Characters.Player.Data;
+using UnityEngine;
 
 namespace Characters.Player.States
 {
@@ -9,7 +10,7 @@ namespace Characters.Player.States
 
         public override void Enter()
         {
-            //
+            player.Animancer.Layers[0].Play(config.IdleAnim, 0.4f, FadeMode.FromStart);
         }
 
         protected override void UpdateStateLogic()

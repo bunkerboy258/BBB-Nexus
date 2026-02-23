@@ -8,7 +8,7 @@ public enum IKTarget
     LeftFoot,
     RightFoot,
     HeadLook,
-    // ...
+    AimReference
 }
 
 namespace Characters.Player.Core
@@ -24,7 +24,7 @@ namespace Characters.Player.Core
         void SetIKTarget(IKTarget target, Transform targetTransform, float weight);
 
         /// <summary>
-        /// 设置一个 IK 目标的世界坐标。
+        /// 设置一个 IK 目标的世界坐标(通过vector3设置)
         /// </summary>
         /// <param name="target">身体部位</param>
         /// <param name="position">世界坐标</param>
