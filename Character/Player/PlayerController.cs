@@ -70,6 +70,7 @@ namespace Characters.Player
         public PlayerMoveLoopState MoveLoopState { get; private set; }
         public PlayerStopState StopState { get; private set; }
         public PlayerVaultState VaultState { get; private set; } 
+        public PlayerDodgeState DodgeState { get; private set; }    
         public PlayerJumpState JumpState { get; private set; }
         public PlayerDoubleJumpState DoubleJumpState { get; private set; }
         public PlayerLandState LandState { get; private set; }
@@ -191,6 +192,7 @@ namespace Characters.Player
             IdleState = new PlayerIdleState(this);
             MoveStartState = new PlayerMoveStartState(this);
             MoveLoopState = new PlayerMoveLoopState(this);
+            DodgeState=new PlayerDodgeState(this);
             VaultState = new PlayerVaultState(this);    
             StopState = new PlayerStopState(this);
             JumpState = new PlayerJumpState(this);

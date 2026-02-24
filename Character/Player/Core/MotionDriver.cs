@@ -334,6 +334,29 @@ namespace Characters.Player.Core
         }
 
         /// <summary>
+        /// 新增重载：只接受 WarpedMotionData，根据其 WarpPoints 自动生成目标点数组并调用主方法。
+        /// </summary>
+        public void InitializeWarpData(WarpedMotionData data)
+        {
+            if (data == null || data.WarpPoints == null || data.WarpPoints.Count == 0)
+            {
+                Debug.LogError("[MotionDriver] 初始化 Warp 数据失败：WarpedMotionData 或 WarpPoints 为空。");
+                Debug.Log(data.Clip.Name+"这个地方出了问题");
+                return;
+            }
+
+            // 自动生成目标点数组：每个 WarpPoint 的目标点为 BakedLocalOffset（可根据实际需求调整）
+            Vector3[] targets = new Vector3[data.WarpPoints.Count];
+            for (int i = 0; i < data.WarpPoints.Count; i++)
+            {
+                // 这里假设目标点为动画烘焙的局部位移（如需世界坐标请根据实际场景调整）
+                targets[i] = _player.transform.position + _player.transform.TransformVector(data.WarpPoints[i].BakedLocalOffset);
+            }
+
+            InitializeWarpData(data, targets);
+        }
+
+        /// <summary>
         /// 由特殊状态在每帧的 UpdateStateLogic() 中【主动调用】。
         /// 替代原本的普通 UpdateMotion 逻辑。
         /// </summary>

@@ -23,6 +23,12 @@ namespace Characters.Player.Data
         mixed          // Curve to input switch - 曲线到输入切换
     }
 
+    public enum WarpedType
+    {
+        None,           // No warping, play as is - 不进行扭曲，按原样播放
+        Vault,
+        Dodge
+    }
     /// <summary>
     /// Animation clip data for motion - 运动动画片段数据
     /// </summary>
@@ -107,6 +113,8 @@ namespace Characters.Player.Data
         public AnimationCurve LocalVelocityY = new AnimationCurve();
         public AnimationCurve LocalVelocityZ = new AnimationCurve();
         public AnimationCurve LocalRotationY = new AnimationCurve();
+
+        public WarpedType Type = WarpedType.None; // 默认不自动烘焙点
 
         [Header("Warping Definition - 扭曲定义")]
         [Tooltip("Warp points in time order - 空间对齐特征点序列，需按时间升序排列")]
@@ -315,6 +323,27 @@ namespace Characters.Player.Data
         [Header("VAULT - ANIMATION DATA - 翻越动画数据")]
         public WarpedMotionData lowVaultAnim;
         public WarpedMotionData highVaultAnim;
+
+        [Header("Dodge Animations (闪避动画)")]
+        [Tooltip("角色在静止或行走时使用的闪避动作 (通常是侧步、后跳)")]
+        public WarpedMotionData ForwardDodge;
+        public WarpedMotionData BackwardDodge;
+        public WarpedMotionData LeftDodge;
+        public WarpedMotionData RightDodge;
+        public WarpedMotionData ForwardLeftDodge;
+        public WarpedMotionData ForwardRightDodge;
+        public WarpedMotionData BackwardLeftDodge;
+        public WarpedMotionData BackwardRightDodge;
+
+        [Tooltip("角色在跑步或冲刺时使用的闪避动作 (通常是翻滚、滑铲)")]
+        public WarpedMotionData MoveForwardDodge;
+        public WarpedMotionData MoveBackwardDodge;
+        public WarpedMotionData MoveLeftDodge;
+        public WarpedMotionData MoveRightDodge;
+        public WarpedMotionData MoveForwardLeftDodge;
+        public WarpedMotionData MoveForwardRightDodge;
+        public WarpedMotionData MoveBackwardLeftDodge;
+        public WarpedMotionData MoveBackwardRightDodge;
 
         [Header("VAULT - HEIGHT THRESHOLDS - 翻越高度阈值")]
         public float LowVaultMinHeight = 0.5f;

@@ -63,7 +63,7 @@ namespace Characters.Player.Layers
             // =================================================================================
             if (_data.IsWarping)
             {
-                Debug.Log(_data.ActiveWarpData.Clip.Name);
+                // Debug.Log(_data.ActiveWarpData.Clip.Name);
                 // 直接从当前的 Warp 数据表里抽取权重
                 float warpHandWeight = _data.ActiveWarpData.HandIKWeightCurve.Evaluate(_data.NormalizedWarpTime);
 

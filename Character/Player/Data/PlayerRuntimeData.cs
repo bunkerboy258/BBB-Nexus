@@ -6,7 +6,21 @@ using UnityEngine;
 namespace Characters.Player.Data
 {
     #region 数据结构与枚举
-
+    /// <summary>
+    /// 离散化的角色意图方向（8方向）。
+    /// </summary>
+    public enum DesiredDirection
+    {
+        None,
+        Forward,
+        Backward,
+        Left,
+        Right,
+        ForwardLeft,
+        ForwardRight,
+        BackwardLeft,
+        BackwardRight
+    }
     public struct VaultObstacleInfo
     {
         public bool IsValid;
@@ -74,6 +88,7 @@ namespace Characters.Player.Data
         #region PHYSICS & MOVEMENT - 物理与移动状态
         [Header("Physics & Movement")]
         public bool IsGrounded;
+        public bool IsDodgeing;
         public float VerticalVelocity;
         public bool JustLanded;
         public bool JustLeftGround;
@@ -94,6 +109,8 @@ namespace Characters.Player.Data
         public Vector3 TargetAimPoint;
         public Vector3 CameraLookDirection;
         public bool WantToRun;
+        public bool WantsToDodge;
+        public bool WantsToRoll;
         public bool WantsToJump;
         public bool WantsDoubleJump;
         public DoubleJumpDirection DoubleJumpDirection = DoubleJumpDirection.Up;
@@ -106,6 +123,8 @@ namespace Characters.Player.Data
 
         [Header("Switching Intent")]
         public ItemDefinitionSO DesiredItemDefinition;
+
+        public DesiredDirection QuantizedDirection;
         #endregion
 
         #region WARPING & VAULTING - 空间扭曲与翻越逻辑

@@ -89,6 +89,7 @@ namespace Characters.Player.States
             {
                 _endTimeTriggered = true;
                 data.ExpectedFootPhase = _currentClip.EndPhase;
+                data.moveStartFadeInTime = 0.4f;
 
                 player.StateMachine.ChangeState(player.MoveLoopState);
             }

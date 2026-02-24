@@ -15,7 +15,7 @@ namespace Editors
         private PlayerSO _targetPlayerSO;
         private int _sampleRate = 60;
 
-        [MenuItem("Tools/BBB-Nexus/Warped Motion 全量烘焙器 (终极切片版)")]
+        [MenuItem("Tools/BBB-Nexus/Warped Motion 全量烘焙器 (特征点自动探测)")]
         public static void ShowWindow()
         {
             GetWindow<WarpedMotionExtractor>("Warped 烘焙");
@@ -24,7 +24,7 @@ namespace Editors
         private void OnGUI()
         {
             GUILayout.Label("Warped Motion 全量自动化烘焙", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox("一键扫描并烘焙 PlayerSO 中所有 WarpedMotionData。\n提取 X,Y,Z,Yaw 速度曲线，并自动计算 WarpPoints 的切片积分位移。", MessageType.Info);
+            EditorGUILayout.HelpBox("一键烘焙 PlayerSO 中所有 WarpedMotionData 字段。\n自动探测 Vault (Y轴极值) 和 Dodge (XZ轴极值) 特征点。", MessageType.Info);
 
             GUILayout.Space(10);
 
@@ -38,7 +38,7 @@ namespace Editors
             GUI.backgroundColor = canBake ? new Color(0.6f, 1f, 0.6f) : Color.white;
             GUI.enabled = canBake;
 
-            if (GUILayout.Button("一键全量烘焙", GUILayout.Height(40)))
+            if (GUILayout.Button("一键全量烘焙 (自动探测 + 覆盖)", GUILayout.Height(40)))
             {
                 BakeAllWarpedDataInSO();
             }
@@ -49,14 +49,12 @@ namespace Editors
 
         private void BakeAllWarpedDataInSO()
         {
+            Undo.RecordObject(_targetPlayerSO, "Bake All Warped Motion Data");
+
             var fields = typeof(PlayerSO).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
                 .Where(f => f.FieldType == typeof(WarpedMotionData)).ToList();
 
-            if (fields.Count == 0)
-            {
-                EditorUtility.DisplayDialog("提示", "未找到任何 WarpedMotionData 字段。", "确定");
-                return;
-            }
+            if (fields.Count == 0) return;
 
             int successCount = 0;
             bool anyChange = false;
@@ -66,35 +64,33 @@ namespace Editors
                 FieldInfo fieldInfo = fields[i];
                 WarpedMotionData originalData = (WarpedMotionData)fieldInfo.GetValue(_targetPlayerSO);
 
-                EditorUtility.DisplayProgressBar("全量烘焙中", $"处理: {fieldInfo.Name}", (float)i / fields.Count);
+                EditorUtility.DisplayProgressBar("烘焙中", $"处理: {fieldInfo.Name}", (float)i / fields.Count);
 
-                if (originalData == null || originalData.Clip == null || originalData.Clip.Clip == null)
-                {
-                    Debug.LogWarning($"[跳过] '{fieldInfo.Name}' 为 Null 或未配置动画 Clip。");
-                    continue;
-                }
+                if (originalData == null || originalData.Clip == null || originalData.Clip.Clip == null) continue;
 
-                if (originalData.WarpPoints == null || originalData.WarpPoints.Count == 0)
-                {
-                    Debug.LogWarning($"[跳过] '{fieldInfo.Name}' 未配置任何 WarpPoints。请至少添加一个点！");
-                    continue;
-                }
+                // 只有在自动模式下，或者手动模式但有配置点时，才继续
+                if (originalData.Type == WarpedType.None && (originalData.WarpPoints == null || originalData.WarpPoints.Count == 0)) continue;
 
                 AnimationClip animClip = originalData.Clip.Clip;
 
-                // 创建全新副本以确保修改被 Unity 序列化系统捕获
+                // 覆盖模式：创建全新副本
                 WarpedMotionData bakedData = new WarpedMotionData();
                 bakedData.Clip = originalData.Clip;
                 bakedData.EndTime = originalData.EndTime;
                 bakedData.EndPhase = originalData.EndPhase;
+                bakedData.Type = originalData.Type;
                 bakedData.BakedDuration = animClip.length;
+                bakedData.HandIKWeightCurve = new AnimationCurve(originalData.HandIKWeightCurve.keys);
 
-                // 深度拷贝 WarpPoints 定义
-                bakedData.WarpPoints = originalData.WarpPoints.Select(wp => new WarpPointDef
+                if (originalData.Type == WarpedType.None)
                 {
-                    PointName = wp.PointName,
-                    NormalizedTime = wp.NormalizedTime
-                }).ToList();
+                    bakedData.WarpPoints = originalData.WarpPoints.Select(wp => new WarpPointDef
+                    {
+                        PointName = wp.PointName,
+                        NormalizedTime = wp.NormalizedTime,
+                        TargetPositionOffset = wp.TargetPositionOffset
+                    }).ToList();
+                }
 
                 bool success = BakeSingleWarpedData(bakedData, animClip);
 
@@ -103,7 +99,6 @@ namespace Editors
                     fieldInfo.SetValue(_targetPlayerSO, bakedData);
                     successCount++;
                     anyChange = true;
-                    Debug.Log($"<color=green>[成功] '{fieldInfo.Name}' ({animClip.name}) 烘焙完成！</color>");
                 }
             }
 
@@ -114,19 +109,18 @@ namespace Editors
                 EditorUtility.SetDirty(_targetPlayerSO);
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
-                EditorUtility.DisplayDialog("烘焙完成", $"成功烘焙 {successCount} 个动画！\n特征点切片积分已写入。", "确定");
+                EditorUtility.DisplayDialog("烘焙完成", $"成功更新了 {successCount} 个动画的数据！", "确定");
             }
         }
 
         private bool BakeSingleWarpedData(WarpedMotionData warpData, AnimationClip clip)
         {
+            // 1. 初始化模拟环境
             GameObject tempInstance = Instantiate(_targetPrefab, Vector3.zero, Quaternion.identity);
             tempInstance.hideFlags = HideFlags.HideAndDontSave;
-
             Animator animator = tempInstance.GetComponent<Animator>();
             if (!animator || animator.runtimeAnimatorController == null) { DestroyImmediate(tempInstance); return false; }
-
-            AnimatorOverrideController overrideCtrl = new AnimatorOverrideController(animator.runtimeAnimatorController);
+            var overrideCtrl = new AnimatorOverrideController(animator.runtimeAnimatorController);
             animator.runtimeAnimatorController = overrideCtrl;
             var clips = new List<KeyValuePair<AnimationClip, AnimationClip>>();
             foreach (var c in overrideCtrl.animationClips) clips.Add(new KeyValuePair<AnimationClip, AnimationClip>(c, clip));
@@ -134,98 +128,117 @@ namespace Editors
 
             animator.applyRootMotion = true;
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-            animator.Update(0f); // Init
+            animator.Update(0f);
 
+            // 2. 准备计算变量
             float deltaTime = 1f / _sampleRate;
             int totalFrames = Mathf.CeilToInt(clip.length * _sampleRate);
 
-            AnimationCurve curveX = new AnimationCurve();
-            AnimationCurve curveY = new AnimationCurve();
-            AnimationCurve curveZ = new AnimationCurve();
-            AnimationCurve curveRotY = new AnimationCurve();
+            AnimationCurve curveX = new AnimationCurve(), curveY = new AnimationCurve(), curveZ = new AnimationCurve(), curveRotY = new AnimationCurve();
 
-            // 【关键】确保 WarpPoints 严格按时间升序排列，否则积分切片会错乱
-            warpData.WarpPoints = warpData.WarpPoints.OrderBy(wp => wp.NormalizedTime).ToList();
+            Vector3[] absolutePositions = new Vector3[totalFrames + 1];
+            Vector3 totalOffset = Vector3.zero;
 
-            int currentWarpIndex = 0;
-            Vector3 currentSegmentAccumulatedOffset = Vector3.zero;
-            Vector3 totalLocalOffset = Vector3.zero;
-
+            // 3. 第一遍模拟：提取曲线，并记录绝对轨迹
             for (int i = 0; i <= totalFrames; i++)
             {
                 float time = i * deltaTime;
                 float normalizedTime = Mathf.Clamp01(time / clip.length);
-
                 animator.Update(deltaTime);
-                if (i < 2) continue; // Skip first dirty frames
 
-                // 1. 获取位移
-                Vector3 worldDelta = animator.deltaPosition;
-                Quaternion worldDeltaRot = animator.deltaRotation;
-
-                // 2. 转为局部速度
-                Vector3 localDelta = tempInstance.transform.InverseTransformVector(worldDelta);
-                Vector3 localVelocity = localDelta / deltaTime;
-
-                // 3. 计算局部 Y 轴旋转速度
-                float localRotVelY = worldDeltaRot.eulerAngles.y;
-                if (localRotVelY > 180f) localRotVelY -= 360f;
-                localRotVelY /= deltaTime;
-
-                // 4. 写入速度曲线
-                curveX.AddKey(normalizedTime, localVelocity.x);
-                curveY.AddKey(normalizedTime, localVelocity.y);
-                curveZ.AddKey(normalizedTime, localVelocity.z);
-                curveRotY.AddKey(normalizedTime, localRotVelY);
-
-                // 5. 【核心：切片积分累加】
-                currentSegmentAccumulatedOffset += localDelta;
-                totalLocalOffset += localDelta;
-
-                // 6. 检查是否跨越了一个 Warp Point
-                if (currentWarpIndex < warpData.WarpPoints.Count)
+                if (i < 2)
                 {
-                    var warpPoint = warpData.WarpPoints[currentWarpIndex];
-                    if (normalizedTime >= warpPoint.NormalizedTime)
-                    {
-                        // 记录这段动画原本产生的局部偏移量
-                        warpPoint.BakedLocalOffset = currentSegmentAccumulatedOffset;
-                        // 记录此时刻的局部旋转 (相对于上一段起点)
-                        warpPoint.BakedLocalRotation = Quaternion.Euler(0, tempInstance.transform.localEulerAngles.y, 0);
-
-                        warpData.WarpPoints[currentWarpIndex] = warpPoint;
-
-                        // 【关键】清空累加器，重新开始积下一段的分
-                        currentSegmentAccumulatedOffset = Vector3.zero;
-                        currentWarpIndex++;
-                    }
+                    absolutePositions[i] = Vector3.zero;
+                    continue;
                 }
 
-                // 更新角色基准系，确保下一帧的 InverseTransformVector 正确
+                // 计算位移与旋转
+                Vector3 worldDelta = animator.deltaPosition;
+                Quaternion worldDeltaRot = animator.deltaRotation;
+                Vector3 localDelta = tempInstance.transform.InverseTransformVector(worldDelta);
+                Vector3 localVel = localDelta / deltaTime;
+                float rotVelY = worldDeltaRot.eulerAngles.y;
+                if (rotVelY > 180f) rotVelY -= 360f;
+                float localRotVelY = rotVelY / deltaTime;
+
+                // 写入曲线
+                curveX.AddKey(normalizedTime, localVel.x);
+                curveY.AddKey(normalizedTime, localVel.y);
+                curveZ.AddKey(normalizedTime, localVel.z);
+                curveRotY.AddKey(normalizedTime, localRotVelY);
+
+                totalOffset += localDelta;
+                absolutePositions[i] = totalOffset;
+
+                // 移动临时物体
                 tempInstance.transform.Translate(worldDelta, Space.World);
                 tempInstance.transform.Rotate(worldDeltaRot.eulerAngles, Space.World);
             }
 
-            // 处理动画末尾可能因浮点精度漏掉的最后一个点
-            while (currentWarpIndex < warpData.WarpPoints.Count)
+            // 4. 自动特征点探测
+            if (warpData.Type != WarpedType.None)
             {
-                var wp = warpData.WarpPoints[currentWarpIndex];
-                wp.BakedLocalOffset = currentSegmentAccumulatedOffset;
-                warpData.WarpPoints[currentWarpIndex] = wp;
-                currentSegmentAccumulatedOffset = Vector3.zero;
-                currentWarpIndex++;
+                warpData.WarpPoints.Clear(); // 清空旧点
+
+                if (warpData.Type == WarpedType.Vault)
+                {
+                    float maxY = -999f; int apexIndex = 0;
+                    for (int i = 0; i < absolutePositions.Length; i++) { if (absolutePositions[i].y > maxY) { maxY = absolutePositions[i].y; apexIndex = i; } }
+
+                    warpData.WarpPoints.Add(new WarpPointDef
+                    {
+                        PointName = "Apex",
+                        NormalizedTime = (float)apexIndex / totalFrames,
+                        BakedLocalOffset = absolutePositions[apexIndex] // 暂存绝对位置
+                    });
+                }
+                else if (warpData.Type == WarpedType.Dodge)
+                {
+                    float maxXZ = -999f; int dodgeIndex = 0;
+                    for (int i = 0; i < absolutePositions.Length; i++) { float dist = new Vector2(absolutePositions[i].x, absolutePositions[i].z).magnitude; if (dist > maxXZ) { maxXZ = dist; dodgeIndex = i; } }
+
+                    warpData.WarpPoints.Add(new WarpPointDef
+                    {
+                        PointName = "MaxDodge",
+                        NormalizedTime = (float)dodgeIndex / totalFrames,
+                        BakedLocalOffset = absolutePositions[dodgeIndex] // 暂存绝对位置
+                    });
+                }
             }
 
-            // --- 数据组装 ---
+            // 5. 补上 1.0 的终点
+            if (!warpData.WarpPoints.Any(wp => wp.NormalizedTime >= 0.98f))
+            {
+                warpData.WarpPoints.Add(new WarpPointDef
+                {
+                    PointName = "End",
+                    NormalizedTime = 1.0f,
+                    BakedLocalOffset = totalOffset // 终点的绝对位置就是总位移
+                });
+            }
+
+            // 6. 将绝对位置转换为分段增量
+            warpData.WarpPoints = warpData.WarpPoints.OrderBy(wp => wp.NormalizedTime).ToList();
+            Vector3 lastAbsPos = Vector3.zero;
+
+            for (int k = 0; k < warpData.WarpPoints.Count; k++)
+            {
+                var wp = warpData.WarpPoints[k];
+                Vector3 currentAbsPos = wp.BakedLocalOffset; // 取出暂存的绝对位置
+                wp.BakedLocalOffset = currentAbsPos - lastAbsPos; // 计算增量！
+                warpData.WarpPoints[k] = wp;
+                lastAbsPos = currentAbsPos;
+            }
+
+            // 7. 组装数据
             warpData.LocalVelocityX = curveX;
             warpData.LocalVelocityY = curveY;
             warpData.LocalVelocityZ = curveZ;
             warpData.LocalRotationY = curveRotY;
-            warpData.TotalBakedLocalOffset = totalLocalOffset;
+            warpData.TotalBakedLocalOffset = totalOffset;
 
             DestroyImmediate(tempInstance);
             return true;
         }
     }
 }
-

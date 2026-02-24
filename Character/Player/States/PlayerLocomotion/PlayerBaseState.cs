@@ -50,6 +50,12 @@ namespace Characters.Player.States
                 return true;
             }
 
+            if(data.WantsToDodge)
+            {
+                player.StateMachine.ChangeState(player.DodgeState);
+                return true;
+            }
+
             if(data.WantsToVault&&this is not PlayerVaultState)
             {
                 player.StateMachine.ChangeState(player.VaultState);

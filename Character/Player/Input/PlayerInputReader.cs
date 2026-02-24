@@ -28,6 +28,12 @@ namespace Characters.Player.Input
         // 跳跃输入状态
         public bool IsJumpPressed => jumpAction != null && jumpAction.action.IsPressed();
 
+        // 是否处于闪避状态：通过属性实时判断闪避按键是否按下
+        public bool IsDodgePressed => dodgeAction != null && dodgeAction.action.IsPressed();
+
+        // 是否处于翻滚状态：通过属性实时判断翻滚按键是否按下
+        public bool IsRollPressed => rollAction != null && rollAction.action.IsPressed();
+
         // 移动输入的状态记录
         public float MovePressTime { get; private set; } // 移动输入按下的时间戳（Time.time）
         public bool IsMovePressed { get; private set; }  // 移动输入当前是否按下
@@ -66,6 +72,10 @@ namespace Characters.Player.Input
         public InputActionReference LeftMouseAction;
         [Tooltip("瞄准动作的引用（InputActionReference）")]
         public InputActionReference aimAction;
+        [Tooltip("闪避动作的引用（InputActionReference）")]
+        public InputActionReference dodgeAction;
+        [Tooltip("翻滚动作的引用（InputActionReference）")]
+        public InputActionReference rollAction;
 
         // 新增：数字键1-5的InputActionReference引用（需在Inspector面板赋值）
         [Header("Number Key References")]
@@ -104,6 +114,8 @@ namespace Characters.Player.Input
             InitializeLeftMouseInput();
             InitializeAimInput();
             InitializeMouseLookInput();
+            InitializeDodgeInput();
+            InitializeRollInput();
 
             // 新增：初始化数字键1-5的输入监听
             InitializeNumber1Input();
@@ -123,6 +135,8 @@ namespace Characters.Player.Input
             UninitializeLeftMouseInput();
             UninitializeAimInput();
             UninitializeMouseLookInput();
+            UninitializeDodgeInput();
+            UninitializeRollInput();
 
             // 新增：反初始化数字键1-5的输入监听（防止内存泄漏）
             UninitializeNumber1Input();
@@ -214,6 +228,38 @@ namespace Characters.Player.Input
 
             jumpAction.action.Disable();
             jumpAction.action.performed -= OnJumpPerformed;
+        }
+
+        // 新增：初始化闪避输入
+        private void InitializeDodgeInput()
+        {
+            if (dodgeAction == null) return;
+
+            dodgeAction.action.Enable();
+        }
+
+        // 新增：反初始化闪避输入
+        private void UninitializeDodgeInput()
+        {
+            if (dodgeAction == null) return;
+
+            dodgeAction.action.Disable();
+        }
+
+        // 新增：初始化翻滚输入
+        private void InitializeRollInput()
+        {
+            if (rollAction == null) return;
+
+            rollAction.action.Enable();
+        }
+
+        // 新增：反初始化翻滚输入
+        private void UninitializeRollInput()
+        {
+            if (rollAction == null) return;
+
+            rollAction.action.Disable();
         }
 
         // 修正：原代码错误判断OnJumpPressed，改为判断aimAction
