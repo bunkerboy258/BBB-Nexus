@@ -53,8 +53,16 @@ namespace Characters.Player.States
             // 4. 配置结束回调
             _state.Events(this).OnEnd = () =>
             {
-                data.loopFadeInTime = 0.5f;
-                player.StateMachine.ChangeState(player.MoveLoopState);
+                if(data.CurrentLocomotionState == LocomotionState.Idle)
+                {
+                    player.StateMachine.ChangeState(player.IdleState);
+                }
+                else
+                {
+                    data.loopFadeInTime = data.CurrentLocomotionState == LocomotionState.Sprint ? 0f:0.7f ;
+                    data.ExpectedFootPhase = _selectedData.EndPhase; // 传递末相位给 MoveLoopState
+                    player.StateMachine.ChangeState(player.MoveLoopState);
+                }
             };
         }
 

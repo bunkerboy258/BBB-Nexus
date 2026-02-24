@@ -191,8 +191,8 @@ namespace Characters.Player.Processing
             float targetY = Mathf.Cos(rad) * _currentIntensity;
 
             // X/Y 都平滑，避免快速换向时 X 突跳导致权重抖动。
-            float xSmoothTime = Mathf.Max(0.0001f, _config.XAnimBlendSmoothTime);
-            float ySmoothTime = Mathf.Max(0.0001f, _config.YAnimBlendSmoothTime);
+            float xSmoothTime = Mathf.Max(0.0001f, _data.IsAiming?_config.AimXAnimBlendSmoothTime:_config.XAnimBlendSmoothTime);
+            float ySmoothTime = Mathf.Max(0.0001f, _data.IsAiming ? _config.AimYAnimBlendSmoothTime:_config.YAnimBlendSmoothTime);
 
             _currentAnimBlendX = Mathf.SmoothDamp(
                 _currentAnimBlendX,

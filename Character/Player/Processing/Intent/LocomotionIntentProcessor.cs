@@ -101,7 +101,7 @@ namespace Characters.Player.Processing
             bool isMoving = _data.MoveInput.sqrMagnitude > 0.01f;
 
             // Debug: 打印同一帧的关键值，方便追踪输入与状态决策
-            Debug.Log($"[LocomotionIntent] Frame:{Time.frameCount} MoveInput:{_data.MoveInput} IsSprinting:{_input.IsSprinting} isMoving:{isMoving} CurrentLocomotionState:{_data.CurrentLocomotionState}");
+            //Debug.Log($"[LocomotionIntent] Frame:{Time.frameCount} MoveInput:{_data.MoveInput} IsSprinting:{_input.IsSprinting} isMoving:{isMoving} CurrentLocomotionState:{_data.CurrentLocomotionState}");
 
             // 首先检查体力耗尽恢复条件
             if (_data.IsStaminaDepleted && _data.CurrentStamina > _config.MaxStamina * _config.StaminaRecoverThreshold)

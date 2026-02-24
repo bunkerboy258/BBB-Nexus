@@ -27,7 +27,8 @@ namespace Characters.Player.Data
     {
         None,           // No warping, play as is - 不进行扭曲，按原样播放
         Vault,
-        Dodge
+        Dodge,
+        Simple
     }
     /// <summary>
     /// Animation clip data for motion - 运动动画片段数据
@@ -160,6 +161,8 @@ namespace Characters.Player.Data
         public AnimationCurve SprintBlendCurve = AnimationCurve.EaseInOut(0, 0, 0.3f, 1);
         public float XAnimBlendSmoothTime = 0.2f;
         public float YAnimBlendSmoothTime = 0.2f;
+        public float AimXAnimBlendSmoothTime = 0.2f;
+        public float AimYAnimBlendSmoothTime = 0.2f;
         #endregion
 
         #region Stamina System 耐力系统
