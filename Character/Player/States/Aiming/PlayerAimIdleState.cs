@@ -12,7 +12,7 @@ namespace Characters.Player.States
             var options = AnimPlayOptions.Default;
             options.FadeDuration = 0.4f;
             options.NormalizedTime = 0f;
-            AnimFacade.PlayTransition(config.IdleAnim, options);
+            AnimFacade.PlayTransition(config.LocomotionAnims.IdleAnim, options);
         }
 
         protected override void UpdateStateLogic()

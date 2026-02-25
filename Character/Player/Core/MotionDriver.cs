@@ -209,7 +209,7 @@ namespace Characters.Player.Core
             if (clipData.Type == MotionType.CurveDriven)
                 return CalculateCurveVelocity(clipData, stateTime);
 
-            if (clipData.Type == MotionType.mixed)
+            if (clipData.Type == MotionType.Mixed)
             {
                 bool isCurvePhase = stateTime < clipData.RotationFinishedTime;
 
@@ -258,7 +258,7 @@ namespace Characters.Player.Core
 
             // 平滑旋转至移动方向
             float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
-            ApplySmoothRotation(targetYaw, _config.RotationSmoothTime);
+            ApplySmoothRotation(targetYaw, _config.Core. RotationSmoothTime);
 
             return CalculateSmoothedVelocity(moveDir, false, speedMult);
         }
@@ -269,7 +269,7 @@ namespace Characters.Player.Core
         private Vector3 CalculateAimVelocity(float speedMult)
         {
             // 平滑旋转至相机朝向
-            ApplySmoothRotation(_data.AuthorityYaw, _config.AimRotationSmoothTime);
+            ApplySmoothRotation(_data.AuthorityYaw, _config.Aiming.AimRotationSmoothTime);
 
             Vector2 input = _data.MoveInput;
             if (input.sqrMagnitude < 0.001f)
@@ -344,9 +344,9 @@ namespace Characters.Player.Core
         private Vector3 CalculateSmoothedVelocity(Vector3 moveDir, bool isAiming, float speedMult)
         {
             float baseSpeed = GetBaseSpeed(_data.CurrentLocomotionState, isAiming);
-            if (!_data.IsGrounded) baseSpeed *= _config.AirControl;
+            if (!_data.IsGrounded) baseSpeed *= _config.Core. AirControl;
 
-            _currentSmoothSpeed = Mathf.SmoothDamp(_currentSmoothSpeed, baseSpeed * speedMult, ref _smoothSpeedVelocity, _config.MoveSpeedSmoothTime);
+            _currentSmoothSpeed = Mathf.SmoothDamp(_currentSmoothSpeed, baseSpeed * speedMult, ref _smoothSpeedVelocity, _config.Core.MoveSpeedSmoothTime);
             return moveDir * _currentSmoothSpeed;
         }
 
@@ -354,9 +354,9 @@ namespace Characters.Player.Core
         {
             return state switch
             {
-                LocomotionState.Walk => isAiming ? _config.AimWalkSpeed : _config.WalkSpeed,
-                LocomotionState.Jog => isAiming ? _config.AimJogSpeed : _config.JogSpeed,
-                LocomotionState.Sprint => isAiming ? _config.AimSprintSpeed : _config.SprintSpeed,
+                LocomotionState.Walk => isAiming ? _config.Aiming.AimWalkSpeed : _config.Core.WalkSpeed,
+                LocomotionState.Jog => isAiming ? _config.Aiming.AimJogSpeed : _config.Core.JogSpeed,
+                LocomotionState.Sprint => isAiming ? _config.Aiming.AimSprintSpeed : _config.Core.SprintSpeed,
                 _ => 0f
             };
         }
@@ -368,7 +368,7 @@ namespace Characters.Player.Core
             // 落地时施加一个微小的持续向下的力，防止在斜坡上弹跳
             _data.VerticalVelocity = (_data.IsGrounded && _data.VerticalVelocity < 0)
                 ? -2f
-                : _data.VerticalVelocity + _config.Gravity * Time.deltaTime;
+                : _data.VerticalVelocity + _config.Core.Gravity * Time.deltaTime;
 
             return new Vector3(0f, _data.VerticalVelocity, 0f);
         }
@@ -398,10 +398,10 @@ namespace Characters.Player.Core
             MotionType? current = clipData?.Type;
 
             bool isCurveDriven = current == MotionType.CurveDriven;
-            bool isMixedCurvePhase = current == MotionType.mixed && stateTime < (clipData?.RotationFinishedTime ?? 0f);
+            bool isMixedCurvePhase = current == MotionType.Mixed && stateTime < (clipData?.RotationFinishedTime ?? 0f);
 
             bool isInCurveLogicThisFrame = isCurveDriven || isMixedCurvePhase;
-            bool wasInCurveLogicLastFrame = _lastClipMotionType == MotionType.CurveDriven || _lastClipMotionType == MotionType.mixed;
+            bool wasInCurveLogicLastFrame = _lastClipMotionType == MotionType.CurveDriven || _lastClipMotionType == MotionType.Mixed;
 
             // 进入曲线驱动的第一帧（从 null / InputDriven / mixed(input阶段) 进入到 curve 逻辑）
             if (isInCurveLogicThisFrame && (!wasInCurveLogicLastFrame || !_isCurveAngleInitialized))

@@ -120,31 +120,31 @@ namespace Characters.Player.States
 
             // 8·½ÏòÅÐ¶ÏÂß¼­
             if (angle > -HalfSectorAngle && angle <= HalfSectorAngle) // Fwd
-                return isSprint ? config.MoveForwardDodge : config.ForwardDodge;
+                return isSprint ? config.Dodging. MoveForwardDodge : config.Dodging.ForwardDodge;
 
             if (angle > HalfSectorAngle && angle <= HalfSectorAngle + SectorAngle) // Fwd-Right
-                return isSprint ? config.MoveForwardRightDodge : config.ForwardRightDodge;
+                return isSprint ? config.Dodging.MoveForwardRightDodge : config.Dodging.ForwardRightDodge;
 
             if (angle > HalfSectorAngle + SectorAngle && angle <= HalfSectorAngle + SectorAngle * 2) // Right
-                return isSprint ? config.MoveRightDodge : config.RightDodge;
+                return isSprint ? config.Dodging.MoveRightDodge : config.Dodging.RightDodge;
 
             if (angle > HalfSectorAngle + SectorAngle * 2 && angle <= 180f - HalfSectorAngle) // Back-Right
-                return isSprint ? config.MoveRightDodge : config.BackwardRightDodge; // ×¢Òâ£ºSprint Ä£Ê½Ó³Éäµ½ÓÒÒÆÉÁ
+                return isSprint ? config.Dodging.MoveRightDodge : config.Dodging.BackwardRightDodge; // ×¢Òâ£ºSprint Ä£Ê½Ó³Éäµ½ÓÒÒÆÉÁ
 
             if (angle > 180f - HalfSectorAngle || angle <= -180f + HalfSectorAngle) // Back
-                return isSprint ? config.MoveBackwardDodge : config.BackwardDodge;
+                return isSprint ? config.Dodging.MoveBackwardDodge : config.Dodging.BackwardDodge;
 
             if (angle > -180f + HalfSectorAngle && angle <= -HalfSectorAngle - SectorAngle * 2) // Back-Left
-                return isSprint ? config.MoveLeftDodge : config.BackwardLeftDodge; // ×¢Òâ£ºSprint Ä£Ê½Ó³Éäµ½×óÒÆÉÁ
+                return isSprint ? config.Dodging.MoveLeftDodge : config.Dodging.BackwardLeftDodge; // ×¢Òâ£ºSprint Ä£Ê½Ó³Éäµ½×óÒÆÉÁ
 
             if (angle > -HalfSectorAngle - SectorAngle * 2 && angle <= -HalfSectorAngle - SectorAngle) // Left
-                return isSprint ? config.MoveLeftDodge : config.LeftDodge;
+                return isSprint ? config.Dodging.MoveLeftDodge : config.Dodging.LeftDodge;
 
             if (angle > -HalfSectorAngle - SectorAngle && angle <= -HalfSectorAngle) // Fwd-Left
-                return isSprint ? config.MoveForwardLeftDodge : config.ForwardLeftDodge;
+                return isSprint ? config.Dodging.MoveForwardLeftDodge : config.Dodging.ForwardLeftDodge;
 
             // ¶µµ×
-            return isSprint ? config.MoveLeftDodge : config.LeftDodge;
+            return isSprint ? config.Dodging.MoveLeftDodge : config.Dodging.LeftDodge;
         }
 
         #endregion

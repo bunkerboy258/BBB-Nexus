@@ -21,13 +21,13 @@ namespace Characters.Player.States
             data.IsVaulting = true;
             _endTimeTriggered = false;
 
-            if (data.WantsLowVault && config.lowVaultAnim != null)
+            if (data.WantsLowVault && config.Vaulting. lowVaultAnim != null)
             {
-                _selectedWarpData = config.lowVaultAnim;
+                _selectedWarpData = config.Vaulting.lowVaultAnim;
             }
-            else if (data.WantsHighVault && config.highVaultAnim != null)
+            else if (data.WantsHighVault && config.Vaulting.highVaultAnim != null)
             {
-                _selectedWarpData = config.highVaultAnim;
+                _selectedWarpData = config.Vaulting.highVaultAnim;
             }
             else
             {
@@ -35,10 +35,10 @@ namespace Characters.Player.States
                 if (data.CurrentVaultInfo.IsValid)
                 {
                     float h = data.CurrentVaultInfo.Height;
-                    if (h >= 0.5f && h < 1.2f && config.lowVaultAnim != null)
-                        _selectedWarpData = config.lowVaultAnim;
-                    else if (h >= 1.2f && h <= 2.5f && config.highVaultAnim != null)
-                        _selectedWarpData = config.highVaultAnim;
+                    if (h >= 0.5f && h < 1.2f && config.Vaulting.lowVaultAnim != null)
+                        _selectedWarpData = config.Vaulting.lowVaultAnim;
+                    else if (h >= 1.2f && h <= 2.5f && config.Vaulting.highVaultAnim != null)
+                        _selectedWarpData = config.Vaulting.highVaultAnim;
                     else
                         _selectedWarpData = null;
                 }

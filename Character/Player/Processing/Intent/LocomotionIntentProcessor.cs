@@ -104,7 +104,7 @@ namespace Characters.Player.Processing
             //Debug.Log($"[LocomotionIntent] Frame:{Time.frameCount} MoveInput:{_data.MoveInput} IsSprinting:{_input.IsSprinting} isMoving:{isMoving} CurrentLocomotionState:{_data.CurrentLocomotionState}");
 
             // 首先检查体力耗尽恢复条件
-            if (_data.IsStaminaDepleted && _data.CurrentStamina > _config.MaxStamina * _config.StaminaRecoverThreshold)
+            if (_data.IsStaminaDepleted && _data.CurrentStamina > _config.Core.MaxStamina * _config.Core.StaminaRecoverThreshold)
             {
                 _data.IsStaminaDepleted = false;
             }

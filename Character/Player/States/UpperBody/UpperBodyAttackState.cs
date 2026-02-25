@@ -22,16 +22,7 @@ namespace Characters.Player.States.UpperBody
         /// </summary>
         public override void Enter()
         {
-            // 播放攻击动画（从配置文件读取攻击动画资源）
-            var state = layer.Play(player.Config.AttackAnim);
 
-            // 绑定动画结束事件：自动切回上半身空闲状态
-            state.Events(this).OnEnd = () =>
-            {
-                controller.ChangeState(controller.IdleState);
-                // 清空动画结束事件的引用（避免OnEnd回调一直保留，导致重复触发）
-                state.Events(this).OnEnd = null;
-            };
         }
         protected override void UpdateStateLogic()
         {

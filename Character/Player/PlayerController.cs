@@ -154,7 +154,7 @@ namespace Characters.Player
         private void InitializeData()
         {
             RuntimeData = new PlayerRuntimeData();
-            RuntimeData.CurrentStamina = Config.MaxStamina;
+            RuntimeData.CurrentStamina = Config.Core.MaxStamina;
             InventoryController=new PlayerInventoryController(this);
         }
 

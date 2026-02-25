@@ -142,65 +142,65 @@ namespace Characters.Player.States
             // 8-Way Directional Selection Logic
             if (angle > -HalfSectorAngle && angle <= HalfSectorAngle) // Fwd
             {
-                if (isWalk) return config.WalkStartFwd;
-                if (isSprint) return config.SprintStartFwd;
-                return config.RunStartFwd; // Jog (RunStart 对应 Jog)
+                if (isWalk) return config.LocomotionAnims.WalkStartFwd;
+                if (isSprint) return config.LocomotionAnims.SprintStartFwd;
+                return config.LocomotionAnims.RunStartFwd; // Jog (RunStart 对应 Jog)
             }
 
             if (angle > HalfSectorAngle && angle <= HalfSectorAngle + SectorAngle) // Fwd-Right
             {
-                if (isWalk) return config.WalkStartFwdRight;
-                if (isSprint) return config.SprintStartFwdRight;
-                return config.RunStartFwdRight;
+                if (isWalk) return config.LocomotionAnims.WalkStartFwdRight;
+                if (isSprint) return config.LocomotionAnims.SprintStartFwdRight;
+                return config.LocomotionAnims.RunStartFwdRight;
             }
 
             if (angle > HalfSectorAngle + SectorAngle && angle <= HalfSectorAngle + SectorAngle * 2) // Right
             {
-                if (isWalk) return config.WalkStartRight;
-                if (isSprint) return config.SprintStartRight;
-                return config.RunStartRight;
+                if (isWalk) return config.LocomotionAnims.WalkStartRight;
+                if (isSprint) return config.LocomotionAnims.SprintStartRight;
+                return config.LocomotionAnims.RunStartRight;
             }
 
             if (angle > HalfSectorAngle + SectorAngle * 2 && angle <= 180f - HalfSectorAngle) // Back-Right
             {
-                if (isWalk) return config.WalkStartBackRight;
-                if (isSprint) return config.SprintStartBackRight;
-                return config.RunStartBackRight;
+                if (isWalk) return config.LocomotionAnims.WalkStartBackRight;
+                if (isSprint) return config.LocomotionAnims.SprintStartBackRight;
+                return config.LocomotionAnims.RunStartBackRight;
             }
 
             // Back (covers +157.5 to 180 and -180 to -157.5)
             if (angle > 180f - HalfSectorAngle || angle <= -180f + HalfSectorAngle)
             {
-                if (isWalk) return config.WalkStartBack;
-                if (isSprint) return config.SprintStartBack;
-                return config.RunStartBack;
+                if (isWalk) return config.LocomotionAnims.WalkStartBack;
+                if (isSprint) return config.LocomotionAnims.SprintStartBack;
+                return config.LocomotionAnims.RunStartBack;
             }
 
             if (angle > -180f + HalfSectorAngle && angle <= -HalfSectorAngle - SectorAngle * 2) // Back-Left
             {
-                if (isWalk) return config.WalkStartBackLeft;
-                if (isSprint) return config.SprintStartBackLeft;
-                return config.RunStartBackLeft;
+                if (isWalk) return config.LocomotionAnims.WalkStartBackLeft;
+                if (isSprint) return config.LocomotionAnims.SprintStartBackLeft;
+                return config.LocomotionAnims.RunStartBackLeft;
             }
 
             if (angle > -HalfSectorAngle - SectorAngle * 2 && angle <= -HalfSectorAngle - SectorAngle) // Left
             {
-                if (isWalk) return config.WalkStartLeft;
-                if (isSprint) return config.SprintStartLeft;
-                return config.RunStartLeft;
+                if (isWalk) return config.LocomotionAnims.WalkStartLeft;
+                if (isSprint) return config.LocomotionAnims.SprintStartLeft;
+                return config.LocomotionAnims.RunStartLeft;
             }
 
             if (angle > -HalfSectorAngle - SectorAngle && angle <= -HalfSectorAngle) // Fwd-Left
             {
-                if (isWalk) return config.WalkStartFwdLeft;
-                if (isSprint) return config.SprintStartFwdLeft;
-                return config.RunStartFwdLeft;
+                if (isWalk) return config.LocomotionAnims.WalkStartFwdLeft;
+                if (isSprint) return config.LocomotionAnims.SprintStartFwdLeft;
+                return config.LocomotionAnims.RunStartFwdLeft;
             }
 
             // 兜底：默认向前起步
-            if (isWalk) return config.WalkStartFwd;
-            if (isSprint) return config.SprintStartFwd;
-            return config.RunStartFwd;
+            if (isWalk) return config.LocomotionAnims.WalkStartFwd;
+            if (isSprint) return config.LocomotionAnims.SprintStartFwd;
+            return config.LocomotionAnims.RunStartFwd;
         }
 
         #endregion

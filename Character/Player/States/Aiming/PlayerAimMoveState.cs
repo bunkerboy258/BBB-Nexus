@@ -13,7 +13,7 @@ namespace Characters.Player.States
         {
             var options = AnimPlayOptions.Default;
             options.FadeDuration = 0.2f;
-            AnimFacade.PlayTransition(config.AimLocomotionMixer, options);
+            AnimFacade.PlayTransition(config.Aiming. AimLocomotionMixer, options);
 
             data.WantsLookAtIK = true;
         }

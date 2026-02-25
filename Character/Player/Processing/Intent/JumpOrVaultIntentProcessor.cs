@@ -22,7 +22,7 @@ namespace Characters.Player.Processing
         {
             _player = player;
             _config = player.Config;
-            _obstacleMask = _config.ObstacleLayers;
+            _obstacleMask = _config.Vaulting. ObstacleLayers;
 
             // 订阅跳跃按键按下事件
             _player.InputReader.OnJumpPressed += OnJumpPressed;
@@ -41,14 +41,14 @@ namespace Characters.Player.Processing
             if (data.IsGrounded)
             {
                 // 尝试扫描低墙
-                if (DetectObstacle(out VaultObstacleInfo lowInfo, _config.LowVaultMinHeight, _config.LowVaultMaxHeight, false))
+                if (DetectObstacle(out VaultObstacleInfo lowInfo, _config.Vaulting.LowVaultMinHeight, _config.Vaulting.LowVaultMaxHeight, false))
                 {
                     _lastValidLowVaultInfo = lowInfo;
                     _lastValidLowVaultTime = Time.time;
                 }
 
                 // 尝试扫描高墙
-                if (DetectObstacle(out VaultObstacleInfo highInfo, _config.HighVaultMinHeight, _config.HighVaultMaxHeight, false))
+                if (DetectObstacle(out VaultObstacleInfo highInfo, _config.Vaulting.HighVaultMinHeight, _config.Vaulting.HighVaultMaxHeight, false))
                 {
                     _lastValidHighVaultInfo = highInfo;
                     _lastValidHighVaultTime = Time.time;
@@ -65,7 +65,7 @@ namespace Characters.Player.Processing
             var data = _player.RuntimeData;
 
             // 先检测矮翻越
-            if (TryGetVaultIntent(data, out VaultObstacleInfo info, _config.LowVaultMinHeight, _config.LowVaultMaxHeight))
+            if (TryGetVaultIntent(data, out VaultObstacleInfo info, _config.Vaulting.LowVaultMinHeight, _config.Vaulting.LowVaultMaxHeight))
             {
                 data.WantsToVault = true;
                 data.WantsLowVault = true;
@@ -74,7 +74,7 @@ namespace Characters.Player.Processing
             }
 
             // 再检测高翻越
-            if (TryGetVaultIntent(data, out info, _config.HighVaultMinHeight, _config.HighVaultMaxHeight))
+            if (TryGetVaultIntent(data, out info, _config.Vaulting.HighVaultMinHeight, _config.Vaulting.HighVaultMaxHeight))
             {
                 data.WantsToVault = true;
                 data.WantsHighVault = true;
@@ -116,18 +116,18 @@ namespace Characters.Player.Processing
             info = new VaultObstacleInfo { IsValid = false };
 
             Transform root = _player.transform;
-            Vector3 rayStart = root.position + Vector3.up * _config.VaultForwardRayHeight;
+            Vector3 rayStart = root.position + Vector3.up * _config.Vaulting.VaultForwardRayHeight;
             Vector3 forward = root.forward;
 
             // --- 第一步：向前找墙 ---
-            if (Physics.Raycast(rayStart, forward, out RaycastHit wallHit, _config.VaultForwardRayLength, _obstacleMask))
+            if (Physics.Raycast(rayStart, forward, out RaycastHit wallHit, _config.Vaulting.VaultForwardRayLength, _obstacleMask))
             {
                 if (Vector3.Dot(wallHit.normal, Vector3.up) > 0.1f) return false;
 
                 // --- 第二步：向下找墙沿 ---
-                Vector3 downRayStart = wallHit.point + Vector3.up * _config.VaultDownwardRayLength + forward * _config.VaultDownwardRayOffset;
+                Vector3 downRayStart = wallHit.point + Vector3.up * _config.Vaulting.VaultDownwardRayLength + forward * _config.Vaulting.VaultDownwardRayOffset;
 
-                if (Physics.Raycast(downRayStart, Vector3.down, out RaycastHit ledgeHit, _config.VaultDownwardRayLength, _obstacleMask))
+                if (Physics.Raycast(downRayStart, Vector3.down, out RaycastHit ledgeHit, _config.Vaulting.VaultDownwardRayLength, _obstacleMask))
                 {
                     if (Vector3.Dot(ledgeHit.normal, Vector3.up) < 0.9f) return false;
 
@@ -136,11 +136,11 @@ namespace Characters.Player.Processing
 
                     // --- 第三步：寻找墙后落地点 ---
                     Vector3 vaultForwardDir = -wallHit.normal;
-                    Vector3 landRayStart = ledgeHit.point + vaultForwardDir * _config.VaultLandDistance + Vector3.up * 0.5f;
+                    Vector3 landRayStart = ledgeHit.point + vaultForwardDir * _config.Vaulting.VaultLandDistance + Vector3.up * 0.5f;
                     Vector3 finalLandPoint = Vector3.zero;
                     bool foundGround = false;
 
-                    if (Physics.Raycast(landRayStart, Vector3.down, out RaycastHit landHit, _config.VaultLandRayLength, _obstacleMask))
+                    if (Physics.Raycast(landRayStart, Vector3.down, out RaycastHit landHit, _config.Vaulting.VaultLandRayLength, _obstacleMask))
                     {
                         if (Vector3.Dot(landHit.normal, Vector3.up) >= 0.7f)
                         {
@@ -149,7 +149,7 @@ namespace Characters.Player.Processing
                         }
                     }
 
-                    if (_config.RequireGroundBehindWall && !foundGround) return false;
+                    if (_config.Vaulting.RequireGroundBehindWall && !foundGround) return false;
 
                     if (!foundGround)
                     {
@@ -167,8 +167,8 @@ namespace Characters.Player.Processing
                     info.LedgePoint = ledgeEdge;
 
                     Vector3 rightDir = Vector3.Cross(Vector3.up, wallHit.normal).normalized;
-                    info.LeftHandPos = ledgeEdge + rightDir * (_config.VaultHandSpread / 2f);
-                    info.RightHandPos = ledgeEdge - rightDir * (_config.VaultHandSpread / 2f);
+                    info.LeftHandPos = ledgeEdge + rightDir * (_config.Vaulting.VaultHandSpread / 2f);
+                    info.RightHandPos = ledgeEdge - rightDir * (_config.Vaulting.VaultHandSpread / 2f);
                     info.HandRot = Quaternion.LookRotation(-wallHit.normal, Vector3.up);
 
                     return true;

@@ -44,30 +44,30 @@ namespace Characters.Player.States
                 case LocomotionState.Idle:
                 case LocomotionState.Walk:
                 case LocomotionState.Jog:
-                    _clipData = config.JumpAirAnimWalk ?? config.JumpAirAnim;
-                    _jumpForce = config.JumpForceWalk;
-                    data.LandFadeInTime = config.JumpToLandFadeInTime_WalkJog;
+                    _clipData = config.JumpAndLanding.JumpAirAnimWalk ?? config.JumpAndLanding.JumpAirAnim;
+                    _jumpForce = config.JumpAndLanding.JumpForceWalk;
+                    data.LandFadeInTime = config.JumpAndLanding.JumpToLandFadeInTime_WalkJog;
                     break;
 
                 case LocomotionState.Sprint:
                     if (isHandsEmpty)
                     {
-                        _clipData = config.JumpAirAnimSprintEmpty ?? config.JumpAirAnim;
-                        _jumpForce = config.JumpForceSprintEmpty;
-                        data.LandFadeInTime = config.JumpToLandFadeInTime_SprintEmpty;
+                        _clipData = config.JumpAndLanding.JumpAirAnimSprintEmpty ?? config.JumpAndLanding.JumpAirAnim;
+                        _jumpForce = config.JumpAndLanding.JumpForceSprintEmpty;
+                        data.LandFadeInTime = config.JumpAndLanding.JumpToLandFadeInTime_SprintEmpty;
                     }
                     else
                     {
-                        _clipData = config.JumpAirAnimSprint ?? config.JumpAirAnim;
-                        _jumpForce = config.JumpForceSprint;
-                        data.LandFadeInTime = config.JumpToLandFadeInTime_Sprint;
+                        _clipData = config.JumpAndLanding.JumpAirAnimSprint ?? config.JumpAndLanding.JumpAirAnim;
+                        _jumpForce = config.JumpAndLanding.JumpForceSprint;
+                        data.LandFadeInTime = config.JumpAndLanding.JumpToLandFadeInTime_Sprint;
                     }
                     break;
 
                 default:
                     Debug.Log(" JumpAirAnim 配置缺失，使用默认跳跃动画");
-                    _clipData = config.JumpAirAnim;
-                    _jumpForce = config.JumpForce;
+                    _clipData = config.JumpAndLanding.JumpAirAnim;
+                    _jumpForce = config.JumpAndLanding.JumpForce;
                     data.LandFadeInTime = 0.2f;
                     break;
             }

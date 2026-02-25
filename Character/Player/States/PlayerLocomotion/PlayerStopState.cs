@@ -78,16 +78,16 @@ namespace Characters.Player.States
             return locomotionState switch
             {
                 // Walk：选择走路停止动画
-                LocomotionState.Walk => isLeftFoot ? config.WalkStopLeft : config.WalkStopRight,
+                LocomotionState.Walk => isLeftFoot ? config.LocomotionAnims.WalkStopLeft : config.LocomotionAnims.WalkStopRight,
 
                 // Jog：选择跑步停止动画（RunStop 对应 Jog 的慢跑）
-                LocomotionState.Jog => isLeftFoot ? config.RunStopLeft : config.RunStopRight,
+                LocomotionState.Jog => isLeftFoot ? config.LocomotionAnims.RunStopLeft : config.LocomotionAnims.RunStopRight,
 
                 // Sprint：选择冲刺停止动画
-                LocomotionState.Sprint => isLeftFoot ? config.SprintStopLeft : config.SprintStopRight,
+                LocomotionState.Sprint => isLeftFoot ? config.LocomotionAnims.SprintStopLeft : config.LocomotionAnims.SprintStopRight,
 
                 // 默认：使用 RunStop（Jog）
-                _ => isLeftFoot ? config.RunStopLeft : config.RunStopRight
+                _ => isLeftFoot ? config.LocomotionAnims.RunStopLeft : config.LocomotionAnims.RunStopRight
             };
         }
 

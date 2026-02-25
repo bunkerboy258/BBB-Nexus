@@ -35,10 +35,10 @@ namespace Characters.Player.Processing
             {
                 // 注意：LookInput 绑定的是 Mouse/delta（每帧增量）。
                 // 增量输入不应再乘 Time.deltaTime，否则会产生帧率相关的非线性缩放并引入抖动感。
-                _data.ViewYaw += lookDelta.x * _config.LookSensitivity.x;
+                _data.ViewYaw += lookDelta.x * _config.Core. LookSensitivity.x;
 
-                _data.ViewPitch += lookDelta.y * _config.LookSensitivity.y;
-                _data.ViewPitch = Mathf.Clamp(_data.ViewPitch, _config.PitchLimits.x, _config.PitchLimits.y);
+                _data.ViewPitch += lookDelta.y * _config.Core.LookSensitivity.y;
+                _data.ViewPitch = Mathf.Clamp(_data.ViewPitch, _config.Core.PitchLimits.x, _config.Core.PitchLimits.y);
 
                 _data.ViewYaw = Mathf.Repeat(_data.ViewYaw, 360f);
             }

@@ -32,7 +32,7 @@ namespace Characters.Player.States
             options.FadeDuration = fade;
             data.idleFadeInTime = 0f;
 
-            AnimFacade.PlayTransition(config.IdleAnim, options);
+            AnimFacade.PlayTransition(config.LocomotionAnims. IdleAnim, options);
         }
 
         /// <summary>

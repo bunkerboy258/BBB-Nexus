@@ -113,8 +113,8 @@ namespace Characters.Player.States
             // fallHeightLevel: 0-3 => L1-L4, 4 => ExceedLimit
             if (fallHeightLevel >= 4)
             {
-                data.loopFadeInTime = config.LandToLoopFadeInTime_ExceedLimit;
-                return config.LandBuffer_ExceedLimit;
+                data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_ExceedLimit;
+                return config.JumpAndLanding.LandBuffer_ExceedLimit;
             }
 
             bool isSprinting = locomotionState == LocomotionState.Sprint;
@@ -124,40 +124,40 @@ namespace Characters.Player.States
                 switch (fallHeightLevel)
                 {
                     case 0:
-                        data.loopFadeInTime = config.LandToLoopFadeInTime_WalkJog_L1;
-                        return config.LandBuffer_WalkJog_L1;
+                        data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1;
+                        return config.JumpAndLanding.LandBuffer_WalkJog_L1;
                     case 1:
-                        data.loopFadeInTime = config.LandToLoopFadeInTime_WalkJog_L2;
-                        return config.LandBuffer_WalkJog_L2;
+                        data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L2;
+                        return config.JumpAndLanding.LandBuffer_WalkJog_L2;
                     case 2:
-                        data.loopFadeInTime = config.LandToLoopFadeInTime_WalkJog_L3;
-                        return config.LandBuffer_WalkJog_L3;
+                        data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L3;
+                        return config.JumpAndLanding.LandBuffer_WalkJog_L3;
                     case 3:
-                        data.loopFadeInTime = config.LandToLoopFadeInTime_WalkJog_L4;
-                        return config.LandBuffer_WalkJog_L4;
+                        data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L4;
+                        return config.JumpAndLanding.LandBuffer_WalkJog_L4;
                     default:
-                        data.loopFadeInTime = config.LandToLoopFadeInTime_WalkJog_L1;
-                        return config.LandBuffer_WalkJog_L1;
+                        data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1;
+                        return config.JumpAndLanding.LandBuffer_WalkJog_L1;
                 }
             }
 
             switch (fallHeightLevel)
             {
                 case 0:
-                    data.loopFadeInTime = config.LandToLoopFadeInTime_Sprint_L1;
-                    return config.LandBuffer_Sprint_L1;
+                    data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L1;
+                    return config.JumpAndLanding.LandBuffer_Sprint_L1;
                 case 1:
-                    data.loopFadeInTime = config.LandToLoopFadeInTime_Sprint_L2;
-                    return config.LandBuffer_Sprint_L2;
+                    data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L2;
+                    return config.JumpAndLanding.LandBuffer_Sprint_L2;
                 case 2:
-                    data.loopFadeInTime = config.LandToLoopFadeInTime_Sprint_L3;
-                    return config.LandBuffer_Sprint_L3;
+                    data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L3;
+                    return config.JumpAndLanding.LandBuffer_Sprint_L3;
                 case 3:
-                    data.loopFadeInTime = config.LandToLoopFadeInTime_Sprint_L4;
-                    return config.LandBuffer_Sprint_L4;
+                    data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L4;
+                    return config.JumpAndLanding.LandBuffer_Sprint_L4;
                 default:
-                    data.loopFadeInTime = config.LandToLoopFadeInTime_Sprint_L1;
-                    return config.LandBuffer_Sprint_L1;
+                    data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L1;
+                    return config.JumpAndLanding.LandBuffer_Sprint_L1;
             }
         }
     }

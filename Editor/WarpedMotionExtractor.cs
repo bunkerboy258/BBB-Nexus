@@ -62,7 +62,8 @@ namespace Editors
         }
 
         /// <summary>
-        /// 递归扫描所有ScriptableObject引用，处理所有WarpedMotionData
+        /// 递归扫描所有ScriptableObject引用，处理所有WarpedMotionData。
+        /// 支持字段为 List/数组/集合/ScriptableObject。
         /// </summary>
         private void ScanWarpedMotionDataRecursive(object target, Action<WarpedMotionData, FieldInfo, object> onFound)
         {
@@ -81,6 +82,25 @@ namespace Editors
                 else if (typeof(ScriptableObject).IsAssignableFrom(field.FieldType))
                 {
                     ScanWarpedMotionDataRecursive(value, onFound);
+                }
+                else if (typeof(System.Collections.IEnumerable).IsAssignableFrom(field.FieldType) && field.FieldType != typeof(string))
+                {
+                    var enumerable = value as System.Collections.IEnumerable;
+                    if (enumerable != null)
+                    {
+                        foreach (var item in enumerable)
+                        {
+                            if (item == null) continue;
+                            if (item is WarpedMotionData wmd)
+                            {
+                                onFound(wmd, field, target);
+                            }
+                            else if (item is ScriptableObject so)
+                            {
+                                ScanWarpedMotionDataRecursive(so, onFound);
+                            }
+                        }
+                    }
                 }
             }
         }

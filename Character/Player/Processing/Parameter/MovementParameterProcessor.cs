@@ -91,16 +91,16 @@ namespace Characters.Player.Processing
 
             // 使用配置的曲线平滑强度变化
             float curveTime = 0.3f; 
-            if (_config.SprintBlendCurve.length > 0)
+            if (_config.Core. SprintBlendCurve.length > 0)
             {
-                curveTime = _config.SprintBlendCurve.keys[_config.SprintBlendCurve.length - 1].time;
+                curveTime = _config.Core.SprintBlendCurve.keys[_config.Core.SprintBlendCurve.length - 1].time;
             }
 
             if (_blendTimer < curveTime)
             {
                 _blendTimer += Time.deltaTime;
                 float t = _blendTimer / curveTime;
-                float factor = _config.SprintBlendCurve.Evaluate(t);
+                float factor = _config.Core.SprintBlendCurve.Evaluate(t);
                 _currentIntensity = Mathf.Lerp(_startIntensity, _targetIntensity, factor);
             }
             else
@@ -190,18 +190,27 @@ namespace Characters.Player.Processing
             float targetX = Mathf.Sin(rad) * _currentIntensity;
             float targetY = Mathf.Cos(rad) * _currentIntensity;
 
+            float xSmoothTime; float ySmoothTime;
             // X/Y 都平滑，避免快速换向时 X 突跳导致权重抖动。
-            float xSmoothTime = Mathf.Max(0.0001f, _data.IsAiming?_config.AimXAnimBlendSmoothTime:_config.XAnimBlendSmoothTime);
-            float ySmoothTime = Mathf.Max(0.0001f, _data.IsAiming ? _config.AimYAnimBlendSmoothTime:_config.YAnimBlendSmoothTime);
+            if (_config.Aiming == null)
+            {
+                xSmoothTime = _config.Core.XAnimBlendSmoothTime;
+                ySmoothTime = _config.Core.YAnimBlendSmoothTime;
+            }
+            else
+            {
+                xSmoothTime = Mathf.Max(0.0001f, _data.IsAiming ? _config.Aiming.AimXAnimBlendSmoothTime : _config.Core.XAnimBlendSmoothTime);
+                ySmoothTime = Mathf.Max(0.0001f, _data.IsAiming ? _config.Aiming.AimYAnimBlendSmoothTime : _config.Core.YAnimBlendSmoothTime);
+            }
 
-            _currentAnimBlendX = Mathf.SmoothDamp(
-                _currentAnimBlendX,
-                targetX,
-                ref _xBlendVelocity,
-                xSmoothTime,
-                Mathf.Infinity,
-                Time.deltaTime
-            );
+                _currentAnimBlendX = Mathf.SmoothDamp(
+                    _currentAnimBlendX,
+                    targetX,
+                    ref _xBlendVelocity,
+                    xSmoothTime,
+                    Mathf.Infinity,
+                    Time.deltaTime
+                );
             _data.CurrentAnimBlendX = _currentAnimBlendX;
 
             _currentAnimBlendY = Mathf.SmoothDamp(
@@ -286,10 +295,10 @@ namespace Characters.Player.Processing
         /// </summary>
         private void CalculateFallHeightLevel(float height)
         {
-            if (height < _config.LandHeightWalkJog_Level1) _data.FallHeightLevel = 0; // 几乎没掉 (如0.5m)
-            else if (height < _config.LandHeightWalkJog_Level2) _data.FallHeightLevel = 1; // 轻落地 (如2m)
-            else if (height < _config.LandHeightWalkJog_Level3) _data.FallHeightLevel = 2; // 中落地 (如4m)
-            else if (height < _config.LandHeightWalkJog_Level4) _data.FallHeightLevel = 3; // 重落地 (如6m)
+            if (height < _config.JumpAndLanding. LandHeightWalkJog_Level1) _data.FallHeightLevel = 0; // 几乎没掉 (如0.5m)
+            else if (height < _config.JumpAndLanding.LandHeightWalkJog_Level2) _data.FallHeightLevel = 1; // 轻落地 (如2m)
+            else if (height < _config.JumpAndLanding.LandHeightWalkJog_Level3) _data.FallHeightLevel = 2; // 中落地 (如4m)
+            else if (height < _config.JumpAndLanding.LandHeightWalkJog_Level4) _data.FallHeightLevel = 3; // 重落地 (如6m)
             else _data.FallHeightLevel = 4; // 摔死/翻滚 (极高)
         }
     }

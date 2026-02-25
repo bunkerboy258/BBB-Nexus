@@ -57,7 +57,7 @@ namespace Characters.Player.Core
                 _data.CurrentStamina += (-drainRate) * Time.deltaTime;
 
                 // 恢复到阈值以上解除耗尽标记
-                if (_data.CurrentStamina > _config.MaxStamina * _config.StaminaRecoverThreshold)
+                if (_data.CurrentStamina > _config.Core.MaxStamina * _config.Core.StaminaRecoverThreshold)
                 {
                     _data.IsStaminaDepleted = false;
                 }
@@ -65,7 +65,7 @@ namespace Characters.Player.Core
             // 如果 drainRate == 0，体力保持不变（静止状态）
 
             // 限制体力值范围
-            _data.CurrentStamina = Mathf.Clamp(_data.CurrentStamina, 0f, _config.MaxStamina);
+            _data.CurrentStamina = Mathf.Clamp(_data.CurrentStamina, 0f, _config.Core.MaxStamina);
         }
 
         /// <summary>
@@ -77,14 +77,14 @@ namespace Characters.Player.Core
             return state switch
             {
                 // Sprint：快速消耗体力
-                LocomotionState.Sprint => _config.StaminaDrainRate,
+                LocomotionState.Sprint => _config.Core.StaminaDrainRate,
 
                 // Walk：加速恢复（恢复速率为负，在 UpdateStamina 中取反使用）
-                LocomotionState.Walk => -_config.StaminaRegenRate * _config.WalkStaminaRegenMult,
+                LocomotionState.Walk => -_config.Core.StaminaRegenRate * _config.Core.WalkStaminaRegenMult,
 
                 // Jog 和 Idle：正常恢复
-                LocomotionState.Jog => -_config.StaminaRegenRate,
-                LocomotionState.Idle => -_config.StaminaRegenRate,
+                LocomotionState.Jog => -_config.Core.StaminaRegenRate,
+                LocomotionState.Idle => -_config.Core.StaminaRegenRate,
 
                 _ => 0f // 未知状态，体力不变
             };

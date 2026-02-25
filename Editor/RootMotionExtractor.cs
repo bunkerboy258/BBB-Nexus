@@ -336,6 +336,7 @@ public class RootMotionExtractorWindow : EditorWindow
 
     /// <summary>
     /// 递归扫描所有ScriptableObject引用，处理所有MotionClipData。
+    /// 支持字段为 List/数组/集合/ScriptableObject。
     /// </summary>
     private void ScanMotionClipDataRecursive(object target, Action<MotionClipData> onFound)
     {
@@ -355,6 +356,25 @@ public class RootMotionExtractorWindow : EditorWindow
             else if (typeof(ScriptableObject).IsAssignableFrom(field.FieldType))
             {
                 ScanMotionClipDataRecursive(value, onFound);
+            }
+            else if (typeof(System.Collections.IEnumerable).IsAssignableFrom(field.FieldType) && field.FieldType != typeof(string))
+            {
+                var enumerable = value as System.Collections.IEnumerable;
+                if (enumerable != null)
+                {
+                    foreach (var item in enumerable)
+                    {
+                        if (item == null) continue;
+                        if (item is MotionClipData mcd)
+                        {
+                            onFound(mcd);
+                        }
+                        else if (item is ScriptableObject so)
+                        {
+                            ScanMotionClipDataRecursive(so, onFound);
+                        }
+                    }
+                }
             }
         }
     }

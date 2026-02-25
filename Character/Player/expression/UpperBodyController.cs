@@ -25,7 +25,7 @@ namespace Characters.Player.Layers
 
             // Layer Setup
             var layer = _player.Animancer.Layers[1];
-            layer.Mask = _player.Config.UpperBodyMask;
+            layer.Mask = _player.Config.Core.UpperBodyMask;
             layer.Weight = 1f;
             layer.ApplyAnimatorIK = true;
 

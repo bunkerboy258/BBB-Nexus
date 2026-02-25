@@ -107,10 +107,10 @@ namespace Characters.Player.States
 
             return locomotionState switch
             {
-                LocomotionState.Walk => isLeft ? config.WalkLoopFwd_L : config.WalkLoopFwd_R,
-                LocomotionState.Jog => isLeft ? config.JogLoopFwd_L : config.JogLoopFwd_R,
-                LocomotionState.Sprint => isLeft ? config.SprintLoopFwd_L : config.SprintLoopFwd_R,
-                _ => isLeft ? config.JogLoopFwd_L : config.JogLoopFwd_R, // 默认 Jog
+                LocomotionState.Walk => isLeft ? config.LocomotionAnims. WalkLoopFwd_L : config.LocomotionAnims.WalkLoopFwd_R,
+                LocomotionState.Jog => isLeft ? config.LocomotionAnims.JogLoopFwd_L : config.LocomotionAnims.JogLoopFwd_R,
+                LocomotionState.Sprint => isLeft ? config.LocomotionAnims.SprintLoopFwd_L : config.LocomotionAnims.SprintLoopFwd_R,
+                _ => isLeft ? config.LocomotionAnims.JogLoopFwd_L : config.LocomotionAnims.JogLoopFwd_R, // 默认 Jog
             };
         }
 

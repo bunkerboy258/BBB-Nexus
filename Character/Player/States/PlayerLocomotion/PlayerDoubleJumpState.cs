@@ -37,10 +37,10 @@ namespace Characters.Player.States
             bool isSprint = data.CurrentLocomotionState == LocomotionState.Sprint;
 
             // 新增：Sprint+空手时播放翻滚动画，使用独立淡入配置
-            if (isSprint && isHandsEmpty && config.DoubleJumpSprintRoll != null && config.DoubleJumpSprintRoll.Clip != null)
+            if (isSprint && isHandsEmpty && config.JumpAndLanding. DoubleJumpSprintRoll != null && config.JumpAndLanding.DoubleJumpSprintRoll.Clip != null)
             {
-                _clipData = config.DoubleJumpSprintRoll;
-                _jumpForce = config.DoubleJumpForceUp > 0.01f ? config.DoubleJumpForceUp : config.JumpForceSprintEmpty;
+                _clipData = config.JumpAndLanding.DoubleJumpSprintRoll;
+                _jumpForce = config.JumpAndLanding.DoubleJumpForceUp > 0.01f ? config.JumpAndLanding.DoubleJumpForceUp : config.JumpAndLanding.JumpForceSprintEmpty;
 
                 var option = AnimPlayOptions.Default;
                 if (data.NextStateFadeOverride.HasValue)
@@ -56,10 +56,10 @@ namespace Characters.Player.States
             {
                 // 2. 根据二段跳方向和装备情况选择动画（原逻辑）
                 SelectDoubleJumpAnimation();
-                data.LandFadeInTime = config.DoubleJumpToLandFadeInTime;
+                data.LandFadeInTime = config.JumpAndLanding.DoubleJumpToLandFadeInTime;
 
                 var options = AnimPlayOptions.Default;
-                options.FadeDuration = config.DoubleJumpFadeInTime;
+                options.FadeDuration = config.JumpAndLanding.DoubleJumpFadeInTime;
                 options.NormalizedTime = 0f;
                 AnimFacade.PlayTransition(_clipData.Clip, options);
             }
@@ -91,41 +91,41 @@ namespace Characters.Player.States
 
             // 根据运动状态和装备获取基础配置
             MotionClipData baseClip = null;
-            float baseForce = config.JumpForce;
+            float baseForce = config.JumpAndLanding.JumpForce;
 
             switch (data.CurrentLocomotionState)
             {
                 case LocomotionState.Idle:
                 case LocomotionState.Walk:
                 case LocomotionState.Jog:
-                    baseClip = config.JumpAirAnimWalk;
-                    baseForce = config.JumpForceWalk;
+                    baseClip = config.JumpAndLanding.JumpAirAnimWalk;
+                    baseForce = config.JumpAndLanding.JumpForceWalk;
                     break;
 
                 case LocomotionState.Sprint:
                     if (isHandsEmpty)
                     {
-                        baseClip = config.JumpAirAnimSprintEmpty;
-                        baseForce = config.JumpForceSprintEmpty;
+                        baseClip = config.JumpAndLanding.JumpAirAnimSprintEmpty;
+                        baseForce = config.JumpAndLanding.JumpForceSprintEmpty;
                     }
                     else
                     {
-                        baseClip = config.JumpAirAnimSprint;
-                        baseForce = config.JumpForceSprint;
+                        baseClip = config.JumpAndLanding.JumpAirAnimSprint;
+                        baseForce = config.JumpAndLanding.JumpForceSprint;
                     }
                     break;
 
                 default:
-                    baseClip = config.JumpAirAnim;
-                    baseForce = config.JumpForce;
+                    baseClip = config.JumpAndLanding.JumpAirAnim;
+                    baseForce = config.JumpAndLanding.JumpForce;
                     break;
             }
 
             // 二段跳力度：优先使用独立配置（默认值由 SO 给出）
-            float doubleJumpForce = config.DoubleJumpForceUp > 0.01f ? config.DoubleJumpForceUp : baseForce;
+            float doubleJumpForce = config.JumpAndLanding.DoubleJumpForceUp > 0.01f ? config.JumpAndLanding.DoubleJumpForceUp : baseForce;
 
             // 向上二段跳：优先选择 DoubleJumpUp，否则回退到基础配置
-            _clipData = config.DoubleJumpUp ?? baseClip ?? config.JumpAirAnim;
+            _clipData = config.JumpAndLanding.DoubleJumpUp ?? baseClip ?? config.JumpAndLanding.JumpAirAnim;
             _jumpForce = doubleJumpForce;
 
             // Debug 输出：记录选择结果，便于在控制台追踪问题
