@@ -101,6 +101,18 @@ namespace Characters.Player.Core
             ExecuteMovement(Vector3.zero);
         }
 
+        /// <summary>
+        /// 主动中断/重置与剪辑驱动相关的缓存。
+        /// 用途：当状态在 Clip 驱动中途被打断（例如 MoveStart -> Idle）时，
+        /// 防止下次再次进入 Clip 驱动时继承上一次的增量旋转缓存导致瞬间跳角度。
+        /// </summary>
+        public void InterruptClipDrivenMotion()
+        {
+            _lastClipMotionType = null;
+            _didAlignOnMixedToInput = false;
+            ResetCurveDrivenState();
+        }
+
         #endregion
 
         #region Public API: Motion Warping

@@ -97,6 +97,11 @@ namespace Characters.Player.States
             AnimFacade.ClearOnEndCallback();
             _currentClipData = null;
 
+            //这里是为了保证 MoveStart 无论正常结束还是被打断退出，
+            //都会把上一次的曲线增量旋转缓存清掉，避免下次进入继承旧角度导致“瞬回”
+            //如果不清掉 玩家在movestart中途进入idle 下一次movestart会瞬移
+            player.MotionDriver.InterruptClipDrivenMotion();
+
             float targetY = data.CurrentLocomotionState switch
             {
                 LocomotionState.Walk => 0.35f,
