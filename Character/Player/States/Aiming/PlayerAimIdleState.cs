@@ -1,6 +1,5 @@
-using Animancer;
 using Characters.Player.Data;
-using UnityEngine;
+using Characters.Player.Animation;
 
 namespace Characters.Player.States
 {
@@ -10,7 +9,10 @@ namespace Characters.Player.States
 
         public override void Enter()
         {
-            player.Animancer.Layers[0].Play(config.IdleAnim, 0.4f, FadeMode.FromStart);
+            var options = AnimPlayOptions.Default;
+            options.FadeDuration = 0.4f;
+            options.NormalizedTime = 0f;
+            AnimFacade.PlayTransition(config.IdleAnim, options);
         }
 
         protected override void UpdateStateLogic()
@@ -33,7 +35,7 @@ namespace Characters.Player.States
                 return;
             }
 
-            if (data.CurrentLocomotionState!=LocomotionState.Idle)
+            if (data.CurrentLocomotionState != LocomotionState.Idle)
             {
                 player.StateMachine.ChangeState(player.AimMoveState);
             }
@@ -41,12 +43,11 @@ namespace Characters.Player.States
 
         public override void PhysicsUpdate()
         {
-            player.MotionDriver.UpdateMotion(null, 0f, player.RuntimeData.ViewYaw);
+            player.MotionDriver.UpdateMotion(null, 0f);
         }
 
         public override void Exit()
         {
-
         }
     }
 }

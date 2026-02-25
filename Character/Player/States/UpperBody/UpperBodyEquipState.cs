@@ -1,7 +1,7 @@
-using Animancer;
 using Characters.Player.Layers;
 using Items.Data;
 using UnityEngine;
+using Characters.Player.Animation;
 
 namespace Characters.Player.States.UpperBody
 {
@@ -13,29 +13,36 @@ namespace Characters.Player.States.UpperBody
         {
             var targetItem = data.DesiredItemDefinition;
 
-            if (targetItem == null) // 防御性代码
+            if (targetItem == null)
             {
                 controller.ChangeState(controller.IdleState);
                 return;
             }
-            if(targetItem is EquippableItemSO equipDef&& equipDef.EquipAnim.Clip!=null)
-            {
-                var state=layer.Play(equipDef.EquipAnim);
 
-                var events = state.Events(this);
-                events.Add(0.7f, () =>
+            if (targetItem is EquippableItemSO equipDef && equipDef.EquipAnim.Clip != null)
+            {
+                // 使用适配器播放动画
+                var options = AnimPlayOptions.Default;
+                options.Layer = 1; // 上半身层
+                player.AnimFacade.PlayTransition(equipDef.EquipAnim, options);
+
+                // 添加自定义事件：在 70% 时同步模型
+                player.AnimFacade.AddCallback(0.7f, () =>
                 {
-                    // 2. 在动画 70% 时生成模型 (模拟手从背后拿东西出来)
                     player.EquipmentDriver.SyncModelToDesired();
                 });
 
-                state.Events(this).OnEnd = () => controller.ChangeState(controller.IdleState);
+                // 设置结束回调
+                player.AnimFacade.SetOnEndCallback(() => controller.ChangeState(controller.IdleState));
             }
-
-
         }
 
         protected override void UpdateStateLogic() { }
-        public override void Exit() { }
+
+        public override void Exit()
+        {
+            // 离开状态清理回调，符合适配器使用规范
+            player.AnimFacade.ClearOnEndCallback();
+        }
     }
 }

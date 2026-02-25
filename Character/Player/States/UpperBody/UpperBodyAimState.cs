@@ -1,8 +1,8 @@
-using Animancer;
 using Characters.Player.Data;
 using Characters.Player.Layers;
 using Items.Data;
-using Items.Logic; // 引用 DeviceController
+using Items.Logic;
+using Characters.Player.Animation;
 using UnityEngine;
 
 namespace Characters.Player.States.UpperBody
@@ -22,15 +22,16 @@ namespace Characters.Player.States.UpperBody
         {
             var equip = data.CurrentEquipment;
 
-            // 1. 播放瞄准动画
-            // 优先用物品自带的 AimPose，如果没有则尝试用通用的，或者维持 Idle
-            if (equip.Definition is RangedWeaponSO equipDef&&equipDef.AimAnim!=null)
+            // 1. 播放瞄准动画 (通过 Facade)
+            if (equip.Definition is RangedWeaponSO equipDef && equipDef.AimAnim != null)
             {
-                layer.Play(equipDef.AimAnim, 0.15f);
+                var options = AnimPlayOptions.Default;
+                options.Layer = 1; // 上半身层
+                options.FadeDuration = 0.15f;
+                player.AnimFacade.PlayTransition(equipDef.AimAnim, options);
             }
-            // else: 也可以播一个通用的 "GenericAimPose" 如果你有的话
 
-            player.InputReader.OnLeftMouseDown+= HandleFireInput;
+            player.InputReader.OnLeftMouseDown += HandleFireInput;
         }
 
         protected override void UpdateStateLogic()
@@ -42,7 +43,6 @@ namespace Characters.Player.States.UpperBody
                 controller.ChangeState(controller.IdleState);
                 return;
             }
-
         }
 
         private void HandleFireInput()
@@ -54,14 +54,13 @@ namespace Characters.Player.States.UpperBody
             {
                 // 调用装置的开火接口
                 equip.DeviceLogic.OnTriggerDown();
-
-                // 可以在这里加一个 "PlayShootAnim" (比如 Layer 1 Additive 的后坐力动画)
-                // player.UpperBodyController.PlayAdditiveRecoil();
             }
         }
 
         public override void Exit()
         {
+            // 解绑开火输入，防止内存泄漏
+            player.InputReader.OnLeftMouseDown -= HandleFireInput;
 
             // 确保松开扳机 (防止按下状态卡住)
             if (data.CurrentEquipment.HasDevice)

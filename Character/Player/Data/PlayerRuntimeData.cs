@@ -149,6 +149,15 @@ namespace Characters.Player.Data
 
         [Header("Landing & Transition")]
         public int FallHeightLevel;
+
+        /// <summary>
+        /// 一次性的动画过渡覆写。
+        /// 由触发打断的状态写入，由下一个状态消费。一旦消费，立刻清空。
+        /// </summary>
+        public float? NextStateFadeOverride =null;
+        //不设置成0是为了为了清晰区分 “未设置 / 不生效” 和 “明确设置为 0” 这两种完全不同的业务逻辑状态
+
+        public float idleFadeInTime;
         public float moveStartFadeInTime;
         public float LandFadeInTime;
         public float loopFadeInTime;

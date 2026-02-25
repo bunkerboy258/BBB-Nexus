@@ -1,6 +1,7 @@
 using Core.StateMachine;
 using Characters.Player.Data;
 using UnityEngine;
+using Characters.Player.Animation;
 
 namespace Characters.Player.States
 {
@@ -14,12 +15,14 @@ namespace Characters.Player.States
         protected PlayerController player;
         protected PlayerRuntimeData data;
         protected PlayerSO config;
+        protected IAnimationFacade AnimFacade;
 
         protected PlayerBaseState(PlayerController player)
         {
             this.player = player;
             this.data = player.RuntimeData;
             this.config = player.Config;
+            this.AnimFacade = player.AnimFacade;
         }
 
 

@@ -1,5 +1,6 @@
-using Animancer;
 using Characters.Player.Data;
+using Characters.Player.Animation;
+using Animancer;
 
 namespace Characters.Player.States
 {
@@ -24,11 +25,14 @@ namespace Characters.Player.States
             // 根据运动状态和脚相位选择对应的急停动画
             ClipTransition stopClip = SelectStopClipForLocomotionState(data.CurrentLocomotionState, data.CurrentRunCycleTime);
 
-            var state = player.Animancer.Layers[0].Play(stopClip,0.4f);
+            var options = AnimPlayOptions.Default;
+            options.FadeDuration = 0.4f;
+
+            AnimFacade.PlayTransition(stopClip, options);
             data.stopFadeInTime = 0f;
 
             // 动画完毕 -> 回到 Idle
-            state.Events(this).OnEnd = () => player.StateMachine.ChangeState(player.IdleState);
+            AnimFacade.SetOnEndCallback(() => player.StateMachine.ChangeState(player.IdleState));
         }
 
         protected override void UpdateStateLogic()
@@ -36,7 +40,7 @@ namespace Characters.Player.States
             // 停止时检测输入 -> 重新开始移动
             if (data.CurrentLocomotionState != LocomotionState.Idle)
             {
-                data.loopFadeInTime = 0.4f;
+                data.NextStateFadeOverride = 0.4f;
                 player.StateMachine.ChangeState(player.MoveLoopState);
                 return;
             }
@@ -53,7 +57,10 @@ namespace Characters.Player.States
             player.MotionDriver.UpdateMotion();
         }
 
-        public override void Exit() { }
+        public override void Exit()
+        {
+            AnimFacade.ClearOnEndCallback();
+        }
 
         #region Helper Methods
 

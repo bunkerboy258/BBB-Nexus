@@ -1,6 +1,7 @@
 using UnityEngine;
 using Animancer;
 using Characters.Player.Data;
+using Characters.Player.Animation;
 
 namespace Characters.Player.States
 {
@@ -22,7 +23,6 @@ namespace Characters.Player.States
     /// </summary>
     public class PlayerMoveLoopState : PlayerBaseState
     {
-        private AnimancerState _currentAnimState;
         private LocomotionState _currentLocomotionState;
 
         private const float LocomotionChangeFadeTime = 0.3f;
@@ -38,10 +38,20 @@ namespace Characters.Player.States
             // 1. 根据运动状态和脚相位选择动画
             var targetClip = SelectLoopAnimationForState(data.CurrentLocomotionState, data.ExpectedFootPhase);
 
-            // 2. 播放动画，直接使用资源配置的淡入时长
-            //Debug.Log("loopfadeintime:"+data.loopFadeInTime);
-            _currentAnimState = player.Animancer.Layers[0].Play(targetClip,data.loopFadeInTime);
-            data.loopFadeInTime = 0f; // 播放后重置，避免下次误用
+            var options = AnimPlayOptions.Default;
+            if (data.NextStateFadeOverride.HasValue)
+            {
+                options.FadeDuration = data.NextStateFadeOverride.Value;
+                data.NextStateFadeOverride = null;
+            }
+            else
+            {
+                // 保持旧逻辑：loopFadeInTime 作为一次性淡入。
+                if (data.loopFadeInTime > 0f) options.FadeDuration = data.loopFadeInTime;
+                data.loopFadeInTime = 0f;
+            }
+
+            AnimFacade.PlayTransition(targetClip, options);
         }
 
         protected override void UpdateStateLogic()
@@ -65,15 +75,6 @@ namespace Characters.Player.States
                 return;
             }
 
-
-            // 动画状态安全检查
-            if (_currentAnimState == null)
-            {
-                Debug.LogError("[MoveLoopState.LogicUpdate] 动画状态为空，切回 Idle");
-                player.StateMachine.ChangeState(player.IdleState);
-                return;
-            }
-
             // 运动状态变化 → 切换动画
             if (data.CurrentLocomotionState != _currentLocomotionState)
             {
@@ -91,7 +92,8 @@ namespace Characters.Player.States
 
         public override void Exit()
         {
-            _currentAnimState = null;
+            // Loop 是持续状态，通常不绑 OnEnd。这里清一次避免残留。
+            AnimFacade.ClearOnEndCallback();
         }
 
         #endregion
@@ -115,8 +117,7 @@ namespace Characters.Player.States
         /// <summary>切换到新的运动状态循环动画。</summary>
         private void SwitchLoopAnimation(LocomotionState newState)
         {
-            var fromState = _currentAnimState;
-            float fromNormalizedTime = fromState != null ? fromState.NormalizedTime : 0f;
+            float fromNormalizedTime = AnimFacade.CurrentNormalizedTime;
 
             _currentLocomotionState = newState;
 
@@ -127,21 +128,17 @@ namespace Characters.Player.States
                 return;
             }
 
-            // 关键：用淡入播放新动画后，把它的归一化时间对齐到旧动画的相位。
-            // 假设各循环动画的相位在 NormalizedTime 上一致。
-            _currentAnimState = player.Animancer.Layers[0].Play(targetClip, LocomotionChangeFadeTime);
-            if (_currentAnimState != null)
-            {
-                _currentAnimState.NormalizedTime = fromNormalizedTime;
-            }
+            var options = AnimPlayOptions.Default;
+            options.FadeDuration = LocomotionChangeFadeTime;
+            options.NormalizedTime = fromNormalizedTime;
+
+            AnimFacade.PlayTransition(targetClip, options);
         }
 
         /// <summary>根据当前播放动画的时间，计算脚步循环相位（0~1）。</summary>
         private void UpdateFootPhase()
         {
-            if (_currentAnimState == null) return;
-
-            float normalizedTime = _currentAnimState.NormalizedTime;
+            float normalizedTime = AnimFacade.CurrentNormalizedTime;
             float cycleTime = normalizedTime - Mathf.Floor(normalizedTime);
 
             // 如果期望右脚着地，偏移 0.5

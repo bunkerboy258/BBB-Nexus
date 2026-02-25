@@ -8,8 +8,8 @@ namespace Characters.Player.States.UpperBody
 
         public override void Enter()
         {
-            // 不播动画，或者淡出 Layer 1
-            layer.StartFade(0f, 0.2f);
+            // 通过适配器淡出 Layer 1 (上半身层)
+            player.AnimFacade.SetLayerWeight(1, 0f, 0.2f);
         }
 
         // 重写打断检查：因为我们已经是打断后的结果了
@@ -29,8 +29,8 @@ namespace Characters.Player.States.UpperBody
 
         public override void Exit()
         {
-            // 恢复权重
-            layer.StartFade(1f, 0.2f);
+            // 通过适配器恢复 Layer 1 权重
+            player.AnimFacade.SetLayerWeight(1, 1f, 0.2f);
         }
     }
 }

@@ -59,6 +59,7 @@ using Characters.Player.Data;
 using System.Reflection;
 using System.Collections.Generic;
 using Stopwatch = System.Diagnostics.Stopwatch;
+using System;
 
 // RootMotionExtractorWindow: Unity EditorWindow for root motion baking
 // 根运动烘焙器主窗口：用于根运动与动画曲线的烘焙
@@ -334,6 +335,31 @@ public class RootMotionExtractorWindow : EditorWindow
     }
 
     /// <summary>
+    /// 递归扫描所有ScriptableObject引用，处理所有MotionClipData。
+    /// </summary>
+    private void ScanMotionClipDataRecursive(object target, Action<MotionClipData> onFound)
+    {
+        if (target == null) return;
+        var type = target.GetType();
+        // 只处理ScriptableObject及其子类
+        if (!(target is ScriptableObject)) return;
+        var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        foreach (var field in fields)
+        {
+            var value = field.GetValue(target);
+            if (value == null) continue;
+            if (field.FieldType == typeof(MotionClipData))
+            {
+                onFound((MotionClipData)value);
+            }
+            else if (typeof(ScriptableObject).IsAssignableFrom(field.FieldType))
+            {
+                ScanMotionClipDataRecursive(value, onFound);
+            }
+        }
+    }
+
+    /// <summary>
     /// Synchronizes batch parameters (Type, Duration) to all MotionClipData in the PlayerSO.
     /// 将批量参数（类型、时长）同步到 PlayerSO 中的所有 MotionClipData。
     /// 
@@ -342,8 +368,8 @@ public class RootMotionExtractorWindow : EditorWindow
     ///   批量更新配置，无需重新烘焙曲线。
     /// 
     /// Algorithm 算法:
-    /// - Use Reflection to scan PlayerSO for all fields of type MotionClipData.
-    ///   通过反射扫描 PlayerSO 中所有类型为 MotionClipData 的字段。
+    /// - Use recursive scanning to find all MotionClipData references.
+    ///   使用递归扫描找到所有 MotionClipData 引用。
     /// - Update TargetDuration and MotionType directly on identified objects.
     ///   直接在识别出的对象上更新 TargetDuration 和 MotionType。
     /// </summary>
@@ -360,27 +386,18 @@ public class RootMotionExtractorWindow : EditorWindow
 
         try
         {
-            FieldInfo[] fields = typeof(PlayerSO).GetFields(BindingFlags.Public | BindingFlags.Instance);
-            //使用反射获取 PlayerSO 类型的所有公有实例字段
             int count = 0;
-            foreach (var field in fields)
-            {
-                if (field.FieldType == typeof(MotionClipData))
+            ScanMotionClipDataRecursive(_targetSO, data => {
+                if (data != null)
                 {
-                    MotionClipData data = (MotionClipData)field.GetValue(_targetSO);
-                    if (data != null)
-                    {
-                        data.Type = _batchMotionType;
-                        data.TargetDuration = _batchTargetDuration;
-                        count++;
-                    }
+                    data.Type = _batchMotionType;
+                    data.TargetDuration = _batchTargetDuration;
+                    count++;
                 }
-            }
+            });
 
             EditorUtility.SetDirty(_targetSO);
-            //标记目标 PlayerSO 资产为“已修改”（dirty），这样 Unity 会在保存项目时将其序列化到磁盘
             AssetDatabase.SaveAssets();
-            //强制保存所有已修改的资产（包括刚标记为 dirty 的 _targetSO），确保更改立即写入文件
 
             AddEvent($"批量设置完成：{count} 个 MotionClipData\nBatch applied: {count} MotionClipData", new Color(0.3f, 0.7f, 1f));
             LogVerbose($"Batch applied => {count} MotionClipData", "#4aa3ff");
@@ -407,8 +424,8 @@ public class RootMotionExtractorWindow : EditorWindow
     /// Algorithm 算法:
     /// - Instantiate a temporary clone of the character prefab.
     ///   实例化角色 Prefab 的临时克隆。
-    /// - Scan PlayerSO fields via Reflection.
-    ///   通过反射扫描 PlayerSO 字段。
+    /// - Use recursive scanning to find all MotionClipData references.
+    ///   使用递归扫描找到所有 MotionClipData 引用。
     /// - For each valid clip, call BakeSingleClip and monitor execution time.
     ///   对每个有效片段调用 BakeSingleClip 并监控执行时间。
     /// - Force Unity to save changes via EditorUtility.SetDirty and AssetDatabase.SaveAssets.
@@ -429,10 +446,8 @@ public class RootMotionExtractorWindow : EditorWindow
         AddEvent($"开始烘焙：{_targetSO.name}\nBaking started: {_targetSO.name}", new Color(0.4f, 1f, 0.6f));
         LogVerbose($"=== BakeAll START => {_targetSO.name} ===", "#44ff88");
 
-        // Instantiate the character prefab for sampling - 实例化角色Prefab用于采样
         GameObject agent = Instantiate(_characterPrefab);
         agent.hideFlags = HideFlags.HideAndDontSave;
-        //设置 hideFlags 为 HideAndDontSave，使实例化的角色在 Hierarchy 中隐藏，且不会随场景保存
         Animator animator = agent.GetComponent<Animator>();
 
         if (animator == null || animator.avatar == null || !animator.avatar.isHuman)
@@ -445,61 +460,53 @@ public class RootMotionExtractorWindow : EditorWindow
 
         animator.applyRootMotion = true;
         animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-        //重要：设置 Animator 启用根运动，并禁用剔出 
 
         try
         {
-            FieldInfo[] fields = typeof(PlayerSO).GetFields(BindingFlags.Public | BindingFlags.Instance);
-            _bakeTotal = fields.Length;
-            //使用反射获取 PlayerSO 的所有公有实例字段，并记录总数，用于进度计算
+            // 递归收集所有MotionClipData
+            var allClips = new List<MotionClipData>();
+            ScanMotionClipDataRecursive(_targetSO, data => {
+                if (data != null && data.Clip != null && data.Clip.Clip != null)
+                    allClips.Add(data);
+            });
+            _bakeTotal = allClips.Count;
 
-            int current = 0;//烘焙处理索引
-            foreach (var field in fields)//遍历所有字段，寻找类型为 MotionClipData 的字段
+            for (int current = 0; current < allClips.Count; current++)
             {
-                if (field.FieldType == typeof(MotionClipData))
+                var data = allClips[current];
+                _bakeIndex = current;
+                _currentClipName = data.Clip.Clip.name;
+                _bakeProgress01 = (float)current / Mathf.Max(1, _bakeTotal);
+
+                _currentStage = "Bake";
+                _currentDetail = "Preparing...";
+
+                if (_verboseLogging)
                 {
-                    MotionClipData data = (MotionClipData)field.GetValue(_targetSO);
-                    if (data?.Clip?.Clip != null)//这俩问号必须加 貌似null检查只会检查最后一次访问
-                    {
-                        _bakeIndex = current;
-                        _currentClipName = data.Clip.Clip.name;
-                        _bakeProgress01 = (float)current / Mathf.Max(1, _bakeTotal);
-                        //更新当前索引、剪辑名称和进度（细节除以总数，避免除0）
-
-                        _currentStage = "Bake";
-                        _currentDetail = "Preparing...";
-
-                        if (_verboseLogging)
-                        {
-                            AddEvent($"开始：{_currentClipName}\nStart: {_currentClipName}", new Color(1f, 0.92f, 0.35f));
-                            LogVerbose($"--> Clip START: {_currentClipName}", "#ffd54a");
-                        }
-
-                        EditorUtility.DisplayProgressBar(
-                            "Baking Root Motion",
-                            $"Processing {data.Clip.Clip.name}...",
-                            _bakeProgress01);
-
-                        _swClip.Reset();
-                        _swClip.Start();
-
-                        BakeSingleClip(animator, data);
-
-                        _swClip.Stop();
-                        _currentClipMs = _swClip.ElapsedMilliseconds;
-
-                        if (_verboseLogging)
-                        {
-                            AddEvent($"完成：{_currentClipName}  ({_currentClipMs}ms)\nDone: {_currentClipName}  ({_currentClipMs}ms)", new Color(0.5f, 1f, 0.65f));
-                            LogVerbose($"<-- Clip DONE: {_currentClipName} ({_currentClipMs}ms)", "#66ff88");
-                        }
-
-                        // 强制刷新 UI
-                        Repaint();
-                    }
+                    AddEvent($"开始：{_currentClipName}\nStart: {_currentClipName}", new Color(1f, 0.92f, 0.35f));
+                    LogVerbose($"--> Clip START: {_currentClipName}", "#ffd54a");
                 }
 
-                current++;
+                EditorUtility.DisplayProgressBar(
+                    "Baking Root Motion",
+                    $"Processing {data.Clip.Clip.name}...",
+                    _bakeProgress01);
+
+                _swClip.Reset();
+                _swClip.Start();
+
+                BakeSingleClip(animator, data);
+
+                _swClip.Stop();
+                _currentClipMs = _swClip.ElapsedMilliseconds;
+
+                if (_verboseLogging)
+                {
+                    AddEvent($"完成：{_currentClipName}  ({_currentClipMs}ms)\nDone: {_currentClipName}  ({_currentClipMs}ms)", new Color(0.5f, 1f, 0.65f));
+                    LogVerbose($"<-- Clip DONE: {_currentClipName} ({_currentClipMs}ms)", "#66ff88");
+                }
+
+                Repaint();
             }
 
             EditorUtility.SetDirty(_targetSO);

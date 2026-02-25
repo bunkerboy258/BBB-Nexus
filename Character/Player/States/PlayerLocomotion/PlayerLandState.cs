@@ -1,6 +1,6 @@
 using UnityEngine;
-using Animancer;
 using Characters.Player.Data;
+using Characters.Player.Animation;
 
 namespace Characters.Player.States
 {
@@ -13,9 +13,7 @@ namespace Characters.Player.States
     /// </summary>
     public class PlayerLandState : PlayerBaseState
     {
-        private AnimancerState _state;
         private float _stateDuration;
-        private float _startYaw;
         private MotionClipData _currentClip;
         private bool _endTimeTriggered;
 
@@ -27,7 +25,6 @@ namespace Characters.Player.States
         public override void Enter()
         {
             _stateDuration = 0f;
-            _startYaw = player.transform.eulerAngles.y;
             _endTimeTriggered = false;
 
             // 重置本次空中的二段跳标记（为下次空中做准备）
@@ -57,18 +54,20 @@ namespace Characters.Player.States
                 return;
             }
 
-            //Debug.Log(data.LandFadeInTime);
-            _state = player.Animancer.Layers[0].Play(_currentClip.Clip, data.LandFadeInTime);
-            data.LandFadeInTime = 0f; // 播放后重置，避免下次误用
+            var options = AnimPlayOptions.Default;
+            if (data.LandFadeInTime > 0f) options.FadeDuration = data.LandFadeInTime;
+            data.LandFadeInTime = 0f;
+
+            AnimFacade.PlayTransition(_currentClip.Clip, options);
 
             // 3) 结束回调：写相位 + 切换状态
-            _state.Events(this).OnEnd = () =>
+            AnimFacade.SetOnEndCallback(() =>
             {
                 // C) 末相位写入（用于 MoveLoop 选左右脚相位）
                 data.ExpectedFootPhase = _currentClip.EndPhase;
 
                 player.StateMachine.ChangeState(wantToMove ? player.MoveLoopState : player.IdleState);
-            };
+            });
 
             data.ExpectedFootPhase = _currentClip.EndPhase;
         }
@@ -85,11 +84,11 @@ namespace Characters.Player.States
             // 如果权威运动状态不为 Idle：允许按 EndTime 提前切回 MoveLoop。
             // 说明：wantToMove 取 Enter 时的快照，这里按“权威状态”判断。
             if (!_endTimeTriggered && data.CurrentLocomotionState != LocomotionState.Idle && 
-                _currentClip.EndTime > 0f && _stateDuration >= _currentClip.EndTime)
+                _currentClip != null && _currentClip.EndTime > 0f && AnimFacade.CurrentTime >= _currentClip.EndTime)
             {
                 _endTimeTriggered = true;
                 data.ExpectedFootPhase = _currentClip.EndPhase;
-                data.moveStartFadeInTime = 0.4f;
+                data.NextStateFadeOverride = 0.4f;
 
                 player.StateMachine.ChangeState(player.MoveLoopState);
             }
@@ -97,17 +96,15 @@ namespace Characters.Player.States
 
         public override void PhysicsUpdate()
         {
-            if (_state == null) return;
+            if (_currentClip == null) return;
 
-            _stateDuration += Time.deltaTime * _state.Speed;
-
-            // 使用 MotionDriver 驱动落地缓冲位移
-            player.MotionDriver.UpdateMotion(_currentClip, _stateDuration, _startYaw);
+            float stateTime = AnimFacade.CurrentTime;
+            player.MotionDriver.UpdateMotion(_currentClip, stateTime);
         }
 
         public override void Exit()
         {
-            _state = null;
+            AnimFacade.ClearOnEndCallback();
             _currentClip = null;
         }
 

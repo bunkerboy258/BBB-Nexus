@@ -10,6 +10,7 @@ using Items.Core;
 using Items.Data;
 using MagicaCloth2;
 using UnityEngine;
+using Characters.Player.Animation;
 
 namespace Characters.Player
 {
@@ -32,6 +33,7 @@ namespace Characters.Player
         public PlayerSO Config;
         [Header("IK System")]
         public PlayerIKSourceBase IKSource;
+        public IAnimationFacade AnimFacade { get; private set; }
 
         [Tooltip("玩家摄像机（可选，未指定时自动获取 MainCamera）")]
         public Transform PlayerCamera;
@@ -165,6 +167,8 @@ namespace Characters.Player
             CharController = GetComponent<CharacterController>();
             InputReader = GetComponent<PlayerInputReader>(); // 赋值供外部访问
             Animancer.Animator.applyRootMotion = false;
+            if(GetComponent<AnimancerFacade>()==null)Debug.LogWarning("[PlayerController] 缺少 AnimancerFacade 组件！请确保它与 AnimancerComponent 在同一 GameObject 上，以便状态机正确播放动画。");
+            AnimFacade =GetComponent<AnimancerFacade>(); // 获取 AnimancerFacade 组件引用，供状态使用
         }
 
         /// <summary>

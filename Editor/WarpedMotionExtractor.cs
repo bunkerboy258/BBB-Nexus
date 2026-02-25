@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
 using Animancer;
+using System;
 
 namespace Editors
 {
@@ -61,6 +62,30 @@ namespace Editors
         }
 
         /// <summary>
+        /// 递归扫描所有ScriptableObject引用，处理所有WarpedMotionData
+        /// </summary>
+        private void ScanWarpedMotionDataRecursive(object target, Action<WarpedMotionData, FieldInfo, object> onFound)
+        {
+            if (target == null) return;
+            var type = target.GetType();
+            if (!(target is ScriptableObject)) return;
+            var fields = type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            foreach (var field in fields)
+            {
+                var value = field.GetValue(target);
+                if (value == null) continue;
+                if (field.FieldType == typeof(WarpedMotionData))
+                {
+                    onFound((WarpedMotionData)value, field, target);
+                }
+                else if (typeof(ScriptableObject).IsAssignableFrom(field.FieldType))
+                {
+                    ScanWarpedMotionDataRecursive(value, onFound);
+                }
+            }
+        }
+
+        /// <summary>
         /// 批量修改 SO 中所有 WarpedMotionData 的 Type
         /// </summary>
         private void SetAllFieldsToType(WarpedType targetType)
@@ -68,47 +93,39 @@ namespace Editors
             if (_targetPlayerSO == null) return;
 
             Undo.RecordObject(_targetPlayerSO, "Batch Set Warped Type");
-            var fields = GetWarpedFields();
-
-            foreach (var field in fields)
-            {
-                WarpedMotionData data = (WarpedMotionData)field.GetValue(_targetPlayerSO);
+            int count = 0;
+            ScanWarpedMotionDataRecursive(_targetPlayerSO, (data, field, owner) => {
                 if (data != null)
                 {
                     data.Type = targetType;
+                    count++;
                 }
-            }
+            });
 
             EditorUtility.SetDirty(_targetPlayerSO);
-            Debug.Log($"<color=blue>[Extractor] 已将 {fields.Count} 个动作类型一键设为: {targetType}</color>");
-        }
-
-        private List<FieldInfo> GetWarpedFields()
-        {
-            if (_targetPlayerSO == null) return new List<FieldInfo>();
-            return typeof(PlayerSO).GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                .Where(f => f.FieldType == typeof(WarpedMotionData)).ToList();
+            Debug.Log($"<color=blue>[Extractor] 已将 {count} 个动作类型一键设为: {targetType}</color>");
         }
 
         private void BakeAllWarpedDataInSO()
         {
             Undo.RecordObject(_targetPlayerSO, "Bake All Warped Motion Data");
-            var fields = GetWarpedFields();
+            var allFields = new List<(WarpedMotionData, FieldInfo, object)>();
+            ScanWarpedMotionDataRecursive(_targetPlayerSO, (data, field, owner) => {
+                if (data != null)
+                    allFields.Add((data, field, owner));
+            });
 
-            if (fields.Count == 0) return;
+            if (allFields.Count == 0) return;
 
             int successCount = 0;
             bool anyChange = false;
 
-            for (int i = 0; i < fields.Count; i++)
+            for (int i = 0; i < allFields.Count; i++)
             {
-                FieldInfo fieldInfo = fields[i];
-                WarpedMotionData originalData = (WarpedMotionData)fieldInfo.GetValue(_targetPlayerSO);
-                EditorUtility.DisplayProgressBar("烘焙中", $"处理: {fieldInfo.Name}", (float)i / fields.Count);
+                var (originalData, fieldInfo, ownerObj) = allFields[i];
+                EditorUtility.DisplayProgressBar("烘焙中", $"处理: {fieldInfo.Name}", (float)i / allFields.Count);
 
                 if (originalData == null || originalData.Clip == null || originalData.Clip.Clip == null) continue;
-
-                // 只有在自动模式下，或者手动模式但有配置点时，才继续
                 if (originalData.Type == WarpedType.None && (originalData.WarpPoints == null || originalData.WarpPoints.Count == 0)) continue;
 
                 AnimationClip animClip = originalData.Clip.Clip;
@@ -132,7 +149,7 @@ namespace Editors
 
                 if (BakeSingleWarpedData(bakedData, animClip))
                 {
-                    fieldInfo.SetValue(_targetPlayerSO, bakedData);
+                    fieldInfo.SetValue(ownerObj, bakedData);
                     successCount++;
                     anyChange = true;
                 }

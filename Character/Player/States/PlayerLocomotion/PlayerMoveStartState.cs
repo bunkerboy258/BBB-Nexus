@@ -1,6 +1,6 @@
-﻿using Animancer;
+﻿using UnityEngine;
 using Characters.Player.Data;
-using UnityEngine;
+using Characters.Player.Animation;
 
 namespace Characters.Player.States
 {
@@ -14,9 +14,7 @@ namespace Characters.Player.States
     public class PlayerMoveStartState : PlayerBaseState
     {
         // --- 状态内成员变量 ---
-        private AnimancerState _state;
         private float _stateDuration;
-        private float _startYaw;
         private MotionClipData _currentClipData;
         private LocomotionState _startLocomotionState; // 记录进入时的运动状态
 
@@ -33,28 +31,31 @@ namespace Characters.Player.States
 
         public override void Enter()
         {
-            //Debug.Log($"进入 MoveStart 状态 (LocomotionState: {data.CurrentLocomotionState})");
             _stateDuration = 0f;
-            _startYaw = player.transform.eulerAngles.y;
             _startLocomotionState = data.CurrentLocomotionState;
 
-            //Debug.Log(data.DesiredLocalMoveAngle);
             // 根据当前运动状态和移动方向选择起步动画
             _currentClipData = SelectClipForLocomotionState(data.DesiredLocalMoveAngle, data.CurrentLocomotionState);
 
-            // 播放动画并设置结束回调
-            //Debug.Log(data.moveStartFadeInTime);
-            _state = player.Animancer.Layers[0].Play(_currentClipData.Clip,data.moveStartFadeInTime);
-            data.moveStartFadeInTime = 0f;
+            var options = AnimPlayOptions.Default;
+            if (data.NextStateFadeOverride.HasValue)
+            {
+                options.FadeDuration = data.NextStateFadeOverride.Value;
+                data.NextStateFadeOverride = null;
+            }
 
-            // 精简：不再有 ExitTime/截断点逻辑，直接使用烘焙倍速。
-            _state.Speed = _currentClipData.PlaybackSpeed;
+            // 播放起步动画（使用 Transition，本项目配置的是 ClipTransition）
+            AnimFacade.PlayTransition(_currentClipData.Clip, options);
 
             // 末相位仍然用于 Loop/Stop 的左右脚选择
             data.ExpectedFootPhase = _currentClipData.EndPhase;
 
-            _state.Events(this).OnEnd = () => player.StateMachine.ChangeState(player.MoveLoopState);
-
+            // End 回调：切换到 MoveLoop
+            AnimFacade.SetOnEndCallback(() =>
+            {
+                data.NextStateFadeOverride = 0.2f;
+                player.StateMachine.ChangeState(player.MoveLoopState);
+            });
         }
 
         protected override void UpdateStateLogic()
@@ -74,30 +75,26 @@ namespace Characters.Player.States
             // 如果运动状态在起步中途改变，切到循环状态让其处理状态转换
             else if (data.CurrentLocomotionState != _startLocomotionState)
             {
-                data.loopFadeInTime = 0.4f;
+                data.NextStateFadeOverride = 0.4f;
                 player.StateMachine.ChangeState(player.MoveLoopState);
             }
         }
 
         public override void PhysicsUpdate()
         {
-            if (_state == null) return;
+            if (_currentClipData == null) return;
 
-            // 1. 更新内部计时器
-            _stateDuration += Time.deltaTime * _state.Speed;
+            // 注意：stateTime 需要和烘焙曲线的时间轴一致。
+            // 这里使用 facade 的 CurrentTime（它已经包含 transition 的 speed 影响）。
+            float stateTime = AnimFacade.CurrentTime;
 
-            // 2. 委托：将所有复杂的物理计算交给 MotionDriver
-            player.MotionDriver.UpdateMotion(
-                _currentClipData,
-                _stateDuration,
-                _startYaw
-            );
+            // 委托：将所有复杂的物理计算交给 MotionDriver
+            player.MotionDriver.UpdateMotion(_currentClipData, stateTime);
         }
 
         public override void Exit()
         {
-            // 清理引用，防止内存泄漏和逻辑错误
-            _state = null;
+            AnimFacade.ClearOnEndCallback();
             _currentClipData = null;
 
             float targetY = data.CurrentLocomotionState switch
@@ -108,7 +105,6 @@ namespace Characters.Player.States
                 _ => 0.7f
             };
             data.CurrentAnimBlendY = targetY;
-            //Debug.Log($"[MoveStartState.Exit] ExpectedFootPhase={data.ExpectedFootPhase}, " + $"LocomotionState={data.CurrentLocomotionState}");
         }
 
         #endregion

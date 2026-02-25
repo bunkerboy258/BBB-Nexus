@@ -1,6 +1,6 @@
 using UnityEngine;
-using Animancer;
 using Characters.Player.Data;
+using Characters.Player.Animation;
 
 namespace Characters.Player.States
 {
@@ -24,9 +24,15 @@ namespace Characters.Player.States
         /// </summary>
         public override void Enter()
         {
-            // 播放空闲动画并设置0.4秒淡入时长（从动画开头播放）
-            // 该时长能让动画过渡更稳定，避免从移动/转身状态切回时动画生硬
-            player.Animancer.Layers[0].Play(config.IdleAnim, 0.4f, FadeMode.FromStart);
+            var options = AnimPlayOptions.Default;
+
+            // Idle 默认从头淡入。这里用“淡入覆盖”作为最小侵入替代 FadeMode.FromStart。
+            // 如果需要严格 FromStart，可在 AnimPlayOptions 中扩展一个 FromStart 标记。
+            float fade = data.idleFadeInTime == 0f ? 0.4f : data.idleFadeInTime;
+            options.FadeDuration = fade;
+            data.idleFadeInTime = 0f;
+
+            AnimFacade.PlayTransition(config.IdleAnim, options);
         }
 
         /// <summary>
@@ -35,9 +41,9 @@ namespace Characters.Player.States
         /// </summary>
         protected override void UpdateStateLogic()
         {
-
-            if (data.CurrentLocomotionState!=LocomotionState.Idle)
+            if (data.CurrentLocomotionState != LocomotionState.Idle)
             {
+                data.NextStateFadeOverride = 0.2f;
                 player.StateMachine.ChangeState(player.MoveStartState);
                 return;
             }

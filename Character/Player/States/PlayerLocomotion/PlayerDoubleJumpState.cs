@@ -1,7 +1,8 @@
-using UnityEngine;
 using Animancer;
+using Characters.Player.Animation;
 using Characters.Player.Data;
 using Core.StateMachine;
+using UnityEngine;
 
 namespace Characters.Player.States
 {
@@ -19,9 +20,6 @@ namespace Characters.Player.States
     /// </summary>
     public class PlayerDoubleJumpState : PlayerBaseState
     {
-        private AnimancerState _state;
-        private float _stateDuration;
-        private float _startYaw;
         private MotionClipData _clipData;
         private bool _canCheckLand;
         private float _jumpForce;
@@ -30,8 +28,6 @@ namespace Characters.Player.States
 
         public override void Enter()
         {
-            _stateDuration = 0f;
-            _startYaw = player.transform.eulerAngles.y;
             _canCheckLand = false;
 
             // 1. 标记本次空中已执行二段跳（防止重复）
@@ -45,26 +41,37 @@ namespace Characters.Player.States
             {
                 _clipData = config.DoubleJumpSprintRoll;
                 _jumpForce = config.DoubleJumpForceUp > 0.01f ? config.DoubleJumpForceUp : config.JumpForceSprintEmpty;
-                data.LandFadeInTime = config.DoubleJumpSprintRollToLandFadeInTime;
-                _state = player.Animancer.Layers[0].Play(_clipData.Clip, config.DoubleJumpSprintRollFadeInTime);
+
+                var option = AnimPlayOptions.Default;
+                if (data.NextStateFadeOverride.HasValue)
+                {
+                    option.FadeDuration = data.NextStateFadeOverride.Value;
+                    data.NextStateFadeOverride = null;
+                }
+
+                option.NormalizedTime = 0f;
+                AnimFacade.PlayTransition(_clipData.Clip, option);
             }
             else
             {
                 // 2. 根据二段跳方向和装备情况选择动画（原逻辑）
                 SelectDoubleJumpAnimation();
                 data.LandFadeInTime = config.DoubleJumpToLandFadeInTime;
-                _state = player.Animancer.Layers[0].Play(_clipData.Clip, config.DoubleJumpFadeInTime);
+
+                var options = AnimPlayOptions.Default;
+                options.FadeDuration = config.DoubleJumpFadeInTime;
+                options.NormalizedTime = 0f;
+                AnimFacade.PlayTransition(_clipData.Clip, options);
             }
-            _state.Time = 0f;
 
             // 4. 动画完成末回调
-            _state.Events(this).OnEnd = () =>
+            AnimFacade.SetOnEndCallback(() =>
             {
                 if (player.CharController.isGrounded)
                 {
                     player.StateMachine.ChangeState(player.LandState);
                 }
-            };
+            });
 
             // 5. 施加物理力
             PerformJumpPhysics();
@@ -137,7 +144,7 @@ namespace Characters.Player.States
         protected override void UpdateStateLogic()
         {
             // 防抖：起跳后至少过 0.2s 才开始检测落地
-            if (!_canCheckLand && _state.Time > 0.2f)
+            if (!_canCheckLand && AnimFacade.CurrentTime > 0.2f)
             {
                 _canCheckLand = true;
             }
@@ -151,14 +158,13 @@ namespace Characters.Player.States
 
         public override void PhysicsUpdate()
         {
-            if (_state == null) return;
-
-            player.MotionDriver.UpdateMotion(null, 0, _startYaw);
+            player.MotionDriver.UpdateMotion(null, 0f);
         }
 
         public override void Exit()
         {
-            _state = null;
+            AnimFacade.ClearOnEndCallback();
+            _clipData = null;
         }
     }
 }

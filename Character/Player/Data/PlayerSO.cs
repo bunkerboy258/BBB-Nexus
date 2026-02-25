@@ -155,6 +155,8 @@ namespace Characters.Player.Data
         public float Gravity = -20f;
         [Range(0f, 1f)]
         public float AirControl = 0.5f;
+        [Tooltip("Move speed smoothing time (物理速度变化平滑时间，单位秒)")]
+        public float MoveSpeedSmoothTime = 0.15f;
 
         [Header("ANIMATION BLENDING - 动画混合")]
         [Tooltip("Animation blend curve for movement state switching - 移动状态切换时动画参数变化的参照曲线")]

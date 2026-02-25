@@ -1,5 +1,5 @@
-using Animancer;
 using Characters.Player.Data;
+using Characters.Player.Animation;
 using Core.StateMachine;
 using UnityEngine;
 
@@ -7,14 +7,13 @@ namespace Characters.Player.States
 {
     public class PlayerAimMoveState : PlayerBaseState
     {
-        private MixerState<Vector2> _mixerState;
-
         public PlayerAimMoveState(PlayerController player) : base(player) { }
 
         public override void Enter()
         {
-            var state = player.Animancer.Layers[0].Play(config.AimLocomotionMixer, 0.2f);
-            _mixerState = state as MixerState<Vector2>;
+            var options = AnimPlayOptions.Default;
+            options.FadeDuration = 0.2f;
+            AnimFacade.PlayTransition(config.AimLocomotionMixer, options);
 
             data.WantsLookAtIK = true;
         }
@@ -45,20 +44,16 @@ namespace Characters.Player.States
                 return;
             }
 
-            if (_mixerState != null)
-            {
-                _mixerState.Parameter = new Vector2(data.CurrentAnimBlendX, data.CurrentAnimBlendY);
-            }
+            AnimFacade.SetMixerParameter(new Vector2(data.CurrentAnimBlendX, data.CurrentAnimBlendY));
         }
 
         public override void PhysicsUpdate()
         {
-            player.MotionDriver.UpdateMotion(null, 0f, player.RuntimeData.ViewYaw);
+            player.MotionDriver.UpdateMotion(null, 0f);
         }
 
         public override void Exit()
         {
-            _mixerState = null;
         }
     }
 }
