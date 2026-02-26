@@ -26,15 +26,15 @@ namespace Characters.Player.States
             ClipTransition stopClip = SelectStopClipForLocomotionState(data.LastLocomotionState, data.CurrentRunCycleTime);
 
             var options = AnimPlayOptions.Default;
-            // 应用自定义淡入时间
-            if (data.NextStateFadeOverride.HasValue)
+            // 优先使用新的 PlayOptions 覆写
+            if (data.NextStatePlayOptions.HasValue)
             {
-                options.FadeDuration = data.NextStateFadeOverride.Value;
-                data.NextStateFadeOverride = null;
+                options = data.NextStatePlayOptions.Value;
+                data.NextStatePlayOptions = null;
             }
 
             AnimFacade.PlayTransition(stopClip, options);
-            data.stopFadeInTime = 0f;
+            //data.stopFadeInTime = 0f;
 
             // 动画完毕 -> 回到 Idle
             AnimFacade.SetOnEndCallback(() => player.StateMachine.ChangeState(player.IdleState));
@@ -45,7 +45,7 @@ namespace Characters.Player.States
             // 停止时检测输入 -> 重新开始移动
             if (data.CurrentLocomotionState != LocomotionState.Idle)
             {
-                data.NextStateFadeOverride = 0.4f;
+                data.NextStatePlayOptions = new AnimPlayOptions { FadeDuration = 0.4f };
                 player.StateMachine.ChangeState(player.MoveLoopState);
                 return;
             }

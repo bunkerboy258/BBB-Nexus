@@ -2,6 +2,7 @@ using Items.Data;
 using Items.Logic;
 using System.Collections.Generic;
 using UnityEngine;
+using Characters.Player.Animation;
 
 namespace Characters.Player.Data
 {
@@ -152,17 +153,10 @@ namespace Characters.Player.Data
         public int FallHeightLevel;
 
         /// <summary>
-        /// 一次性的动画过渡覆写。
-        /// 由触发打断的状态写入，由下一个状态消费。一旦消费，立刻清空。
+        /// 新的播放选项覆写（可包含 Fade/NormalizedTime/Speed/Layer 等）。
         /// </summary>
-        public float? NextStateFadeOverride =null;
-        //不设置成0是为了为了清晰区分 “未设置 / 不生效” 和 “明确设置为 0” 这两种完全不同的业务逻辑状态
+        public AnimPlayOptions? NextStatePlayOptions = null;
 
-        public float idleFadeInTime;
-        public float moveStartFadeInTime;
-        public float LandFadeInTime;
-        public float loopFadeInTime;
-        public float stopFadeInTime;
         #endregion
 
         #region IK & EQUIPMENT - 装备与肢体对齐

@@ -55,8 +55,17 @@ namespace Characters.Player.States
             }
 
             var options = AnimPlayOptions.Default;
-            if (data.LandFadeInTime > 0f) options.FadeDuration = data.LandFadeInTime;
-            data.LandFadeInTime = 0f;
+            // 使用统一的 AnimPlayOptions 字段
+            if (data.NextStatePlayOptions.HasValue)
+            {
+                options = data.NextStatePlayOptions.Value;
+                data.NextStatePlayOptions = null;
+            }
+            else
+            {
+                // 作为过渡，使用 jump module 提供的 loop fade option（SelectLandingBufferClip 已写入 data.NextStatePlayOptions）
+                // 如果没有则使用默认
+            }
 
             AnimFacade.PlayTransition(_currentClip.Clip, options);
 
@@ -88,7 +97,7 @@ namespace Characters.Player.States
             {
                 _endTimeTriggered = true;
                 data.ExpectedFootPhase = _currentClip.EndPhase;
-                data.NextStateFadeOverride = 0.4f;
+                data.NextStatePlayOptions = AnimPlayOptions.Default;
 
                 player.StateMachine.ChangeState(player.MoveLoopState);
             }
@@ -113,7 +122,7 @@ namespace Characters.Player.States
             // fallHeightLevel: 0-3 => L1-L4, 4 => ExceedLimit
             if (fallHeightLevel >= 4)
             {
-                data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_ExceedLimit;
+                data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_ExceedLimitOptions;
                 return config.JumpAndLanding.LandBuffer_ExceedLimit;
             }
 
@@ -124,19 +133,19 @@ namespace Characters.Player.States
                 switch (fallHeightLevel)
                 {
                     case 0:
-                        data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1;
+                        data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1Options;
                         return config.JumpAndLanding.LandBuffer_WalkJog_L1;
                     case 1:
-                        data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L2;
+                        data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L2Options;
                         return config.JumpAndLanding.LandBuffer_WalkJog_L2;
                     case 2:
-                        data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L3;
+                        data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L3Options;
                         return config.JumpAndLanding.LandBuffer_WalkJog_L3;
                     case 3:
-                        data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L4;
+                        data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L4Options;
                         return config.JumpAndLanding.LandBuffer_WalkJog_L4;
                     default:
-                        data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1;
+                        data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1Options;
                         return config.JumpAndLanding.LandBuffer_WalkJog_L1;
                 }
             }
@@ -144,19 +153,19 @@ namespace Characters.Player.States
             switch (fallHeightLevel)
             {
                 case 0:
-                    data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L1;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L1Options;
                     return config.JumpAndLanding.LandBuffer_Sprint_L1;
                 case 1:
-                    data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L2;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L2Options;
                     return config.JumpAndLanding.LandBuffer_Sprint_L2;
                 case 2:
-                    data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L3;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L3Options;
                     return config.JumpAndLanding.LandBuffer_Sprint_L3;
                 case 3:
-                    data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L4;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L4Options;
                     return config.JumpAndLanding.LandBuffer_Sprint_L4;
                 default:
-                    data.loopFadeInTime = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L1;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L1Options;
                     return config.JumpAndLanding.LandBuffer_Sprint_L1;
             }
         }

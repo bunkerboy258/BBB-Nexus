@@ -21,7 +21,7 @@ namespace Characters.Player.States
             data.IsVaulting = true;
             _endTimeTriggered = false;
 
-            if (data.WantsLowVault && config.Vaulting. lowVaultAnim != null)
+            if (data.WantsLowVault && config.Vaulting.lowVaultAnim != null)
             {
                 _selectedWarpData = config.Vaulting.lowVaultAnim;
             }
@@ -69,12 +69,19 @@ namespace Characters.Player.States
             // 播放翻越动画
             var options = AnimPlayOptions.Default;
             options.NormalizedTime = 0f;
-            // 应用自定义淡入时间
-            if (data.NextStateFadeOverride.HasValue)
+
+            // 优先使用新的 PlayOptions 覆写
+            if (data.NextStatePlayOptions.HasValue)
             {
-                options.FadeDuration = data.NextStateFadeOverride.Value;
-                data.NextStateFadeOverride = null;
+                var playOpt = data.NextStatePlayOptions.Value;
+                // 保持 NormalizedTime=0 unless overridden explicitly
+                if (!playOpt.NormalizedTime.HasValue)
+                    playOpt.NormalizedTime = 0f;
+
+                options = playOpt;
+                data.NextStatePlayOptions = null;
             }
+
             AnimFacade.PlayTransition(_selectedWarpData.Clip, options);
 
             // 初始化 Motion Warping
@@ -92,7 +99,7 @@ namespace Characters.Player.States
             {
                 if (data.MoveInput.sqrMagnitude > 0.01f)
                 {
-                    data.NextStateFadeOverride = 0.4f;
+                    data.NextStatePlayOptions = AnimPlayOptions.Default;
                     player.StateMachine.ChangeState(player.MoveLoopState);
                 }
                 else
@@ -122,7 +129,7 @@ namespace Characters.Player.States
                 _endTimeTriggered = true;
                 if (data.MoveInput.sqrMagnitude > 0.01f)
                 {
-                    data.NextStateFadeOverride = 0.4f;
+                    data.NextStatePlayOptions = AnimPlayOptions.Default;
                     player.StateMachine.ChangeState(player.MoveLoopState);
                 }
                 else

@@ -37,17 +37,21 @@ namespace Characters.Player.States
             bool isSprint = data.CurrentLocomotionState == LocomotionState.Sprint;
 
             // 新增：Sprint+空手时播放翻滚动画，使用独立淡入配置
-            if (isSprint && isHandsEmpty && config.JumpAndLanding. DoubleJumpSprintRoll != null && config.JumpAndLanding.DoubleJumpSprintRoll.Clip != null)
+            if (isSprint && isHandsEmpty && config.JumpAndLanding.DoubleJumpSprintRoll != null && config.JumpAndLanding.DoubleJumpSprintRoll.Clip != null)
             {
                 _clipData = config.JumpAndLanding.DoubleJumpSprintRoll;
                 _jumpForce = config.JumpAndLanding.DoubleJumpForceUp > 0.01f ? config.JumpAndLanding.DoubleJumpForceUp : config.JumpAndLanding.JumpForceSprintEmpty;
 
                 var option = AnimPlayOptions.Default;
-                if (data.NextStateFadeOverride.HasValue)
+                if (data.NextStatePlayOptions.HasValue)
                 {
-                    option.FadeDuration = data.NextStateFadeOverride.Value;
-                    data.NextStateFadeOverride = null;
+                    option = data.NextStatePlayOptions.Value;
+                    data.NextStatePlayOptions = null;
                 }
+
+                // 如果 NextStatePlayOptions 未指定 Fade，则使用 SO 中的默认 Fade
+                if (!option.FadeDuration.HasValue && config.JumpAndLanding.DoubleJumpSprintRollFadeInOptions.FadeDuration.HasValue)
+                    option.FadeDuration = config.JumpAndLanding.DoubleJumpSprintRollFadeInOptions.FadeDuration;
 
                 option.NormalizedTime = 0f;
                 AnimFacade.PlayTransition(_clipData.Clip, option);
@@ -56,10 +60,14 @@ namespace Characters.Player.States
             {
                 // 2. 根据二段跳方向和装备情况选择动画（原逻辑）
                 SelectDoubleJumpAnimation();
-                data.LandFadeInTime = config.JumpAndLanding.DoubleJumpToLandFadeInTime;
+                // 写入下一状态的播放选项，替代之前的 float 字段
+                data.NextStatePlayOptions = config.JumpAndLanding.DoubleJumpToLandFadeInOptions;
 
                 var options = AnimPlayOptions.Default;
-                options.FadeDuration = config.JumpAndLanding.DoubleJumpFadeInTime;
+                // 使用 SO 中的 Fade 值
+                if (config.JumpAndLanding.DoubleJumpFadeInOptions.FadeDuration.HasValue)
+                    options.FadeDuration = config.JumpAndLanding.DoubleJumpFadeInOptions.FadeDuration;
+
                 options.NormalizedTime = 0f;
                 AnimFacade.PlayTransition(_clipData.Clip, options);
             }

@@ -28,9 +28,9 @@ namespace Characters.Player.States
 
             // Idle 默认从头淡入。这里用“淡入覆盖”作为最小侵入替代 FadeMode.FromStart。
             // 如果需要严格 FromStart，可在 AnimPlayOptions 中扩展一个 FromStart 标记。
-            float fade = data.idleFadeInTime == 0f ? 0.4f : data.idleFadeInTime;
-            options.FadeDuration = fade;
-            data.idleFadeInTime = 0f;
+            //float fade = data.idleFadeInTime == 0f ? 0.4f : data.idleFadeInTime;
+            options.FadeDuration = 0.2f;
+            //data.idleFadeInTime = 0f;
 
             AnimFacade.PlayTransition(config.LocomotionAnims. IdleAnim, options);
         }
@@ -43,13 +43,23 @@ namespace Characters.Player.States
         {
             if (data.CurrentLocomotionState != LocomotionState.Idle)
             {
-                data.NextStateFadeOverride = data.CurrentLocomotionState switch
+                // 直接使用 LocomotionAnimSetSO 中的 AnimPlayOptions
+                switch (data.CurrentLocomotionState)
                 {
-                    LocomotionState.Walk => config.LocomotionAnims.FadeInWalkStart,
-                    LocomotionState.Jog => config.LocomotionAnims.FadeInRunStart,
-                    LocomotionState.Sprint => config.LocomotionAnims.FadeInSprintStart,
-                    _ => 0.3f
-                };
+                    case LocomotionState.Walk:
+                        data.NextStatePlayOptions = config.LocomotionAnims.FadeInWalkStartOptions;
+                        break;
+                    case LocomotionState.Jog:
+                        data.NextStatePlayOptions = config.LocomotionAnims.FadeInRunStartOptions;
+                        break;
+                    case LocomotionState.Sprint:
+                        data.NextStatePlayOptions = config.LocomotionAnims.FadeInSprintStartOptions;
+                        break;
+                    default:
+                        data.NextStatePlayOptions = AnimPlayOptions.Default;
+                        break;
+                }
+
                 player.StateMachine.ChangeState(player.MoveStartState);
                 return;
             }

@@ -39,11 +39,12 @@ namespace Characters.Player.States
             var targetClip = SelectLoopAnimationForState(data.CurrentLocomotionState, data.ExpectedFootPhase);
 
             var options = AnimPlayOptions.Default;
-            if (data.NextStateFadeOverride.HasValue)
+            // 优先使用新的 PlayOptions 覆写
+            if (data.NextStatePlayOptions.HasValue)
             {
-                options.FadeDuration = data.NextStateFadeOverride.Value;
+                options = data.NextStatePlayOptions.Value;
                 options.NormalizedTime = 0.14f;
-                data.NextStateFadeOverride = null;
+                data.NextStatePlayOptions = null;
             }
 
             AnimFacade.PlayTransition(targetClip, options);
@@ -54,20 +55,29 @@ namespace Characters.Player.States
             // 使用权威的离散状态而非浮点检查
             if (data.CurrentLocomotionState == LocomotionState.Idle)
             {
-                data.NextStateFadeOverride = data.LastLocomotionState switch
+                data.NextStatePlayOptions = config.LocomotionAnims.FadeInStopWalkOptions;
+                switch (data.LastLocomotionState)
                 {
-                    LocomotionState.Walk => config.LocomotionAnims.FadeInStopWalk,
-                    LocomotionState.Jog => config.LocomotionAnims.FadeInStopRun,
-                    LocomotionState.Sprint => config.LocomotionAnims.FadeInStopSprint,
-                    _ => 0f
-                };
+                    case LocomotionState.Walk:
+                        data.NextStatePlayOptions = config.LocomotionAnims.FadeInStopWalkOptions;
+                        break;
+                    case LocomotionState.Jog:
+                        data.NextStatePlayOptions = config.LocomotionAnims.FadeInStopRunOptions;
+                        break;
+                    case LocomotionState.Sprint:
+                        data.NextStatePlayOptions = config.LocomotionAnims.FadeInStopSprintOptions;
+                        break;
+                    default:
+                        data.NextStatePlayOptions = AnimPlayOptions.Default;
+                        break;
+                }
                 player.StateMachine.ChangeState(player.StopState);
                 return;
             }
 
             if (data.WantsToVault)
             {
-                data.NextStateFadeOverride = config.LocomotionAnims.FadeInVault;
+                data.NextStatePlayOptions = config.LocomotionAnims.FadeInVaultOptions;
                 player.StateMachine.ChangeState(player.VaultState);
                 return;
             }

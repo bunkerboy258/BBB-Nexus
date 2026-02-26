@@ -1,4 +1,5 @@
 using UnityEngine;
+using Characters.Player.Animation;
 
 namespace Characters.Player.Data
 {
@@ -13,27 +14,27 @@ namespace Characters.Player.Data
         [Header("JUMP - WALK/JOG VARIATIONS - 行走/慢跑跳跃变体")]
         public float JumpForceWalk = 5f;
         public MotionClipData JumpAirAnimWalk;
-        public float JumpToLandFadeInTime_WalkJog = 0.2f;
+        public AnimPlayOptions JumpToLandFadeInTime_WalkJogOptions;
 
         [Header("JUMP - SPRINT VARIATIONS - 冲刺跳跃变体")]
         public float JumpForceSprint = 7f;
         public MotionClipData JumpAirAnimSprint;
-        public float JumpToLandFadeInTime_Sprint = 0.3f;
+        public AnimPlayOptions JumpToLandFadeInTime_SprintOptions;
 
         [Header("JUMP - SPRINT EMPTY HANDED - 空手冲刺跳跃")]
         public float JumpForceSprintEmpty = 8f;
         public MotionClipData JumpAirAnimSprintEmpty;
-        public float JumpToLandFadeInTime_SprintEmpty = 0.4f;
+        public AnimPlayOptions JumpToLandFadeInTime_SprintEmptyOptions;
 
         [Header("DOUBLE JUMP - 二段跳")]
         public float DoubleJumpForceUp = 6f;
         public MotionClipData DoubleJumpUp;
-        public float DoubleJumpFadeInTime = 0.2f;
-        public float DoubleJumpToLandFadeInTime = 0.2f;
+        public AnimPlayOptions DoubleJumpFadeInOptions;
+        public AnimPlayOptions DoubleJumpToLandFadeInOptions;
         [Space]
         public MotionClipData DoubleJumpSprintRoll;
-        public float DoubleJumpSprintRollFadeInTime = 0.2f;
-        public float DoubleJumpSprintRollToLandFadeInTime = 0.2f;
+        public AnimPlayOptions DoubleJumpSprintRollFadeInOptions;
+        public AnimPlayOptions DoubleJumpSprintRollToLandFadeInOptions;
         #endregion
 
         #region Landing System 落地系统
@@ -46,27 +47,27 @@ namespace Characters.Player.Data
 
         [Header("LANDING - WALK/JOG ANIMATIONS - 行走/慢跑落地动画")]
         public MotionClipData LandBuffer_WalkJog_L1;
-        public float LandToLoopFadeInTime_WalkJog_L1 = 0.2f;
+        public AnimPlayOptions LandToLoopFadeInTime_WalkJog_L1Options;
         public MotionClipData LandBuffer_WalkJog_L2;
-        public float LandToLoopFadeInTime_WalkJog_L2 = 0.3f;
+        public AnimPlayOptions LandToLoopFadeInTime_WalkJog_L2Options;
         public MotionClipData LandBuffer_WalkJog_L3;
-        public float LandToLoopFadeInTime_WalkJog_L3 = 0.4f;
+        public AnimPlayOptions LandToLoopFadeInTime_WalkJog_L3Options;
         public MotionClipData LandBuffer_WalkJog_L4;
-        public float LandToLoopFadeInTime_WalkJog_L4 = 0.5f;
+        public AnimPlayOptions LandToLoopFadeInTime_WalkJog_L4Options;
 
         [Header("LANDING - SPRINT ANIMATIONS - 冲刺落地动画")]
         public MotionClipData LandBuffer_Sprint_L1;
-        public float LandToLoopFadeInTime_Sprint_L1 = 0.2f;
+        public AnimPlayOptions LandToLoopFadeInTime_Sprint_L1Options;
         public MotionClipData LandBuffer_Sprint_L2;
-        public float LandToLoopFadeInTime_Sprint_L2 = 0.3f;
+        public AnimPlayOptions LandToLoopFadeInTime_Sprint_L2Options;
         public MotionClipData LandBuffer_Sprint_L3;
-        public float LandToLoopFadeInTime_Sprint_L3 = 0.4f;
+        public AnimPlayOptions LandToLoopFadeInTime_Sprint_L3Options;
         public MotionClipData LandBuffer_Sprint_L4;
-        public float LandToLoopFadeInTime_Sprint_L4 = 0.8f;
+        public AnimPlayOptions LandToLoopFadeInTime_Sprint_L4Options;
 
         [Header("LANDING - CRITICAL - 超限落地动画")]
         public MotionClipData LandBuffer_ExceedLimit;
-        public float LandToLoopFadeInTime_ExceedLimit = 0.7f;
+        public AnimPlayOptions LandToLoopFadeInTime_ExceedLimitOptions;
         #endregion
     }
 }

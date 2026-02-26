@@ -53,10 +53,10 @@ namespace Characters.Player.States
 
             // 3. 播放动画
             var options = AnimPlayOptions.Default; // 默认不覆盖 Fade
-            if (data.NextStateFadeOverride.HasValue)
+            if (data.NextStatePlayOptions.HasValue)
             {
-                options.FadeDuration = data.NextStateFadeOverride.Value;
-                data.NextStateFadeOverride = null; // 消费后立即清空
+                options = data.NextStatePlayOptions.Value;
+                data.NextStatePlayOptions = null; // 消费后立即清空
             }
 
             player.AnimFacade.PlayTransition(_selectedData.Clip, options);
@@ -68,7 +68,7 @@ namespace Characters.Player.States
                 HandleDodgeEnd();
             });
 
-            data.ExpectedFootPhase= _selectedData.EndPhase; // 立即设置末相位，确保动画过渡正确
+            data.ExpectedFootPhase = _selectedData.EndPhase; // 立即设置末相位，确保动画过渡正确
         }
 
         protected override void UpdateStateLogic()
@@ -163,14 +163,14 @@ namespace Characters.Player.States
             // 闪避结束后，决定下一个状态的淡入时间
             if (data.CurrentLocomotionState == LocomotionState.Idle)
             {
-                // 如果停下了，要求 Idle 缓慢淡入
-                data.NextStateFadeOverride = config.Dodging.FadeInIdle;
+                // 如果停下了，要求 Idle 缓慢淡入，使用 DodgingSO 的 AnimPlayOptions
+                data.NextStatePlayOptions = config.Dodging.FadeInIdleOptions;
                 player.StateMachine.ChangeState(player.IdleState);
             }
             else
             {
                 // 如果还在移动，根据是否冲刺决定 MoveLoop 的淡入时间
-                data.NextStateFadeOverride = config.Dodging.FadeInMoveLoop;
+                data.NextStatePlayOptions = config.Dodging.FadeInMoveLoopOptions;
                 data.ExpectedFootPhase = _selectedData.EndPhase; // 传递末相位给 MoveLoopState
                 player.StateMachine.ChangeState(player.MoveLoopState);
             }

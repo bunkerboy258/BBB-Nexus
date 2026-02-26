@@ -1,5 +1,6 @@
 using Animancer;
 using UnityEngine;
+using Characters.Player.Animation;
 
 namespace Characters.Player.Data
 {
@@ -7,24 +8,25 @@ namespace Characters.Player.Data
     public class LocomotionAnimSetSO : ScriptableObject
     {
         #region FadeTimeSettings  移动相关自定义过度时间
-        public float FadeInWalkStart = 0f;
-        public float FadeInRunStart = 0f;
-        public float FadeInSprintStart = 0f;
-        public float FadeInLoopBreakIn = 0.4f;
+        // 替换为统一的 AnimPlayOptions
+        public AnimPlayOptions FadeInWalkStartOptions = AnimPlayOptions.Default;
+        public AnimPlayOptions FadeInRunStartOptions = AnimPlayOptions.Default;
+        public AnimPlayOptions FadeInSprintStartOptions = AnimPlayOptions.Default;
+        public AnimPlayOptions FadeInLoopBreakInOptions;
         [Space]
-        public float FadeInWalkLoop = 0f;
-        public float FadeInRunLoop = 0f;
-        public float FadeInSprintLoop = 0f;
+        public AnimPlayOptions FadeInWalkLoopOptions = AnimPlayOptions.Default;
+        public AnimPlayOptions FadeInRunLoopOptions = AnimPlayOptions.Default;
+        public AnimPlayOptions FadeInSprintLoopOptions = AnimPlayOptions.Default;
         [Space]
-        public float FadeInStopWalk = 0.3f;
-        public float FadeInStopRun = 0.3f;
-        public float FadeInStopSprint = 0.3f;
+        public AnimPlayOptions FadeInStopWalkOptions;
+        public AnimPlayOptions FadeInStopRunOptions;
+        public AnimPlayOptions FadeInStopSprintOptions;
         [Space]
         [Header("没有相关模块就不用设置")]
-        public float FadeInJump = 0.2f;
-        public float FadeInVault = 0.3f;
-        public float FadeInQuickDodge = 0.3f;
-        public float FadeInMoveDodge = 0.3f;
+        public AnimPlayOptions FadeInJumpOptions;
+        public AnimPlayOptions FadeInVaultOptions;
+        public AnimPlayOptions FadeInQuickDodgeOptions;
+        public AnimPlayOptions FadeInMoveDodgeOptions;
         #endregion
         #region Locomotion Animations 基础移动动画
         [Header("LOCOMOTION - IDLE - 待机动画")]

@@ -42,12 +42,5 @@ namespace Characters.Player.Animation
             ForcePhaseSync = false
         };
 
-        // --- 快捷创建工厂 ---
-        public static AnimPlayOptions WithFade(float fadeDuration)
-        {
-            var opt = Default;
-            opt.FadeDuration = fadeDuration;
-            return opt;
-        }
     }
 }

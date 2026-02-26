@@ -22,7 +22,10 @@ namespace Characters.Player.States
             // 这里通过 NormalizedTime=0 强制从头开始。
             var options = AnimPlayOptions.Default;
             options.NormalizedTime = 0f;
-            options.FadeDuration = config.LocomotionAnims.FadeInJump;
+            // 使用统一的新选项字段
+            var fadeOpt = config.LocomotionAnims.FadeInJumpOptions;
+            if (fadeOpt.FadeDuration.HasValue) options.FadeDuration = fadeOpt.FadeDuration;
+
             AnimFacade.PlayTransition(_clipData.Clip, options);
 
             AnimFacade.SetOnEndCallback(() =>
@@ -47,7 +50,8 @@ namespace Characters.Player.States
                 case LocomotionState.Jog:
                     _clipData = config.JumpAndLanding.JumpAirAnimWalk ?? config.JumpAndLanding.JumpAirAnim;
                     _jumpForce = config.JumpAndLanding.JumpForceWalk;
-                    data.LandFadeInTime = config.JumpAndLanding.JumpToLandFadeInTime_WalkJog;
+                    // 写入统一 NextStatePlayOptions
+                    data.NextStatePlayOptions = config.JumpAndLanding.JumpToLandFadeInTime_WalkJogOptions;
                     break;
 
                 case LocomotionState.Sprint:
@@ -55,13 +59,13 @@ namespace Characters.Player.States
                     {
                         _clipData = config.JumpAndLanding.JumpAirAnimSprintEmpty ?? config.JumpAndLanding.JumpAirAnim;
                         _jumpForce = config.JumpAndLanding.JumpForceSprintEmpty;
-                        data.LandFadeInTime = config.JumpAndLanding.JumpToLandFadeInTime_SprintEmpty;
+                        data.NextStatePlayOptions = config.JumpAndLanding.JumpToLandFadeInTime_SprintEmptyOptions;
                     }
                     else
                     {
                         _clipData = config.JumpAndLanding.JumpAirAnimSprint ?? config.JumpAndLanding.JumpAirAnim;
                         _jumpForce = config.JumpAndLanding.JumpForceSprint;
-                        data.LandFadeInTime = config.JumpAndLanding.JumpToLandFadeInTime_Sprint;
+                        data.NextStatePlayOptions = config.JumpAndLanding.JumpToLandFadeInTime_SprintOptions;
                     }
                     break;
 
@@ -69,7 +73,7 @@ namespace Characters.Player.States
                     Debug.Log(" JumpAirAnim 配置缺失，使用默认跳跃动画");
                     _clipData = config.JumpAndLanding.JumpAirAnim;
                     _jumpForce = config.JumpAndLanding.JumpForce;
-                    data.LandFadeInTime = 0.2f;
+                    data.NextStatePlayOptions = AnimPlayOptions.Default;
                     break;
             }
         }
