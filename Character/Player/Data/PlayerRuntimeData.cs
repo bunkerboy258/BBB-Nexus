@@ -93,6 +93,7 @@ namespace Characters.Player.Data
         public bool JustLanded;
         public bool JustLeftGround;
         public bool IsAiming;
+        public LocomotionState LastLocomotionState = LocomotionState.Idle;
         public LocomotionState CurrentLocomotionState = LocomotionState.Idle;
 
         [Space]

@@ -42,13 +42,8 @@ namespace Characters.Player.States
             if (data.NextStateFadeOverride.HasValue)
             {
                 options.FadeDuration = data.NextStateFadeOverride.Value;
+                options.NormalizedTime = 0.14f;
                 data.NextStateFadeOverride = null;
-            }
-            else
-            {
-                // 保持旧逻辑：loopFadeInTime 作为一次性淡入。
-                if (data.loopFadeInTime > 0f) options.FadeDuration = data.loopFadeInTime;
-                data.loopFadeInTime = 0f;
             }
 
             AnimFacade.PlayTransition(targetClip, options);
@@ -59,12 +54,20 @@ namespace Characters.Player.States
             // 使用权威的离散状态而非浮点检查
             if (data.CurrentLocomotionState == LocomotionState.Idle)
             {
+                data.NextStateFadeOverride = data.LastLocomotionState switch
+                {
+                    LocomotionState.Walk => config.LocomotionAnims.FadeInStopWalk,
+                    LocomotionState.Jog => config.LocomotionAnims.FadeInStopRun,
+                    LocomotionState.Sprint => config.LocomotionAnims.FadeInStopSprint,
+                    _ => 0f
+                };
                 player.StateMachine.ChangeState(player.StopState);
                 return;
             }
 
             if (data.WantsToVault)
             {
+                data.NextStateFadeOverride = config.LocomotionAnims.FadeInVault;
                 player.StateMachine.ChangeState(player.VaultState);
                 return;
             }

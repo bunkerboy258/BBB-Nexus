@@ -9,6 +9,10 @@ namespace Characters.Player.Data
     [CreateAssetMenu(fileName = "DodgingModule", menuName = "Player/Modules/Dodging Module")]
     public class DodgingSO : ScriptableObject
     {
+        public float StaminaCost = 20f; // 每次闪避消耗的体力值
+        public float FadeInIdle = 0.8f;
+        public float FadeInMoveLoop = 0.5f;
+
         [Header("Dodge Animations (闪避动画)")]
         [Tooltip("角色在静止或行走时使用的闪避动作 (通常是侧步、后跳)")]
         public WarpedMotionData ForwardDodge;

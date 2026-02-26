@@ -169,6 +169,8 @@ public class RootMotionExtractorWindow : EditorWindow
     // --- Main Baking Logic (Entry Point) ---
     private void BakeAll()
     {
+        Undo.RecordObject(_targetSO, "Bake All Motion Clip Data");
+
         _isBaking = true;
         _bakeIndex = 0;
         _bakeProgress01 = 0f;
@@ -195,20 +197,26 @@ public class RootMotionExtractorWindow : EditorWindow
         animator.applyRootMotion = true;
         animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
 
+        // Collect all owners we touch so we can force-dirty them all (nested ScriptableObjects included).
+        var touchedOwners = new HashSet<UnityEngine.Object>();
+
         try
         {
-            var allClips = new List<MotionClipData>();
-            ScanMotionClipDataRecursive(_targetSO, data => {
+            // Collect all MotionClipData with their field info and owner object (like WarpedMotionExtractor)
+            var allClips = new List<(MotionClipData data, FieldInfo field, object owner)>();
+            ScanMotionClipDataWithFieldInfo(_targetSO, (data, field, owner) => {
                 if (data != null && data.Clip != null && data.Clip.Clip != null)
-                    allClips.Add(data);
+                    allClips.Add((data, field, owner));
             });
 
             _bakeTotal = allClips.Count;
+            int successCount = 0;
+
             for (int current = 0; current < allClips.Count; current++)
             {
-                var data = allClips[current];
+                var (originalData, field, owner) = allClips[current];
                 _bakeIndex = current;
-                _currentClipName = data.Clip.Clip.name;
+                _currentClipName = originalData.Clip.Clip.name;
                 _bakeProgress01 = (float)current / Mathf.Max(1, _bakeTotal);
                 _currentStage = "Bake";
                 _currentDetail = "Preparing...";
@@ -216,11 +224,31 @@ public class RootMotionExtractorWindow : EditorWindow
                 LogVerbose($"--> Clip START: {_currentClipName}", "#ffd54a");
                 AddEvent($"开始：{_currentClipName}", new Color(1f, 0.92f, 0.35f));
 
-                EditorUtility.DisplayProgressBar("Baking Root Motion", $"Processing {data.Clip.Clip.name}...", _bakeProgress01);
+                EditorUtility.DisplayProgressBar("Baking Root Motion", $"Processing {originalData.Clip.Clip.name}...", _bakeProgress01);
 
                 _swClip.Restart();
-                BakeSingleClip(animator, data); // The core logic is here
+
+                // Create a new MotionClipData instance
+                MotionClipData bakedData = new MotionClipData();
+                bakedData.Clip = originalData.Clip;
+                bakedData.Type = originalData.Type;
+                bakedData.TargetDuration = originalData.TargetDuration;
+                bakedData.EndTime = originalData.EndTime;
+                bakedData.AllowBakeTargetLocalDirection = originalData.AllowBakeTargetLocalDirection;
+
+                BakeSingleClip(animator, bakedData);
+
                 _swClip.Stop();
+
+                // Force replace with the new object instance
+                if (field != null && owner != null)
+                {
+                    field.SetValue(owner, bakedData);
+                    successCount++;
+
+                    if (owner is UnityEngine.Object uo)
+                        touchedOwners.Add(uo);
+                }
 
                 _currentClipMs = _swClip.ElapsedMilliseconds;
                 LogVerbose($"<-- Clip DONE: {_currentClipName} ({_currentClipMs}ms)", "#66ff88");
@@ -229,12 +257,36 @@ public class RootMotionExtractorWindow : EditorWindow
                 Repaint();
             }
 
-            EditorUtility.SetDirty(_targetSO);
+            // --- Most brutal disk persistence we can do from Editor code ---
+            touchedOwners.Add(_targetSO);
+            foreach (var obj in touchedOwners)
+            {
+                if (obj != null)
+                    EditorUtility.SetDirty(obj);
+            }
+
             AssetDatabase.SaveAssets();
+
+            // Targeted reserialize: ONLY relevant assets on disk (avoid full project reserialize which is very slow).
+            var touchedAssetPaths = new HashSet<string>();
+            foreach (var obj in touchedOwners)
+            {
+                if (obj == null) continue;
+                string path = AssetDatabase.GetAssetPath(obj);
+                if (!string.IsNullOrEmpty(path))
+                    touchedAssetPaths.Add(path);
+            }
+
+            if (touchedAssetPaths.Count > 0)
+                AssetDatabase.ForceReserializeAssets(new List<string>(touchedAssetPaths));
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
             _swAll.Stop();
 
-            AddEvent($"全部完成：{_swAll.ElapsedMilliseconds}ms", new Color(0.35f, 1f, 0.9f));
-            LogVerbose($"=== BakeAll DONE => {_swAll.ElapsedMilliseconds}ms ===", "#44ffee");
+            AddEvent($"全部完成：{_swAll.ElapsedMilliseconds}ms (成功更新 {successCount} 个)", new Color(0.35f, 1f, 0.9f));
+            LogVerbose($"=== BakeAll DONE => {_swAll.ElapsedMilliseconds}ms (Success: {successCount}/{_bakeTotal}) ===", "#44ffee");
         }
         finally
         {
@@ -244,6 +296,45 @@ public class RootMotionExtractorWindow : EditorWindow
             _currentStage = "Idle";
             _bakeProgress01 = 1f;
             Repaint();
+        }
+    }
+
+    /// <summary>
+    /// 递归扫描 MotionClipData 并同时收集 FieldInfo 和 owner 对象，用于强制替换。
+    /// Recursively scan MotionClipData and collect FieldInfo and owner for forced replacement (WarpedMotionExtractor pattern).
+    /// </summary>
+    private void ScanMotionClipDataWithFieldInfo(object target, Action<MotionClipData, FieldInfo, object> onFound)
+    {
+        if (target == null || !(target is ScriptableObject)) return;
+        
+        var fields = target.GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+        foreach (var field in fields)
+        {
+            var value = field.GetValue(target);
+            if (value == null) continue;
+            
+            if (value is MotionClipData mcd)
+            {
+                onFound(mcd, field, target);
+            }
+            else if (value is ScriptableObject so)
+            {
+                ScanMotionClipDataWithFieldInfo(so, onFound);
+            }
+            else if (value is System.Collections.IEnumerable enumerable && !(value is string))
+            {
+                foreach (var item in enumerable)
+                {
+                    if (item is MotionClipData itemMcd)
+                    {
+                        onFound(itemMcd, field, target);
+                    }
+                    else if (item is ScriptableObject itemSo)
+                    {
+                        ScanMotionClipDataWithFieldInfo(itemSo, onFound);
+                    }
+                }
+            }
         }
     }
 

@@ -23,10 +23,15 @@ namespace Characters.Player.States
         public override void Enter()
         {
             // 根据运动状态和脚相位选择对应的急停动画
-            ClipTransition stopClip = SelectStopClipForLocomotionState(data.CurrentLocomotionState, data.CurrentRunCycleTime);
+            ClipTransition stopClip = SelectStopClipForLocomotionState(data.LastLocomotionState, data.CurrentRunCycleTime);
 
             var options = AnimPlayOptions.Default;
-            options.FadeDuration = 0.4f;
+            // 应用自定义淡入时间
+            if (data.NextStateFadeOverride.HasValue)
+            {
+                options.FadeDuration = data.NextStateFadeOverride.Value;
+                data.NextStateFadeOverride = null;
+            }
 
             AnimFacade.PlayTransition(stopClip, options);
             data.stopFadeInTime = 0f;

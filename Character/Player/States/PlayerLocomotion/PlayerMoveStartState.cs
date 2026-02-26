@@ -43,7 +43,6 @@ namespace Characters.Player.States
                 options.FadeDuration = data.NextStateFadeOverride.Value;
                 data.NextStateFadeOverride = null;
             }
-
             // 播放起步动画（使用 Transition，本项目配置的是 ClipTransition）
             AnimFacade.PlayTransition(_currentClipData.Clip, options);
 
@@ -53,7 +52,14 @@ namespace Characters.Player.States
             // End 回调：切换到 MoveLoop
             AnimFacade.SetOnEndCallback(() =>
             {
-                data.NextStateFadeOverride = 0.2f;
+                // 应用自定义淡入时间
+                data.NextStateFadeOverride= data.CurrentLocomotionState switch
+                {
+                    LocomotionState.Walk => config.LocomotionAnims.FadeInWalkLoop,
+                    LocomotionState.Jog => config.LocomotionAnims.FadeInRunLoop,
+                    LocomotionState.Sprint => config.LocomotionAnims.FadeInSprintLoop,
+                    _ => 0f
+                };
                 player.StateMachine.ChangeState(player.MoveLoopState);
             });
         }
@@ -75,7 +81,7 @@ namespace Characters.Player.States
             // 如果运动状态在起步中途改变，切到循环状态让其处理状态转换
             else if (data.CurrentLocomotionState != _startLocomotionState)
             {
-                data.NextStateFadeOverride = 0.4f;
+                data.NextStateFadeOverride = config.LocomotionAnims.FadeInLoopBreakIn;
                 player.StateMachine.ChangeState(player.MoveLoopState);
             }
         }

@@ -69,6 +69,12 @@ namespace Characters.Player.States
             // 播放翻越动画
             var options = AnimPlayOptions.Default;
             options.NormalizedTime = 0f;
+            // 应用自定义淡入时间
+            if (data.NextStateFadeOverride.HasValue)
+            {
+                options.FadeDuration = data.NextStateFadeOverride.Value;
+                data.NextStateFadeOverride = null;
+            }
             AnimFacade.PlayTransition(_selectedWarpData.Clip, options);
 
             // 初始化 Motion Warping

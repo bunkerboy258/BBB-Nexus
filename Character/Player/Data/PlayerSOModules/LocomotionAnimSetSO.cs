@@ -6,6 +6,26 @@ namespace Characters.Player.Data
     [CreateAssetMenu(fileName = "LocomotionAnimSet", menuName = "Player/Modules/Locomotion AnimSet")]
     public class LocomotionAnimSetSO : ScriptableObject
     {
+        #region FadeTimeSettings  移动相关自定义过度时间
+        public float FadeInWalkStart = 0f;
+        public float FadeInRunStart = 0f;
+        public float FadeInSprintStart = 0f;
+        public float FadeInLoopBreakIn = 0.4f;
+        [Space]
+        public float FadeInWalkLoop = 0f;
+        public float FadeInRunLoop = 0f;
+        public float FadeInSprintLoop = 0f;
+        [Space]
+        public float FadeInStopWalk = 0.3f;
+        public float FadeInStopRun = 0.3f;
+        public float FadeInStopSprint = 0.3f;
+        [Space]
+        [Header("没有相关模块就不用设置")]
+        public float FadeInJump = 0.2f;
+        public float FadeInVault = 0.3f;
+        public float FadeInQuickDodge = 0.3f;
+        public float FadeInMoveDodge = 0.3f;
+        #endregion
         #region Locomotion Animations 基础移动动画
         [Header("LOCOMOTION - IDLE - 待机动画")]
         public ClipTransition IdleAnim;

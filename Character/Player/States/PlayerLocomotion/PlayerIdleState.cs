@@ -43,7 +43,13 @@ namespace Characters.Player.States
         {
             if (data.CurrentLocomotionState != LocomotionState.Idle)
             {
-                data.NextStateFadeOverride = 0.2f;
+                data.NextStateFadeOverride = data.CurrentLocomotionState switch
+                {
+                    LocomotionState.Walk => config.LocomotionAnims.FadeInWalkStart,
+                    LocomotionState.Jog => config.LocomotionAnims.FadeInRunStart,
+                    LocomotionState.Sprint => config.LocomotionAnims.FadeInSprintStart,
+                    _ => 0.3f
+                };
                 player.StateMachine.ChangeState(player.MoveStartState);
                 return;
             }

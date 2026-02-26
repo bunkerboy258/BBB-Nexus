@@ -55,6 +55,8 @@ namespace Characters.Player.States
 
             if(data.WantsToDodge)
             {
+                data.NextStateFadeOverride = data.LastLocomotionState == LocomotionState.Sprint ? 
+                    config.LocomotionAnims.FadeInMoveDodge : config.LocomotionAnims.FadeInQuickDodge;
                 player.StateMachine.ChangeState(player.DodgeState);
                 return true;
             }

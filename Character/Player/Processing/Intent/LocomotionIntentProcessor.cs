@@ -94,6 +94,8 @@ namespace Characters.Player.Processing
         /// </summary>
         private void ProcessLocomotionStateAndStaminaIntent()
         {
+            LocomotionState prestate = _data.CurrentLocomotionState;
+
             if (_player.InputReader.IsRollPressed&&_data.IsGrounded) _data.WantsToRoll = true;
             if (_player.InputReader.IsDodgePressed && _data.IsGrounded) _data.WantsToDodge = true;
 
@@ -130,6 +132,8 @@ namespace Characters.Player.Processing
                 _data.CurrentLocomotionState = LocomotionState.Jog;
                 _data.WantToRun = false;
             }
+
+            if(_data.CurrentLocomotionState!=prestate)_data.LastLocomotionState = prestate;
         }
     }
 }

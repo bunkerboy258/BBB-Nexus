@@ -22,6 +22,7 @@ namespace Characters.Player.States
             // 这里通过 NormalizedTime=0 强制从头开始。
             var options = AnimPlayOptions.Default;
             options.NormalizedTime = 0f;
+            options.FadeDuration = config.LocomotionAnims.FadeInJump;
             AnimFacade.PlayTransition(_clipData.Clip, options);
 
             AnimFacade.SetOnEndCallback(() =>

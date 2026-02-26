@@ -19,6 +19,10 @@ namespace Characters.Player.States
         // 缓存当前选中的闪避数据
         private WarpedMotionData _selectedData;
 
+        // 跟踪播放时长以及是否已按 EndTime 触发结束逻辑，防止重复触发
+        private float _stateDuration;
+        private bool _endTimeTriggered;
+
         public PlayerDodgeState(PlayerController player) : base(player) { }
 
         // 闪避过程不可被通用强制打断
@@ -30,6 +34,9 @@ namespace Characters.Player.States
         {
             data.IsDodgeing = true;
             data.WantsToDodge = false;
+
+            _stateDuration = 0f;
+            _endTimeTriggered = false;
 
             // 1. 动画选择逻辑
             _selectedData = GetDodgeData();
@@ -54,24 +61,14 @@ namespace Characters.Player.States
 
             player.AnimFacade.PlayTransition(_selectedData.Clip, options);
 
-            // 4. 设置结束回调
+            // 4. 设置结束回调（如果动画自然播完会走这里）
             player.AnimFacade.SetOnEndCallback(() =>
             {
-                // 闪避结束后，决定下一个状态的淡入时间
-                if (data.CurrentLocomotionState == LocomotionState.Idle)
-                {
-                    // 如果停下了，要求 Idle 缓慢淡入
-                    data.NextStateFadeOverride = 1.0f;
-                    player.StateMachine.ChangeState(player.IdleState);
-                }
-                else
-                {
-                    // 如果还在移动，根据是否冲刺决定 MoveLoop 的淡入时间
-                    data.NextStateFadeOverride = data.CurrentLocomotionState == LocomotionState.Sprint ? 0.2f : 0.7f;
-                    data.ExpectedFootPhase = _selectedData.EndPhase; // 传递末相位给 MoveLoopState
-                    player.StateMachine.ChangeState(player.MoveLoopState);
-                }
+                if (_endTimeTriggered) return; // 已通过 EndTime 触发过，则忽略自然结束回调
+                HandleDodgeEnd();
             });
+
+            data.ExpectedFootPhase= _selectedData.EndPhase; // 立即设置末相位，确保动画过渡正确
         }
 
         protected override void UpdateStateLogic()
@@ -82,8 +79,19 @@ namespace Characters.Player.States
         public override void PhysicsUpdate()
         {
             if (_selectedData == null) return;
+
             float normalizedTime = player.AnimFacade.CurrentNormalizedTime;
             player.MotionDriver.UpdateWarpMotion(normalizedTime);
+
+            // 累计播放时长（用于 EndTime 提前触发）
+            _stateDuration = player.AnimFacade.CurrentTime;
+
+            if (!_endTimeTriggered && _selectedData.EndTime > 0f && _stateDuration >= _selectedData.EndTime)
+            {
+                _endTimeTriggered = true;
+                HandleDodgeEnd();
+                return;
+            }
         }
 
         public override void Exit()
@@ -120,7 +128,7 @@ namespace Characters.Player.States
 
             // 8方向判断逻辑
             if (angle > -HalfSectorAngle && angle <= HalfSectorAngle) // Fwd
-                return isSprint ? config.Dodging. MoveForwardDodge : config.Dodging.ForwardDodge;
+                return isSprint ? config.Dodging.MoveForwardLeftDodge : config.Dodging.ForwardDodge;
 
             if (angle > HalfSectorAngle && angle <= HalfSectorAngle + SectorAngle) // Fwd-Right
                 return isSprint ? config.Dodging.MoveForwardRightDodge : config.Dodging.ForwardRightDodge;
@@ -132,7 +140,7 @@ namespace Characters.Player.States
                 return isSprint ? config.Dodging.MoveRightDodge : config.Dodging.BackwardRightDodge; // 注意：Sprint 模式映射到右移闪
 
             if (angle > 180f - HalfSectorAngle || angle <= -180f + HalfSectorAngle) // Back
-                return isSprint ? config.Dodging.MoveBackwardDodge : config.Dodging.BackwardDodge;
+                return isSprint ? config.Dodging.MoveLeftDodge : config.Dodging.BackwardDodge;
 
             if (angle > -180f + HalfSectorAngle && angle <= -HalfSectorAngle - SectorAngle * 2) // Back-Left
                 return isSprint ? config.Dodging.MoveLeftDodge : config.Dodging.BackwardLeftDodge; // 注意：Sprint 模式映射到左移闪
@@ -145,6 +153,27 @@ namespace Characters.Player.States
 
             // 兜底
             return isSprint ? config.Dodging.MoveLeftDodge : config.Dodging.LeftDodge;
+        }
+
+        private void HandleDodgeEnd()
+        {
+            // 防重入
+            if (_endTimeTriggered) _endTimeTriggered = true;
+
+            // 闪避结束后，决定下一个状态的淡入时间
+            if (data.CurrentLocomotionState == LocomotionState.Idle)
+            {
+                // 如果停下了，要求 Idle 缓慢淡入
+                data.NextStateFadeOverride = config.Dodging.FadeInIdle;
+                player.StateMachine.ChangeState(player.IdleState);
+            }
+            else
+            {
+                // 如果还在移动，根据是否冲刺决定 MoveLoop 的淡入时间
+                data.NextStateFadeOverride = config.Dodging.FadeInMoveLoop;
+                data.ExpectedFootPhase = _selectedData.EndPhase; // 传递末相位给 MoveLoopState
+                player.StateMachine.ChangeState(player.MoveLoopState);
+            }
         }
 
         #endregion
