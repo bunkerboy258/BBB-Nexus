@@ -25,16 +25,7 @@ namespace Characters.Player.States
             // 根据运动状态和脚相位选择对应的急停动画
             ClipTransition stopClip = SelectStopClipForLocomotionState(data.LastLocomotionState, data.CurrentRunCycleTime);
 
-            var options = AnimPlayOptions.Default;
-            // 优先使用新的 PlayOptions 覆写
-            if (data.NextStatePlayOptions.HasValue)
-            {
-                options = data.NextStatePlayOptions.Value;
-                data.NextStatePlayOptions = null;
-            }
-
-            AnimFacade.PlayTransition(stopClip, options);
-            //data.stopFadeInTime = 0f;
+            ChooseOptionsAndPlay(stopClip);
 
             // 动画完毕 -> 回到 Idle
             AnimFacade.SetOnEndCallback(() => player.StateMachine.ChangeState(player.IdleState));
@@ -52,6 +43,7 @@ namespace Characters.Player.States
 
             if (data.WantsToJump)
             {
+                data.NextStatePlayOptions = config.LocomotionAnims.FadeInJumpOptions;
                 player.StateMachine.ChangeState(player.JumpState);
             }
         }

@@ -1,5 +1,6 @@
 using Core.StateMachine;
 using Characters.Player.Data;
+using Animancer;
 using UnityEngine;
 using Characters.Player.Animation;
 
@@ -46,13 +47,39 @@ namespace Characters.Player.States
         protected virtual bool CheckInterrupts()
         {
             // 1) 刚落地事件 -> 进入 LandState（由 LandState 决定后续切换）
-            if (data.JustLanded && data.FallHeightLevel > 0&&this is not PlayerLandState)
+            if (data.JustLanded && data.FallHeightLevel > 0 && this is not PlayerLandState)
             {
+                switch (data.FallHeightLevel)
+                {
+                    case 1:
+                        data.NextStatePlayOptions = data.CurrentLocomotionState == LocomotionState.Sprint
+                            ? config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L1Options
+                            : config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1Options;
+                        break;
+                    case 2:
+                        data.NextStatePlayOptions = data.CurrentLocomotionState == LocomotionState.Sprint
+                            ? config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L2Options
+                            : config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L2Options;
+                        break;
+                    case 3:
+                        data.NextStatePlayOptions = data.CurrentLocomotionState == LocomotionState.Sprint
+                            ? config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L3Options
+                            : config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L3Options;
+                        break;
+                    case 4:
+                        data.NextStatePlayOptions = data.CurrentLocomotionState == LocomotionState.Sprint
+                            ? config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L4Options
+                            : config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L4Options;
+                        break;
+                    default:
+                        data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_ExceedLimitOptions;
+                        break;
+                }
                 player.StateMachine.ChangeState(player.LandState);
                 return true;
             }
 
-            if(data.WantsToDodge)
+            if (data.WantsToDodge)
             {
                 // 使用新的 PlayOptions 覆写淡入时间
                 data.NextStatePlayOptions = data.LastLocomotionState == LocomotionState.Sprint ?
@@ -61,7 +88,7 @@ namespace Characters.Player.States
                 return true;
             }
 
-            if(data.WantsToVault&&this is not PlayerVaultState)
+            if (data.WantsToVault && this is not PlayerVaultState)
             {
                 player.StateMachine.ChangeState(player.VaultState);
                 return true;
@@ -77,7 +104,7 @@ namespace Characters.Player.States
                 if (this is PlayerJumpState || this is PlayerDoubleJumpState || this is PlayerLandState || this is PlayerVaultState)
                     return false;
 
-                player.StateMachine.ChangeState(data.CurrentLocomotionState==LocomotionState.Idle ? player.AimIdleState : player.AimMoveState);
+                player.StateMachine.ChangeState(data.CurrentLocomotionState == LocomotionState.Idle ? player.AimIdleState : player.AimMoveState);
                 return true;
             }
 
@@ -89,5 +116,26 @@ namespace Characters.Player.States
         /// 之前写在 LogicUpdate 里的内容应迁移到这里。
         /// </summary>
         protected abstract void UpdateStateLogic();
+
+        /// <summary> 选择播放配置的状态机公共api
+        /// <summary>
+        /// 选择动画播放选项并播放。
+        /// 优先使用 NextStatePlayOptions（临时覆写），否则使用默认选项。
+        /// </summary>
+        protected void ChooseOptionsAndPlay(ClipTransition clip)
+        {
+            if (AnimFacade == null)
+            {
+                Debug.LogError($"[{nameof(PlayerBaseState)}] AnimFacade is not initialized!");
+                return;
+            }
+
+            // 优先级：NextStatePlayOptions >  默认值
+            var options = data.NextStatePlayOptions ??  AnimPlayOptions.Default;
+            options.Layer = 0;
+            
+            AnimFacade.PlayTransition(clip, options);
+            data.NextStatePlayOptions = null;
+        }
     }
 }

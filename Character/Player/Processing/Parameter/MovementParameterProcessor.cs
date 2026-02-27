@@ -295,10 +295,10 @@ namespace Characters.Player.Processing
         /// </summary>
         private void CalculateFallHeightLevel(float height)
         {
-            if (height < _config.JumpAndLanding. LandHeightWalkJog_Level1) _data.FallHeightLevel = 0; // 几乎没掉 (如0.5m)
-            else if (height < _config.JumpAndLanding.LandHeightWalkJog_Level2) _data.FallHeightLevel = 1; // 轻落地 (如2m)
-            else if (height < _config.JumpAndLanding.LandHeightWalkJog_Level3) _data.FallHeightLevel = 2; // 中落地 (如4m)
-            else if (height < _config.JumpAndLanding.LandHeightWalkJog_Level4) _data.FallHeightLevel = 3; // 重落地 (如6m)
+            if (height < _config.JumpAndLanding. LandHeight_Level1) _data.FallHeightLevel = 0; // 几乎没掉 (如0.5m)
+            else if (height < _config.JumpAndLanding.LandHeight_Level2) _data.FallHeightLevel = 1; // 轻落地 (如2m)
+            else if (height < _config.JumpAndLanding.LandHeight_Level3) _data.FallHeightLevel = 2; // 中落地 (如4m)
+            else if (height < _config.JumpAndLanding.LandHeight_Level4) _data.FallHeightLevel = 3; // 重落地 (如6m)
             else _data.FallHeightLevel = 4; // 摔死/翻滚 (极高)
         }
     }

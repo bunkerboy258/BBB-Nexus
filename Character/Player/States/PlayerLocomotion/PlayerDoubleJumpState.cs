@@ -29,50 +29,12 @@ namespace Characters.Player.States
         public override void Enter()
         {
             _canCheckLand = false;
-
-            // 1. 标记本次空中已执行二段跳（防止重复）
             data.HasPerformedDoubleJumpInAir = true;
 
-            bool isHandsEmpty = data.CurrentEquipment.Definition == null;
-            bool isSprint = data.CurrentLocomotionState == LocomotionState.Sprint;
+            SelectDoubleJumpAnimation();
+            ChooseOptionsAndPlay(_clipData.Clip);
+            PerformJumpPhysics();
 
-            // 新增：Sprint+空手时播放翻滚动画，使用独立淡入配置
-            if (isSprint && isHandsEmpty && config.JumpAndLanding.DoubleJumpSprintRoll != null && config.JumpAndLanding.DoubleJumpSprintRoll.Clip != null)
-            {
-                _clipData = config.JumpAndLanding.DoubleJumpSprintRoll;
-                _jumpForce = config.JumpAndLanding.DoubleJumpForceUp > 0.01f ? config.JumpAndLanding.DoubleJumpForceUp : config.JumpAndLanding.JumpForceSprintEmpty;
-
-                var option = AnimPlayOptions.Default;
-                if (data.NextStatePlayOptions.HasValue)
-                {
-                    option = data.NextStatePlayOptions.Value;
-                    data.NextStatePlayOptions = null;
-                }
-
-                // 如果 NextStatePlayOptions 未指定 Fade，则使用 SO 中的默认 Fade
-                if (!option.FadeDuration.HasValue && config.JumpAndLanding.DoubleJumpSprintRollFadeInOptions.FadeDuration.HasValue)
-                    option.FadeDuration = config.JumpAndLanding.DoubleJumpSprintRollFadeInOptions.FadeDuration;
-
-                option.NormalizedTime = 0f;
-                AnimFacade.PlayTransition(_clipData.Clip, option);
-            }
-            else
-            {
-                // 2. 根据二段跳方向和装备情况选择动画（原逻辑）
-                SelectDoubleJumpAnimation();
-                // 写入下一状态的播放选项，替代之前的 float 字段
-                data.NextStatePlayOptions = config.JumpAndLanding.DoubleJumpToLandFadeInOptions;
-
-                var options = AnimPlayOptions.Default;
-                // 使用 SO 中的 Fade 值
-                if (config.JumpAndLanding.DoubleJumpFadeInOptions.FadeDuration.HasValue)
-                    options.FadeDuration = config.JumpAndLanding.DoubleJumpFadeInOptions.FadeDuration;
-
-                options.NormalizedTime = 0f;
-                AnimFacade.PlayTransition(_clipData.Clip, options);
-            }
-
-            // 4. 动画完成末回调
             AnimFacade.SetOnEndCallback(() =>
             {
                 if (player.CharController.isGrounded)
@@ -80,9 +42,6 @@ namespace Characters.Player.States
                     player.StateMachine.ChangeState(player.LandState);
                 }
             });
-
-            // 5. 施加物理力
-            PerformJumpPhysics();
         }
 
         /// <summary>
@@ -96,6 +55,7 @@ namespace Characters.Player.States
         private void SelectDoubleJumpAnimation()
         {
             bool isHandsEmpty = data.CurrentEquipment.Definition == null;
+            //Debug.Log(data.CurrentEquipment.Definition);
 
             // 根据运动状态和装备获取基础配置
             MotionClipData baseClip = null;
@@ -106,41 +66,31 @@ namespace Characters.Player.States
                 case LocomotionState.Idle:
                 case LocomotionState.Walk:
                 case LocomotionState.Jog:
-                    baseClip = config.JumpAndLanding.JumpAirAnimWalk;
-                    baseForce = config.JumpAndLanding.JumpForceWalk;
+                    baseClip = config.JumpAndLanding.DoubleJumpUp;
+                    baseForce = config.JumpAndLanding.DoubleJumpForceUp;
                     break;
 
                 case LocomotionState.Sprint:
                     if (isHandsEmpty)
                     {
-                        baseClip = config.JumpAndLanding.JumpAirAnimSprintEmpty;
-                        baseForce = config.JumpAndLanding.JumpForceSprintEmpty;
+                        baseClip = config.JumpAndLanding.DoubleJumpSprintRoll;
+                        baseForce = config.JumpAndLanding.DoubleJumpEmptyHandSprintForceUp;
                     }
                     else
                     {
-                        baseClip = config.JumpAndLanding.JumpAirAnimSprint;
-                        baseForce = config.JumpAndLanding.JumpForceSprint;
+                        baseClip = config.JumpAndLanding.DoubleJumpUp;
+                        baseForce = config.JumpAndLanding.DoubleJumpForceUp;
                     }
                     break;
 
                 default:
+                    Debug.Log(" DoubleJumpUp 配置缺失，使用 JumpAirAnim 作为二段跳动画");
                     baseClip = config.JumpAndLanding.JumpAirAnim;
-                    baseForce = config.JumpAndLanding.JumpForce;
+                    baseForce = config.JumpAndLanding.DoubleJumpForceUp;
                     break;
             }
-
-            // 二段跳力度：优先使用独立配置（默认值由 SO 给出）
-            float doubleJumpForce = config.JumpAndLanding.DoubleJumpForceUp > 0.01f ? config.JumpAndLanding.DoubleJumpForceUp : baseForce;
-
-            // 向上二段跳：优先选择 DoubleJumpUp，否则回退到基础配置
-            _clipData = config.JumpAndLanding.DoubleJumpUp ?? baseClip ?? config.JumpAndLanding.JumpAirAnim;
-            _jumpForce = doubleJumpForce;
-
-            // Debug 输出：记录选择结果，便于在控制台追踪问题
-            var clipName = _clipData?.Clip != null ? _clipData.Clip.Name : "none";
-            /*Debug.Log($"[PlayerDoubleJumpState.SelectDoubleJumpAnimation] " +
-                      $"LocomotionState={data.CurrentLocomotionState}, IsHandsEmpty={isHandsEmpty}, " +
-                      $"SelectedClip={clipName}, JumpForce={_jumpForce}");*/
+            _clipData = baseClip;
+            _jumpForce = baseForce;
         }
 
         private void PerformJumpPhysics()

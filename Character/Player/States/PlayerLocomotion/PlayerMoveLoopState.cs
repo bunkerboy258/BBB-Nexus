@@ -38,16 +38,7 @@ namespace Characters.Player.States
             // 1. 根据运动状态和脚相位选择动画
             var targetClip = SelectLoopAnimationForState(data.CurrentLocomotionState, data.ExpectedFootPhase);
 
-            var options = AnimPlayOptions.Default;
-            // 优先使用新的 PlayOptions 覆写
-            if (data.NextStatePlayOptions.HasValue)
-            {
-                options = data.NextStatePlayOptions.Value;
-                options.NormalizedTime = 0.14f;
-                data.NextStatePlayOptions = null;
-            }
-
-            AnimFacade.PlayTransition(targetClip, options);
+            ChooseOptionsAndPlay(targetClip);
         }
 
         protected override void UpdateStateLogic()
@@ -84,6 +75,7 @@ namespace Characters.Player.States
 
             if (data.WantsToJump)
             {
+                data.NextStatePlayOptions = config.LocomotionAnims.FadeInJumpOptions;
                 player.StateMachine.ChangeState(player.JumpState);
                 return;
             }

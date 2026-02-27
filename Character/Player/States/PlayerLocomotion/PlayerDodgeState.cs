@@ -51,15 +51,7 @@ namespace Characters.Player.States
             // 2. 初始化驱动引擎
             player.MotionDriver.InitializeWarpData(_selectedData);
 
-            // 3. 播放动画
-            var options = AnimPlayOptions.Default; // 默认不覆盖 Fade
-            if (data.NextStatePlayOptions.HasValue)
-            {
-                options = data.NextStatePlayOptions.Value;
-                data.NextStatePlayOptions = null; // 消费后立即清空
-            }
-
-            player.AnimFacade.PlayTransition(_selectedData.Clip, options);
+            ChooseOptionsAndPlay(_selectedData.Clip);
 
             // 4. 设置结束回调（如果动画自然播完会走这里）
             player.AnimFacade.SetOnEndCallback(() =>

@@ -13,7 +13,7 @@ namespace Characters.Player.States
     /// </summary>
     public class PlayerLandState : PlayerBaseState
     {
-        private float _stateDuration;
+        private int level;
         private MotionClipData _currentClip;
         private bool _endTimeTriggered;
 
@@ -24,7 +24,7 @@ namespace Characters.Player.States
 
         public override void Enter()
         {
-            _stateDuration = 0f;
+            level = 0;
             _endTimeTriggered = false;
 
             // 重置本次空中的二段跳标记（为下次空中做准备）
@@ -43,31 +43,11 @@ namespace Characters.Player.States
 
             // A) 根据 FallHeightLevel + LocomotionState 选择落地缓冲动画
             _currentClip = SelectLandingBufferClip(data.CurrentLocomotionState, data.FallHeightLevel);
-            
+
             // 消费 FallHeightLevel（一次性消费数据），然后清零
             data.FallHeightLevel = 0;
-            
-            // 防空检查：没资源则直接根据输入回到 MoveLoop/Idle
-            if (_currentClip == null || _currentClip.Clip == null || _currentClip.Clip.Clip == null)
-            {
-                player.StateMachine.ChangeState(wantToMove ? player.MoveLoopState : player.IdleState);
-                return;
-            }
 
-            var options = AnimPlayOptions.Default;
-            // 使用统一的 AnimPlayOptions 字段
-            if (data.NextStatePlayOptions.HasValue)
-            {
-                options = data.NextStatePlayOptions.Value;
-                data.NextStatePlayOptions = null;
-            }
-            else
-            {
-                // 作为过渡，使用 jump module 提供的 loop fade option（SelectLandingBufferClip 已写入 data.NextStatePlayOptions）
-                // 如果没有则使用默认
-            }
-
-            AnimFacade.PlayTransition(_currentClip.Clip, options);
+            ChooseOptionsAndPlay(_currentClip.Clip);
 
             // 3) 结束回调：写相位 + 切换状态
             AnimFacade.SetOnEndCallback(() =>
@@ -97,7 +77,7 @@ namespace Characters.Player.States
             {
                 _endTimeTriggered = true;
                 data.ExpectedFootPhase = _currentClip.EndPhase;
-                data.NextStatePlayOptions = AnimPlayOptions.Default;
+                data.NextStatePlayOptions = config.JumpAndLanding.LandToIdleOptions;
 
                 player.StateMachine.ChangeState(player.MoveLoopState);
             }
@@ -115,6 +95,7 @@ namespace Characters.Player.States
         {
             AnimFacade.ClearOnEndCallback();
             _currentClip = null;
+            SetupMoveLoopByLevel();
         }
 
         private MotionClipData SelectLandingBufferClip(LocomotionState locomotionState, int fallHeightLevel)
@@ -134,18 +115,23 @@ namespace Characters.Player.States
                 {
                     case 0:
                         data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1Options;
+                        level = 0;
                         return config.JumpAndLanding.LandBuffer_WalkJog_L1;
                     case 1:
                         data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L2Options;
+                        level = 1;
                         return config.JumpAndLanding.LandBuffer_WalkJog_L2;
                     case 2:
                         data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L3Options;
+                        level = 2;
                         return config.JumpAndLanding.LandBuffer_WalkJog_L3;
                     case 3:
                         data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L4Options;
+                        level = 3;
                         return config.JumpAndLanding.LandBuffer_WalkJog_L4;
                     default:
                         data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1Options;
+                        level = 0;
                         return config.JumpAndLanding.LandBuffer_WalkJog_L1;
                 }
             }
@@ -154,19 +140,68 @@ namespace Characters.Player.States
             {
                 case 0:
                     data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L1Options;
+                    level = 10;
                     return config.JumpAndLanding.LandBuffer_Sprint_L1;
                 case 1:
                     data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L2Options;
+                    level = 11;
                     return config.JumpAndLanding.LandBuffer_Sprint_L2;
                 case 2:
                     data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L3Options;
+                    level = 12;
                     return config.JumpAndLanding.LandBuffer_Sprint_L3;
                 case 3:
                     data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L4Options;
+                    level = 13;
                     return config.JumpAndLanding.LandBuffer_Sprint_L4;
                 default:
                     data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L1Options;
+                    level = 10;
                     return config.JumpAndLanding.LandBuffer_Sprint_L1;
+            }
+        }
+
+        private void SetupMoveLoopByLevel()
+        {
+            // level 映射关系：
+            // 0-3: Walk/Jog L1-L4
+            // 10-13: Sprint L1-L4
+            // 其他: 默认走路 L1
+
+            switch (level)
+            {
+                // Walk/Jog 档位
+                case 0:
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1Options;
+                    break;
+                case 1:
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L2Options;
+                    break;
+                case 2:
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L3Options;
+                    break;
+                case 3:
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L4Options;
+                    break;
+
+                // Sprint 档位
+                case 10:
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L1Options;
+                    break;
+                case 11:
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L2Options;
+                    break;
+                case 12:
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L3Options;
+                    break;
+                case 13:
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L4Options;
+                    break;
+
+                // 默认降级到走路
+                default:
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1Options;
+                    break;
             }
         }
     }

@@ -24,15 +24,7 @@ namespace Characters.Player.States
         /// </summary>
         public override void Enter()
         {
-            var options = AnimPlayOptions.Default;
-
-            // Idle 默认从头淡入。这里用“淡入覆盖”作为最小侵入替代 FadeMode.FromStart。
-            // 如果需要严格 FromStart，可在 AnimPlayOptions 中扩展一个 FromStart 标记。
-            //float fade = data.idleFadeInTime == 0f ? 0.4f : data.idleFadeInTime;
-            options.FadeDuration = 0.2f;
-            //data.idleFadeInTime = 0f;
-
-            AnimFacade.PlayTransition(config.LocomotionAnims. IdleAnim, options);
+            ChooseOptionsAndPlay(config.LocomotionAnims.IdleAnim);
         }
 
         /// <summary>
@@ -43,7 +35,6 @@ namespace Characters.Player.States
         {
             if (data.CurrentLocomotionState != LocomotionState.Idle)
             {
-                // 直接使用 LocomotionAnimSetSO 中的 AnimPlayOptions
                 switch (data.CurrentLocomotionState)
                 {
                     case LocomotionState.Walk:
@@ -66,6 +57,8 @@ namespace Characters.Player.States
 
             if (data.WantsToJump)
             {
+                //Debug.Log("IdleState detected jump input, transitioning to JumpState");
+                data.NextStatePlayOptions = config.LocomotionAnims.FadeInJumpOptions;
                 player.StateMachine.ChangeState(player.JumpState);
             }
         }
@@ -90,8 +83,5 @@ namespace Characters.Player.States
 
         #endregion
 
-        #region Helper Methods（辅助方法）
-
-        #endregion
     }
 }

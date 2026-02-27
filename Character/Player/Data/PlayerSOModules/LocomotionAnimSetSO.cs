@@ -18,15 +18,15 @@ namespace Characters.Player.Data
         public AnimPlayOptions FadeInRunLoopOptions = AnimPlayOptions.Default;
         public AnimPlayOptions FadeInSprintLoopOptions = AnimPlayOptions.Default;
         [Space]
-        public AnimPlayOptions FadeInStopWalkOptions;
-        public AnimPlayOptions FadeInStopRunOptions;
-        public AnimPlayOptions FadeInStopSprintOptions;
+        public AnimPlayOptions FadeInStopWalkOptions = AnimPlayOptions.Default;
+        public AnimPlayOptions FadeInStopRunOptions = AnimPlayOptions.Default;
+        public AnimPlayOptions FadeInStopSprintOptions = AnimPlayOptions.Default;
         [Space]
         [Header("没有相关模块就不用设置")]
-        public AnimPlayOptions FadeInJumpOptions;
-        public AnimPlayOptions FadeInVaultOptions;
-        public AnimPlayOptions FadeInQuickDodgeOptions;
-        public AnimPlayOptions FadeInMoveDodgeOptions;
+        public AnimPlayOptions FadeInJumpOptions = AnimPlayOptions.Default;
+        public AnimPlayOptions FadeInVaultOptions = AnimPlayOptions.Default;
+        public AnimPlayOptions FadeInQuickDodgeOptions = AnimPlayOptions.Default;
+        public AnimPlayOptions FadeInMoveDodgeOptions = AnimPlayOptions.Default;
         #endregion
         #region Locomotion Animations 基础移动动画
         [Header("LOCOMOTION - IDLE - 待机动画")]

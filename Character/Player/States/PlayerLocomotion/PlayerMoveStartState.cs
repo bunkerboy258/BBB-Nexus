@@ -37,17 +37,7 @@ namespace Characters.Player.States
             // 根据当前运动状态和移动方向选择起步动画
             _currentClipData = SelectClipForLocomotionState(data.DesiredLocalMoveAngle, data.CurrentLocomotionState);
 
-            var options = AnimPlayOptions.Default;
-
-            // 优先使用新的 PlayOptions 覆写
-            if (data.NextStatePlayOptions.HasValue)
-            {
-                options = data.NextStatePlayOptions.Value;
-                data.NextStatePlayOptions = null;
-            }
-
-            // 播放起步动画（使用 Transition，本项目配置的是 ClipTransition）
-            AnimFacade.PlayTransition(_currentClipData.Clip, options);
+            ChooseOptionsAndPlay(_currentClipData.Clip);
 
             // 末相位仍然用于 Loop/Stop 的左右脚选择
             data.ExpectedFootPhase = _currentClipData.EndPhase;
@@ -56,13 +46,12 @@ namespace Characters.Player.States
             AnimFacade.SetOnEndCallback(() =>
             {
                 // 应用自定义淡入时间（迁移为 PlayOptions）
-                var nextOptions = new AnimPlayOptions();
-                nextOptions.FadeDuration = data.CurrentLocomotionState switch
+                var nextOptions = data.CurrentLocomotionState switch
                 {
-                    LocomotionState.Walk => config.LocomotionAnims.FadeInWalkLoopOptions.FadeDuration ?? 0f,
-                    LocomotionState.Jog => config.LocomotionAnims.FadeInRunLoopOptions.FadeDuration ?? 0f,
-                    LocomotionState.Sprint => config.LocomotionAnims.FadeInSprintLoopOptions.FadeDuration ?? 0f,
-                    _ => 0f
+                    LocomotionState.Walk => config.LocomotionAnims.FadeInWalkLoopOptions,
+                    LocomotionState.Jog => config.LocomotionAnims.FadeInRunLoopOptions,
+                    LocomotionState.Sprint => config.LocomotionAnims.FadeInSprintLoopOptions,
+                    _ => AnimPlayOptions.Default
                 };
                 data.NextStatePlayOptions = nextOptions;
 
@@ -82,12 +71,12 @@ namespace Characters.Player.States
             }
             else if (data.WantsToJump)
             {
+                data.NextStatePlayOptions = config.LocomotionAnims.FadeInJumpOptions;
                 player.StateMachine.ChangeState(player.JumpState);
             }
             // 如果运动状态在起步中途改变，切到循环状态让其处理状态转换
             else if (data.CurrentLocomotionState != _startLocomotionState)
             {
-                // 兼容旧字段设置 -> 现在统一写入 NextStatePlayOptions
                 data.NextStatePlayOptions = config.LocomotionAnims.FadeInLoopBreakInOptions;
                 player.StateMachine.ChangeState(player.MoveLoopState);
             }
@@ -123,6 +112,7 @@ namespace Characters.Player.States
                 _ => 0.7f
             };
             data.CurrentAnimBlendY = targetY;
+
         }
 
         #endregion

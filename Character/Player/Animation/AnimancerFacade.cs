@@ -31,9 +31,9 @@ namespace Characters.Player.Animation
 
             var layer = GetLayerOrFallback(options.Layer);
 
-            // 逻辑：如果 options 指定了 Fade，就用 options 的；否则用 Animancer 的默认渐变 (通常是 0.25)
-            _currentState = options.FadeDuration.HasValue 
-                ? layer.Play(clip, options.FadeDuration.Value) 
+            // 逻辑：如果 options 指定了 Fade (>= 0)，就用 options 的；否则用 Animancer 的默认渐变 (通常是 0.25)
+            _currentState = options.FadeDuration >= 0
+                ? layer.Play(clip, options.FadeDuration) 
                 : layer.Play(clip);
 
             // 低成本安全：帮助检测是否有其它系统在管理同一个 State（回调串线的根源）。
@@ -56,10 +56,10 @@ namespace Characters.Player.Animation
             var layer = GetLayerOrFallback(options.Layer);
 
             // Animancer 核心特性：ITransition 自身就包含了 FadeDuration。
-            // 逻辑：优先使用 Options 里的 Fade。如果 Options 里没传 (null)，就直接 Play 从而触发 Transition 自带的默认 Fade。
-            if (options.FadeDuration.HasValue)
+            // 逻辑：优先使用 Options 里的 Fade (>= 0)。如果 Options 里没传 (-1)，就直接 Play 从而触发 Transition 自带的默认 Fade。
+            if (options.FadeDuration >= 0)
             {
-                _currentState = layer.Play(transition, options.FadeDuration.Value);
+                _currentState = layer.Play(transition, options.FadeDuration);
             }
             else
             {
@@ -144,12 +144,16 @@ namespace Characters.Player.Animation
         {
             if (state == null) return;
             
-            state.Speed = options.Speed;
-            
-            // 只有当明确要求从特定时间开始时，才去覆盖
-            if (options.NormalizedTime.HasValue)
+            // 仅当显式提供了正数速度时才覆盖当前状态速度。默认值 -1 表示 "不修改速度，由 Animancer 决定"。
+            if (options.Speed > 0f)
             {
-                state.NormalizedTime = options.NormalizedTime.Value;
+                state.Speed = options.Speed;
+            }
+            
+            // 只有当明确要求从特定时间开始时，才去覆盖 (>= 0)
+            if (options.NormalizedTime >= 0)
+            {
+                state.NormalizedTime = options.NormalizedTime;
             }
 
             // TODO: 未来如果要对接 FootPhase Sync，可在此处处理 options.ForcePhaseSync

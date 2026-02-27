@@ -75,7 +75,7 @@ namespace Characters.Player.States
             {
                 var playOpt = data.NextStatePlayOptions.Value;
                 // 保持 NormalizedTime=0 unless overridden explicitly
-                if (!playOpt.NormalizedTime.HasValue)
+                if (playOpt.NormalizedTime < 0)
                     playOpt.NormalizedTime = 0f;
 
                 options = playOpt;
