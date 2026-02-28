@@ -12,11 +12,12 @@ namespace Characters.Player.Data
     public class PlayerSO : ScriptableObject
     {
         [Header("--- 核心功能模块 (Core Modules) ---")]
+
+        [Tooltip("角色状态,全局打断逻辑注册表")]
+        public PlayerBrainSO Brain;
+
         [Tooltip("基础物理、视角、耐力等")]
         public CoreModuleSO Core;
-
-        [Header("--- 全局打断管线 (Transition Pipeline) ---")]
-        public List<StateInterceptorSO> GlobalInterceptors = new List<StateInterceptorSO>();
 
         [Tooltip("基础移动动画集 (走/跑/跳/起步/停止)")]
         public LocomotionAnimSetSO LocomotionAnims;

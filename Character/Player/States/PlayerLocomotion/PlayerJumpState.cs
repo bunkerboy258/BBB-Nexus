@@ -28,7 +28,7 @@ namespace Characters.Player.States
 
                 if (player.CharController.isGrounded)
                 {
-                    player.StateMachine.ChangeState(player.LandState);
+                    player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerLandState>());
                 }
             });
 
@@ -82,7 +82,7 @@ namespace Characters.Player.States
                 data.NextStatePlayOptions = data.CurrentLocomotionState == LocomotionState.Sprint
                     ? config.JumpAndLanding.DoubleJumpFadeInOptions
                     : config.JumpAndLanding.DoubleJumpSprintRollFadeInOptions;
-                player.StateMachine.ChangeState(player.DoubleJumpState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerDoubleJumpState>());
                 return;
             }
 
@@ -93,7 +93,7 @@ namespace Characters.Player.States
 
             if (_canCheckLand && data.VerticalVelocity <= 0 && player.CharController.isGrounded)
             {
-                player.StateMachine.ChangeState(player.LandState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerLandState>());
             }
         }
 

@@ -14,7 +14,7 @@ namespace Characters.Player.States
             // 原逻辑：处理 WantsToVault，且不在 VaultState
             if (data.WantsToVault && currentState is not PlayerVaultState)
             {
-                nextState = player.VaultState;
+                nextState = player.StateRegistry.GetState<PlayerVaultState>();
                 return true;
             }
 

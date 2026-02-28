@@ -27,8 +27,9 @@ namespace Characters.Player.States
                     return false;
 
                 // 根据当前运动状态决定是原地瞄准还是移动瞄准
-                nextState = data.CurrentLocomotionState == LocomotionState.Idle ?
-                    player.AimIdleState : player.AimMoveState;
+                nextState = data.CurrentLocomotionState == LocomotionState.Idle
+                    ? player.StateRegistry.GetState<PlayerAimIdleState>()
+                    : player.StateRegistry.GetState<PlayerAimMoveState>();
 
                 return true;
             }

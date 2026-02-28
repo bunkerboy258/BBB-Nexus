@@ -19,25 +19,25 @@ namespace Characters.Player.States
         {
             if (!data.IsAiming)
             {
-                player.StateMachine.ChangeState(player.IdleState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerIdleState>());
                 return;
             }
 
             if (data.WantsDoubleJump)
             {
-                player.StateMachine.ChangeState(player.DoubleJumpState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerDoubleJumpState>());
                 return;
             }
 
             if (data.WantsToJump)
             {
-                player.StateMachine.ChangeState(player.JumpState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerJumpState>());
                 return;
             }
 
             if (data.CurrentLocomotionState != LocomotionState.Idle)
             {
-                player.StateMachine.ChangeState(player.AimMoveState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerAimMoveState>());
             }
         }
 

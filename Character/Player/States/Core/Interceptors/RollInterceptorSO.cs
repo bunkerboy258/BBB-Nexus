@@ -12,14 +12,13 @@ namespace Characters.Player.States
             nextState = null;
             var data = player.RuntimeData;
 
-            // 原逻辑：处理 WantsToRoll，并根据上一个运动状态选择淡入参数
             if (data.WantsToRoll)
             {
                 data.NextStatePlayOptions = data.LastLocomotionState == LocomotionState.Sprint ?
                     player.Config.LocomotionAnims.FadeInMoveDodgeOptions :
                     player.Config.LocomotionAnims.FadeInQuickDodgeOptions;
 
-                nextState = player.RollState;
+                nextState = player.StateRegistry.GetState<PlayerRollState>();
                 return true;
             }
 

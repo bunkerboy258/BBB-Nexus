@@ -37,7 +37,9 @@ namespace Characters.Player.States
             {
                 // 消费 FallHeightLevel（一次性消费数据），然后清零
                 data.FallHeightLevel = 0;
-                player.StateMachine.ChangeState(wantToMove ? player.AimMoveState : player.AimIdleState);
+                player.StateMachine.ChangeState(wantToMove
+                    ? player.StateRegistry.GetState<PlayerAimMoveState>()
+                    : player.StateRegistry.GetState<PlayerAimIdleState>());
                 return;
             }
 
@@ -55,7 +57,9 @@ namespace Characters.Player.States
                 // C) 末相位写入（用于 MoveLoop 选左右脚相位）
                 data.ExpectedFootPhase = _currentClip.EndPhase;
 
-                player.StateMachine.ChangeState(wantToMove ? player.MoveLoopState : player.IdleState);
+                player.StateMachine.ChangeState(wantToMove
+                    ? player.StateRegistry.GetState<PlayerMoveLoopState>()
+                    : player.StateRegistry.GetState<PlayerIdleState>());
             });
 
             data.ExpectedFootPhase = _currentClip.EndPhase;
@@ -66,7 +70,7 @@ namespace Characters.Player.States
             // LandState 一般不响应切换（避免打断缓冲），只允许高优先级：跳跃
             if (data.WantsToJump)
             {
-                player.StateMachine.ChangeState(player.JumpState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerJumpState>());
                 return;
             }
 
@@ -79,7 +83,7 @@ namespace Characters.Player.States
                 data.ExpectedFootPhase = _currentClip.EndPhase;
                 data.NextStatePlayOptions = config.JumpAndLanding.LandToIdleOptions;
 
-                player.StateMachine.ChangeState(player.MoveLoopState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerMoveLoopState>());
             }
         }
 

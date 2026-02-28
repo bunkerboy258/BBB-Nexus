@@ -1,6 +1,7 @@
 using Core.StateMachine;
 using Characters.Player.Data;
 using Animancer;
+using System;
 using UnityEngine;
 using Characters.Player.Animation;
 
@@ -11,6 +12,7 @@ namespace Characters.Player.States
     /// - 封装通用引用与工具方法
     /// - 统一 LogicUpdate 执行顺序：先强制转移，再状态自身逻辑
     /// </summary>
+    [Serializable]
     public abstract class PlayerBaseState : BaseState
     {
         protected PlayerController player;

@@ -44,7 +44,7 @@ namespace Characters.Player.States
             // 防错处理
             if (_selectedData == null || _selectedData.Clip == null)
             {
-                player.StateMachine.ChangeState(player.IdleState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerIdleState>());
                 return;
             }
 
@@ -153,14 +153,14 @@ namespace Characters.Player.States
             {
                 // 如果停下了，要求 Idle 缓慢淡入，使用 RollSO 的 AnimPlayOptions
                 data.NextStatePlayOptions = config.Rolling.FadeInIdleOptions;
-                player.StateMachine.ChangeState(player.IdleState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerIdleState>());
             }
             else
             {
                 // 如果还在移动，要求 MoveLoop 缓慢淡入
                 data.NextStatePlayOptions = config.Rolling.FadeInMoveLoopOptions;
                 data.ExpectedFootPhase = _selectedData.EndPhase; // 传递末相位给 MoveLoopState
-                player.StateMachine.ChangeState(player.MoveLoopState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerMoveLoopState>());
             }
         }
 

@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using Characters.Player.Data;
 using Characters.Player.Animation;
 
@@ -10,6 +11,7 @@ namespace Characters.Player.States
     /// 1. 播放角色的空闲动画，保证动画过渡平滑；
     /// 2. 检测玩家的输入意图（长按移动/短按转身），并触发对应状态切换。
     /// </summary>
+    [Serializable]
     public class PlayerIdleState : PlayerBaseState
     {
         /// <summary>
@@ -51,7 +53,7 @@ namespace Characters.Player.States
                         break;
                 }
 
-                player.StateMachine.ChangeState(player.MoveStartState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerMoveStartState>());
                 return;
             }
 
@@ -59,7 +61,7 @@ namespace Characters.Player.States
             {
                 //Debug.Log("IdleState detected jump input, transitioning to JumpState");
                 data.NextStatePlayOptions = config.LocomotionAnims.FadeInJumpOptions;
-                player.StateMachine.ChangeState(player.JumpState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerJumpState>());
             }
         }
 

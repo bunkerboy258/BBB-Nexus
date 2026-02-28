@@ -15,7 +15,7 @@ namespace Characters.Player.States
             if (data.WantsToFall && currentState is not PlayerFallState && currentState is not PlayerVaultState)
             {
                 data.NextStatePlayOptions = player.Config.LocomotionAnims.FadeInFallOptions;
-                nextState = player.FallState;
+                nextState = player.StateRegistry.GetState<PlayerFallState>();
                 return true;
             }
 

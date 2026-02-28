@@ -28,7 +28,8 @@ namespace Characters.Player.States
             ChooseOptionsAndPlay(stopClip);
 
             // 动画完毕 -> 回到 Idle
-            AnimFacade.SetOnEndCallback(() => player.StateMachine.ChangeState(player.IdleState));
+            AnimFacade.SetOnEndCallback(() =>
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerIdleState>()));
         }
 
         protected override void UpdateStateLogic()
@@ -37,14 +38,14 @@ namespace Characters.Player.States
             if (data.CurrentLocomotionState != LocomotionState.Idle)
             {
                 data.NextStatePlayOptions = new AnimPlayOptions { FadeDuration = 0.4f };
-                player.StateMachine.ChangeState(player.MoveLoopState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerMoveLoopState>());
                 return;
             }
 
             if (data.WantsToJump)
             {
                 data.NextStatePlayOptions = config.LocomotionAnims.FadeInJumpOptions;
-                player.StateMachine.ChangeState(player.JumpState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerJumpState>());
             }
         }
 

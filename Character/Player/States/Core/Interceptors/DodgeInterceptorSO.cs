@@ -20,7 +20,7 @@ namespace Characters.Player.Core.Interceptors
                     player.Config.LocomotionAnims.FadeInMoveDodgeOptions :
                     player.Config.LocomotionAnims.FadeInQuickDodgeOptions;
 
-                nextState = player.DodgeState;
+                nextState = player.StateRegistry.GetState<PlayerDodgeState>();
                 return true;
             }
 

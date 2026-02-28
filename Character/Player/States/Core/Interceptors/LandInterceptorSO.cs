@@ -14,7 +14,7 @@ namespace Characters.Player.States
             // 原逻辑：刚落地且 FallHeightLevel>0，且不在 LandState
             if (data.JustLanded && data.FallHeightLevel > 0 && currentState is not PlayerLandState)
             {
-                nextState = player.LandState;
+                nextState = player.StateRegistry.GetState<PlayerLandState>();
                 return true;
             }
 

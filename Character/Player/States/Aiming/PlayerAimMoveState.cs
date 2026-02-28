@@ -22,25 +22,28 @@ namespace Characters.Player.States
         {
             if (!data.IsAiming)
             {
-                player.StateMachine.ChangeState(data.CurrentLocomotionState == LocomotionState.Idle ? (BaseState)player.MoveLoopState : player.IdleState);
+                player.StateMachine.ChangeState(
+                    data.CurrentLocomotionState == LocomotionState.Idle
+                        ? (BaseState)player.StateRegistry.GetState<PlayerIdleState>()
+                        : player.StateRegistry.GetState<PlayerMoveLoopState>());
                 return;
             }
 
             if (data.WantsDoubleJump)
             {
-                player.StateMachine.ChangeState(player.DoubleJumpState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerDoubleJumpState>());
                 return;
             }
 
             if (data.WantsToJump)
             {
-                player.StateMachine.ChangeState(player.JumpState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerJumpState>());
                 return;
             }
 
             if (data.CurrentLocomotionState == LocomotionState.Idle)
             {
-                player.StateMachine.ChangeState(player.AimIdleState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerAimIdleState>());
                 return;
             }
 

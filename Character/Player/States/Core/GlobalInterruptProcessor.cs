@@ -24,18 +24,16 @@ namespace Characters.Player.States
         public bool TryProcessInterrupts(PlayerBaseState currentState)
         {
             // 如果没有配置管线 跳过
-            if (_player.Config == null || _player.Config.GlobalInterceptors == null)
+            if (_player.Config == null || _player.Config.Brain == null || _player.Config.Brain.GlobalInterceptors == null)
                 return false;
 
-            // 遍历配置在 PlayerSO 中的打断器列表
-            var pipeline = _player.Config.GlobalInterceptors;
+            // 遍历配置在 PlayerBrainSO 中的打断器列表
+            var pipeline = _player.Config.Brain.GlobalInterceptors;
             for (int i = 0; i < pipeline.Count; i++)
             {
                 var interceptor = pipeline[i];
-                // 将上下文和当前状态传递给 SO 判断
                 if (interceptor != null && interceptor.TryIntercept(_player, currentState, out var nextState))
                 {
-                    // 触发切换并拦截后续逻辑
                     _player.StateMachine.ChangeState(nextState);
                     return true;
                 }

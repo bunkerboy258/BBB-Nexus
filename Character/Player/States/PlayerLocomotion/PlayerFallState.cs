@@ -33,7 +33,7 @@ namespace Characters.Player.States
             // 检测是否已经落地：刚落地且有下落高度
             if (data.IsGrounded)
             {
-                player.StateMachine.ChangeState(player.LandState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerLandState>());
                 return;
             }
         }

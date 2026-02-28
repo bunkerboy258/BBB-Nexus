@@ -71,20 +71,7 @@ namespace Characters.Player
         public EquipmentDriver EquipmentDriver { get; private set; }
 
         // --- 状态实例 ---
-        public PlayerIdleState IdleState { get; private set; }
-        public PlayerMoveStartState MoveStartState { get; private set; }
-        public PlayerMoveLoopState MoveLoopState { get; private set; }
-        public PlayerStopState StopState { get; private set; }
-        public PlayerVaultState VaultState { get; private set; } 
-        public PlayerDodgeState DodgeState { get; private set; }
-        public PlayerRollState RollState { get; private set; }    
-        public PlayerJumpState JumpState { get; private set; }
-        public PlayerDoubleJumpState DoubleJumpState { get; private set; }
-        public PlayerFallState FallState { get; private set; }
-        public PlayerLandState LandState { get; private set; }
-        public PlayerAimIdleState AimIdleState { get; private set; }
-        public PlayerAimMoveState AimMoveState { get; private set; }
-
+        public PlayerStateRegistry StateRegistry { get; private set; }
         // --- 私有控制器实例 ---
         private UpperBodyController _upperBodyController;
         private FacialController _facialController;
@@ -113,7 +100,7 @@ namespace Characters.Player
                 _intentProcessorPipeline.Equip.AssignItemToSlot(0, DefaultEquipment);
             }
             InitializeCamera();
-            StateMachine.Initialize(IdleState);
+            StateMachine.Initialize(StateRegistry.InitialState);
         }
 
         private void Update()
@@ -202,19 +189,17 @@ namespace Characters.Player
         /// </summary>
         private void InitializeStates()
         {
-            IdleState = new PlayerIdleState(this);
-            MoveStartState = new PlayerMoveStartState(this);
-            MoveLoopState = new PlayerMoveLoopState(this);
-            DodgeState=new PlayerDodgeState(this);
-            RollState = new PlayerRollState(this);
-            VaultState = new PlayerVaultState(this);    
-            StopState = new PlayerStopState(this);
-            JumpState = new PlayerJumpState(this);
-            DoubleJumpState = new PlayerDoubleJumpState(this);
-            FallState = new PlayerFallState(this);
-            LandState = new PlayerLandState(this);
-            AimIdleState=new PlayerAimIdleState(this);
-            AimMoveState =new PlayerAimMoveState(this);
+            StateRegistry = new PlayerStateRegistry();
+
+            if (Config != null && Config.Brain != null)
+            {
+                // 让注册表自己去读配置、造状态
+                StateRegistry.InitializeFromBrain(Config.Brain, this);
+            }
+            else
+            {
+                Debug.LogError("[PlayerController] 致命错误：未配置 PlayerSO 或 Brain！");
+            }
         }
 
         /// <summary>

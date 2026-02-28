@@ -54,7 +54,7 @@ namespace Characters.Player.States
 
             if (_selectedWarpData == null || _selectedWarpData.Clip == null)
             {
-                player.StateMachine.ChangeState(player.IdleState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerIdleState>());
                 return;
             }
 
@@ -81,15 +81,15 @@ namespace Characters.Player.States
 
             AnimFacade.SetOnEndCallback(() =>
             {
-                if (data.CurrentLocomotionState!=LocomotionState.Idle)
+                if (data.CurrentLocomotionState != LocomotionState.Idle)
                 {
                     data.NextStatePlayOptions = config.Vaulting.VaultToMoveOptions;
-                    player.StateMachine.ChangeState(player.MoveLoopState);
+                    player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerMoveLoopState>());
                 }
                 else
                 {
                     data.NextStatePlayOptions = config.Vaulting.VaultToIdleOptions;
-                    player.StateMachine.ChangeState(player.IdleState);
+                    player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerIdleState>());
                 }
             });
         }
@@ -115,11 +115,11 @@ namespace Characters.Player.States
                 if (data.MoveInput.sqrMagnitude > 0.01f)
                 {
                     data.NextStatePlayOptions = AnimPlayOptions.Default;
-                    player.StateMachine.ChangeState(player.MoveLoopState);
+                    player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerMoveLoopState>());
                 }
                 else
                 {
-                    player.StateMachine.ChangeState(player.IdleState);
+                    player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerIdleState>());
                 }
                 return;
             }

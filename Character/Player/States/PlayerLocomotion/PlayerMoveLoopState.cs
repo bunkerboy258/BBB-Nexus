@@ -62,21 +62,21 @@ namespace Characters.Player.States
                         data.NextStatePlayOptions = AnimPlayOptions.Default;
                         break;
                 }
-                player.StateMachine.ChangeState(player.StopState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerStopState>());
                 return;
             }
 
             if (data.WantsToVault)
             {
                 data.NextStatePlayOptions = config.LocomotionAnims.FadeInVaultOptions;
-                player.StateMachine.ChangeState(player.VaultState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerVaultState>());
                 return;
             }
 
             if (data.WantsToJump)
             {
                 data.NextStatePlayOptions = config.LocomotionAnims.FadeInJumpOptions;
-                player.StateMachine.ChangeState(player.JumpState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerJumpState>());
                 return;
             }
 

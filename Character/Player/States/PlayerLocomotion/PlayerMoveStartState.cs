@@ -55,7 +55,7 @@ namespace Characters.Player.States
                 };
                 data.NextStatePlayOptions = nextOptions;
 
-                player.StateMachine.ChangeState(player.MoveLoopState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerMoveLoopState>());
             });
         }
 
@@ -63,22 +63,22 @@ namespace Characters.Player.States
         {
             if (data.IsAiming)
             {
-                player.StateMachine.ChangeState(player.AimMoveState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerAimMoveState>());
             }
             else if (data.CurrentLocomotionState == LocomotionState.Idle)
             {
-                player.StateMachine.ChangeState(player.IdleState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerIdleState>());
             }
             else if (data.WantsToJump)
             {
                 data.NextStatePlayOptions = config.LocomotionAnims.FadeInJumpOptions;
-                player.StateMachine.ChangeState(player.JumpState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerJumpState>());
             }
             // 如果运动状态在起步中途改变，切到循环状态让其处理状态转换
             else if (data.CurrentLocomotionState != _startLocomotionState)
             {
                 data.NextStatePlayOptions = config.LocomotionAnims.FadeInLoopBreakInOptions;
-                player.StateMachine.ChangeState(player.MoveLoopState);
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerMoveLoopState>());
             }
         }
 
