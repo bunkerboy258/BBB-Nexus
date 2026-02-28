@@ -22,6 +22,10 @@ namespace Characters.Player.States
 
             AnimFacade.SetOnEndCallback(() =>
             {
+                // Ensure the end callback is cleared when invoked so it doesn't keep firing
+                // every frame if the animation hasn't been stopped by playing another one.
+                AnimFacade.ClearOnEndCallback();
+
                 if (player.CharController.isGrounded)
                 {
                     player.StateMachine.ChangeState(player.LandState);

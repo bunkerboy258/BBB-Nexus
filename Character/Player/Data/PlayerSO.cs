@@ -28,5 +28,8 @@ namespace Characters.Player.Data
 
         [Tooltip("闪避系统 (可选, 为 null 则禁用)")]
         public DodgingSO Dodging;
+
+        [Tooltip("翻滚系统 (可选, 为 null 则禁用)")]
+        public RollSO Rolling;
     }
 }

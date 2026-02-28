@@ -36,6 +36,8 @@ namespace Characters.Player.Data
 
         #region Landing System 落地系统
         [Header("LANDING - HEIGHT THRESHOLDS - 落地高度阈值")]
+        public float LandHeight_Level0 = 2f;
+        public AnimPlayOptions LandHeight_Level0_options;
         public float LandHeight_Level1 = 2f;
         public AnimPlayOptions LandHeight_Level1_options;
         public float LandHeight_Level2 = 5f;
@@ -44,30 +46,28 @@ namespace Characters.Player.Data
         public AnimPlayOptions LandHeight_Level3_options;
         public float LandHeight_Level4 = 12f;
         public AnimPlayOptions LandHeight_Level4_options;
-        public float LandHeightExceedLimit = 15f;
-        public AnimPlayOptions LandHeight_Level5_options;
 
         [Header("LANDING - WALK/JOG ANIMATIONS - 行走/慢跑落地动画")]
         public AnimPlayOptions LandToIdleOptions = AnimPlayOptions.Default;
 
+        public MotionClipData LandBuffer_WalkJog_L0;
+        public AnimPlayOptions LandToLoopFadeInTime_WalkJog_L0ptions = AnimPlayOptions.Default;
         public MotionClipData LandBuffer_WalkJog_L1;
-        public AnimPlayOptions LandToLoopFadeInTime_WalkJog_L1Options = AnimPlayOptions.Default;
+        public AnimPlayOptions LandToLoopFadeInTime_WalkJog_L1ptions = AnimPlayOptions.Default;
         public MotionClipData LandBuffer_WalkJog_L2;
-        public AnimPlayOptions LandToLoopFadeInTime_WalkJog_L2Options = AnimPlayOptions.Default;
+        public AnimPlayOptions LandToLoopFadeInTime_WalkJog_L2ptions = AnimPlayOptions.Default;
         public MotionClipData LandBuffer_WalkJog_L3;
-        public AnimPlayOptions LandToLoopFadeInTime_WalkJog_L3Options = AnimPlayOptions.Default;
-        public MotionClipData LandBuffer_WalkJog_L4;
-        public AnimPlayOptions LandToLoopFadeInTime_WalkJog_L4Options = AnimPlayOptions.Default;
+        public AnimPlayOptions LandToLoopFadeInTime_WalkJog_L3ptions = AnimPlayOptions.Default;
 
         [Header("LANDING - SPRINT ANIMATIONS - 冲刺落地动画")]
+        public MotionClipData LandBuffer_Sprint_L0;
+        public AnimPlayOptions LandToLoopFadeInTime_Sprint_L0ptions = AnimPlayOptions.Default;
         public MotionClipData LandBuffer_Sprint_L1;
-        public AnimPlayOptions LandToLoopFadeInTime_Sprint_L1Options = AnimPlayOptions.Default;
+        public AnimPlayOptions LandToLoopFadeInTime_Sprint_L1ptions = AnimPlayOptions.Default;
         public MotionClipData LandBuffer_Sprint_L2;
-        public AnimPlayOptions LandToLoopFadeInTime_Sprint_L2Options = AnimPlayOptions.Default;
+        public AnimPlayOptions LandToLoopFadeInTime_Sprint_L2ptions = AnimPlayOptions.Default;
         public MotionClipData LandBuffer_Sprint_L3;
-        public AnimPlayOptions LandToLoopFadeInTime_Sprint_L3Options = AnimPlayOptions.Default;
-        public MotionClipData LandBuffer_Sprint_L4;
-        public AnimPlayOptions LandToLoopFadeInTime_Sprint_L4Options = AnimPlayOptions.Default;
+        public AnimPlayOptions LandToLoopFadeInTime_Sprint_L3ptions = AnimPlayOptions.Default;
 
         [Header("LANDING - CRITICAL - 超限落地动画")]
         public MotionClipData LandBuffer_ExceedLimit;

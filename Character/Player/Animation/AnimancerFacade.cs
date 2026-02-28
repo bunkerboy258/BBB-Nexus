@@ -89,7 +89,43 @@ namespace Characters.Player.Animation
 
         public void SetOnEndCallback(System.Action onEndAction)
         {
-            _currentOnEndAction = onEndAction;
+            // Wrap the provided callback so that the end event is cleared immediately when invoked
+            // This prevents Animancer's End Event warning which occurs if the OnEnd callback doesn't stop the animation.
+            if (onEndAction == null)
+            {
+                _currentOnEndAction = null;
+                RebindOnEndIfNeeded();
+                return;
+            }
+
+            System.Action wrapper = null;
+            wrapper = () =>
+            {
+                // Capture the state at the time of invocation
+                var state = _currentState;
+
+                // Clear events on that state to prevent repeated firing
+                if (state != null)
+                {
+                    try
+                    {
+                        state.Events(this).OnEnd = null;
+                        state.Events(this).Clear();
+                    }
+                    catch { }
+                }
+
+                // Clear cached action reference
+                _currentOnEndAction = null;
+
+                // Invoke the original callback
+                try { onEndAction.Invoke(); } catch { }
+
+                // Also ensure current state's events are rebound safely
+                RebindOnEndIfNeeded();
+            };
+
+            _currentOnEndAction = wrapper;
             RebindOnEndIfNeeded();
         }
 
@@ -133,11 +169,15 @@ namespace Characters.Player.Animation
             if (_currentState == null) return;
             
             // 必须先清空当前调用者在当前 State 上的回调，防止重复触发
-            _currentState.Events(this).OnEnd = null;
-            if (_currentOnEndAction != null)
+            try
             {
-                _currentState.Events(this).OnEnd = _currentOnEndAction;
+                _currentState.Events(this).OnEnd = null;
+                if (_currentOnEndAction != null)
+                {
+                    _currentState.Events(this).OnEnd = _currentOnEndAction;
+                }
             }
+            catch { }
         }
 
         private static void ApplyOptions(AnimancerState state, AnimPlayOptions options)

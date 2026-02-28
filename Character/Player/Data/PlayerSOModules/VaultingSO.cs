@@ -1,3 +1,4 @@
+using Characters.Player.Animation;
 using UnityEngine;
 
 namespace Characters.Player.Data
@@ -51,6 +52,9 @@ namespace Characters.Player.Data
         public float HighVaultMaxHeight = 2.5f;
 
         [Header("VAULT - ANIMATION DATA - 翻越动画数据")]
+        public AnimPlayOptions VaultToIdleOptions = AnimPlayOptions.Default;
+        public AnimPlayOptions VaultToMoveOptions = AnimPlayOptions.Default;
+
         [Tooltip("低翻越使用的 Warped Motion 动画数据")]
         public WarpedMotionData lowVaultAnim;
 

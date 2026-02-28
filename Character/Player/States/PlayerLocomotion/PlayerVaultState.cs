@@ -66,23 +66,7 @@ namespace Characters.Player.States
                 info.ExpectedLandPoint
             };
 
-            // 播放翻越动画
-            var options = AnimPlayOptions.Default;
-            options.NormalizedTime = 0f;
-
-            // 优先使用新的 PlayOptions 覆写
-            if (data.NextStatePlayOptions.HasValue)
-            {
-                var playOpt = data.NextStatePlayOptions.Value;
-                // 保持 NormalizedTime=0 unless overridden explicitly
-                if (playOpt.NormalizedTime < 0)
-                    playOpt.NormalizedTime = 0f;
-
-                options = playOpt;
-                data.NextStatePlayOptions = null;
-            }
-
-            AnimFacade.PlayTransition(_selectedWarpData.Clip, options);
+            ChooseOptionsAndPlay(_selectedWarpData.Clip);
 
             // 初始化 Motion Warping
             player.MotionDriver.InitializeWarpData(_selectedWarpData, warpTargets);
@@ -97,13 +81,14 @@ namespace Characters.Player.States
 
             AnimFacade.SetOnEndCallback(() =>
             {
-                if (data.MoveInput.sqrMagnitude > 0.01f)
+                if (data.CurrentLocomotionState!=LocomotionState.Idle)
                 {
-                    data.NextStatePlayOptions = AnimPlayOptions.Default;
+                    data.NextStatePlayOptions = config.Vaulting.VaultToMoveOptions;
                     player.StateMachine.ChangeState(player.MoveLoopState);
                 }
                 else
                 {
+                    data.NextStatePlayOptions = config.Vaulting.VaultToIdleOptions;
                     player.StateMachine.ChangeState(player.IdleState);
                 }
             });
@@ -139,6 +124,7 @@ namespace Characters.Player.States
                 return;
             }
 
+            //Debug.Log(normalizedTime);
             player.MotionDriver.UpdateWarpMotion(normalizedTime);
         }
 

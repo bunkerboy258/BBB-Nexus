@@ -24,6 +24,7 @@ namespace Characters.Player.Data
 
         [Header("PHYSICS AND CONTROL - 物理与控制")]
         public float Gravity = -20f;
+        public float ReboundForce = -1f;
         [Range(0f, 1f)] public float AirControl = 0.5f;
         [Tooltip("Move speed smoothing time (物理速度变化平滑时间，单位秒)")]
         public float MoveSpeedSmoothTime = 0.15f;
@@ -53,6 +54,16 @@ namespace Characters.Player.Data
         public AvatarMask FacialMask;
         public ClipTransition BlinkAnim;
         public ClipTransition HurtFaceAnim;
+        #endregion
+
+        #region Fall Detection 下落检测
+        [Header("FALL DETECTION - 下落检测")]
+        [Tooltip("下落状态的最小高度等级（用于进入 FallState 的判断）- 如果 FallHeightLevel >= 此值，触发下落检测")]
+        [Range(0, 4)]
+        public int FallHeightLevelThreshold = 1;
+
+        [Tooltip("进入下落状态的最小垂直速度阈值（向下为负数）- 单位 m/s，建议 3-10")]
+        public float FallVerticalVelocityThreshold = -5f;
         #endregion
     }
 }

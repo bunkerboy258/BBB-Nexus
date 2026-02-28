@@ -10,6 +10,7 @@ namespace Characters.Player.Processing
     /// - 计算动画混合参数 X（方向）和 Y（速度强度）
     /// - X/Y：由移动方向和强度合成的极坐标分量
     /// - 根据垂直速度和重力计算最高点下落距离（内部数据）
+    /// - 计算下落意图 WantsToFall（当空中时间超过阈值时）
     /// 
     /// 约定：
     /// - DesiredWorldMoveDir 的单一来源在 LocomotionIntentProcessor，这里只读。
@@ -40,6 +41,9 @@ namespace Characters.Player.Processing
         private float _apexY; // 本次空中过程的最高点 Y 坐标
         private bool _wasGroundedLastFrame;
 
+        // --- 下落意图计算状态 ---
+        private float _airborneTime; // 当前连续空中时间
+
         public MovementParameterProcessor(PlayerController player)
         {
             _config = player.Config;
@@ -56,6 +60,7 @@ namespace Characters.Player.Processing
 
             _apexY = _playerTransform.position.y;
             _wasGroundedLastFrame = _data.IsGrounded;
+            _airborneTime = 0f;
         }
 
         public void Update()
@@ -69,6 +74,9 @@ namespace Characters.Player.Processing
 
             // 3) 持续计算下落高度等级（每帧更新，不依赖落地瞬间）
             UpdateFallHeight();
+
+            // 4) 计算下落意图（当空中时间超过阈值时）
+            UpdateFallIntent();
         }
 
 
@@ -288,6 +296,30 @@ namespace Characters.Player.Processing
             }*/
 
             _wasGroundedLastFrame = isGrounded;
+        }
+
+        /// <summary>
+        /// 计算下落意图：当空中时间超过阈值时，WantsToFall 为真。
+        /// </summary>
+        private void UpdateFallIntent()
+        {
+            bool isGrounded = _data.IsGrounded;
+
+            if (isGrounded)
+            {
+                // 落地：重置空中时间
+                _airborneTime = 0f;
+                _data.WantsToFall = false;
+            }
+            else
+            {
+                // 空中：累积时间
+                _airborneTime += Time.deltaTime;
+
+                // 当空中时间超过阈值时，设置 WantsToFall 为真
+                float fallTimeThreshold = _config.LocomotionAnims.AirborneTimeThresholdForFall;
+                _data.WantsToFall = _airborneTime >= fallTimeThreshold;
+            }
         }
 
         /// <summary>

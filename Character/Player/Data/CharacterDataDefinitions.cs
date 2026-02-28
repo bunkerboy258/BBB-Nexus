@@ -30,7 +30,8 @@ namespace Characters.Player.Data
         None,           // Manual mode, respects user-defined points - 手动模式，使用用户配置的点
         Vault,          // Auto-detects Y-axis peak (apex) - 自动探测Y轴极大值（顶点）
         Dodge,          // Auto-detects XZ-plane max distance - 自动探测XZ平面最大位移点
-        Simple          // Auto-generates a single end point at 1.0 - 仅生成1.0的终点
+        Simple,         // Auto-generates a single end point at 1.0 - 仅生成1.0的终点
+        Custom          // Preserves user-defined points and bakes curves - 保留用户定义的特征点，仅烘焙曲线数据
     }
 
     #endregion
@@ -128,6 +129,10 @@ namespace Characters.Player.Data
 
         [HideInInspector]
         public Vector3 TotalBakedLocalOffset;
+
+        [Header("Physics")]
+        [Tooltip("If enabled, gravity will be applied during this warped motion. Otherwise vertical motion from gravity is ignored.")]
+        public bool ApplyGravity = false; // 默认 false 保持向后兼容，只有在需要时启用重力
     }
 
     #endregion

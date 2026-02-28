@@ -127,6 +127,11 @@ namespace Characters.Player.Data
         public ItemDefinitionSO DesiredItemDefinition;
 
         public DesiredDirection QuantizedDirection;
+
+        // 新增：下落意图（由 MovementParameterProcessor 每帧计算）
+        [Space]
+        [Header("Fall Intent")]
+        public bool WantsToFall;
         #endregion
 
         #region WARPING & VAULTING - 空间扭曲与翻越逻辑
@@ -210,8 +215,11 @@ namespace Characters.Player.Data
             WantToRun = false;
             WantsToJump = false;
             WantsDoubleJump = false;
+            WantsToDodge = false;
+            WantsToRoll = false;
             WantsLowVault = false;
             WantsHighVault = false;
+            // 注意：WantsToFall 由 MovementParameterProcessor 每帧计算，不在这里清理
         }
 
         #endregion

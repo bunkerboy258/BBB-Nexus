@@ -40,41 +40,26 @@ namespace Characters.Player.States
 
         /// <summary>
         /// 全局强制转移检测。默认实现处理：
+        /// - 下落检测（WantsToFall 且当前不在 FallState）-> FallState
         /// - 刚落地（JustLanded）且 FallHeightLevel>0 -> LandState
         /// - IsAiming 全局优先转到 AimMove/AimIdle（仅当不是正在 Vault/Land）
         /// 子类可 override 返回 true 来阻止默认行为（例如 Vault/Land 状态）。
         /// </summary>
         protected virtual bool CheckInterrupts()
         {
+            // ✅ 更新：全局下落检测 - 改用 WantsToFall 意图
+            // 条件：WantsToFall 为真 且当前不在 FallState
+            // 意图：当空中时间超过阈值时，进入下落状态
+            if (data.WantsToFall && this is not PlayerFallState&&this is not PlayerVaultState)
+            {
+                data.NextStatePlayOptions = config.LocomotionAnims.FadeInFallOptions;
+                player.StateMachine.ChangeState(player.FallState);
+                return true;
+            }
+
             // 1) 刚落地事件 -> 进入 LandState（由 LandState 决定后续切换）
             if (data.JustLanded && data.FallHeightLevel > 0 && this is not PlayerLandState)
             {
-                switch (data.FallHeightLevel)
-                {
-                    case 1:
-                        data.NextStatePlayOptions = data.CurrentLocomotionState == LocomotionState.Sprint
-                            ? config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L1Options
-                            : config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1Options;
-                        break;
-                    case 2:
-                        data.NextStatePlayOptions = data.CurrentLocomotionState == LocomotionState.Sprint
-                            ? config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L2Options
-                            : config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L2Options;
-                        break;
-                    case 3:
-                        data.NextStatePlayOptions = data.CurrentLocomotionState == LocomotionState.Sprint
-                            ? config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L3Options
-                            : config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L3Options;
-                        break;
-                    case 4:
-                        data.NextStatePlayOptions = data.CurrentLocomotionState == LocomotionState.Sprint
-                            ? config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L4Options
-                            : config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L4Options;
-                        break;
-                    default:
-                        data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_ExceedLimitOptions;
-                        break;
-                }
                 player.StateMachine.ChangeState(player.LandState);
                 return true;
             }
@@ -85,6 +70,15 @@ namespace Characters.Player.States
                 data.NextStatePlayOptions = data.LastLocomotionState == LocomotionState.Sprint ?
                     config.LocomotionAnims.FadeInMoveDodgeOptions : config.LocomotionAnims.FadeInQuickDodgeOptions;
                 player.StateMachine.ChangeState(player.DodgeState);
+                return true;
+            }
+
+            if (data.WantsToRoll)
+            {
+                // 使用新的 PlayOptions 覆写淡入时间
+                data.NextStatePlayOptions = data.LastLocomotionState == LocomotionState.Sprint ?
+                    config.LocomotionAnims.FadeInMoveDodgeOptions : config.LocomotionAnims.FadeInQuickDodgeOptions;
+                player.StateMachine.ChangeState(player.RollState);
                 return true;
             }
 

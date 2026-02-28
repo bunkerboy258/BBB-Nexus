@@ -25,14 +25,5 @@ namespace Characters.Player.Data
         public WarpedMotionData BackwardLeftDodge;
         public WarpedMotionData BackwardRightDodge;
 
-        [Tooltip("角色在跑步或冲刺时使用的闪避动作 (通常是翻滚、滑铲)")]
-        public WarpedMotionData MoveForwardDodge;
-        public WarpedMotionData MoveBackwardDodge;
-        public WarpedMotionData MoveLeftDodge;
-        public WarpedMotionData MoveRightDodge;
-        public WarpedMotionData MoveForwardLeftDodge;
-        public WarpedMotionData MoveForwardRightDodge;
-        public WarpedMotionData MoveBackwardLeftDodge;
-        public WarpedMotionData MoveBackwardRightDodge;
     }
 }

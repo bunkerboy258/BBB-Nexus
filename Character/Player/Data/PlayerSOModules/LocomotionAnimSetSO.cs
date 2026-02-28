@@ -24,13 +24,23 @@ namespace Characters.Player.Data
         [Space]
         [Header("没有相关模块就不用设置")]
         public AnimPlayOptions FadeInJumpOptions = AnimPlayOptions.Default;
+        public AnimPlayOptions FadeInFallOptions = AnimPlayOptions.Default;
         public AnimPlayOptions FadeInVaultOptions = AnimPlayOptions.Default;
         public AnimPlayOptions FadeInQuickDodgeOptions = AnimPlayOptions.Default;
         public AnimPlayOptions FadeInMoveDodgeOptions = AnimPlayOptions.Default;
         #endregion
+
+        #region Fall Detection Settings 下落检测阈值
+        [Header("FALL DETECTION - 下落检测")]
+        [Tooltip("空中时间超过此阈值（秒）时，WantsToFall 意图为真 - Airborne time threshold (seconds) to trigger WantsToFall intent")]
+        public float AirborneTimeThresholdForFall = 0.3f;
+        #endregion
+
         #region Locomotion Animations 基础移动动画
         [Header("LOCOMOTION - IDLE - 待机动画")]
         public ClipTransition IdleAnim;
+        [Header("LOCOMOTION - FALL - 衰落动画")]
+        public ClipTransition FallAnim;
 
         [Header("LOCOMOTION - LOOPS - 循环动画")]
         public ClipTransition WalkLoopFwd_L;

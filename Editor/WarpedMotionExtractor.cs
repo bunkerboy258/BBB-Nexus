@@ -166,6 +166,17 @@ namespace Editors
                         TargetPositionOffset = wp.TargetPositionOffset
                     }).ToList();
                 }
+                else if (originalData.Type == WarpedType.Custom)
+                {
+                    // Custom mode: preserve user-defined warp points
+                    // 自定义模式：保留用户定义的特征点
+                    bakedData.WarpPoints = originalData.WarpPoints.Select(wp => new WarpPointDef
+                    {
+                        PointName = wp.PointName,
+                        NormalizedTime = wp.NormalizedTime,
+                        TargetPositionOffset = wp.TargetPositionOffset
+                    }).ToList();
+                }
 
                 if (BakeSingleWarpedData(bakedData, animClip))
                 {
@@ -237,32 +248,64 @@ namespace Editors
 
             if (warpData.Type != WarpedType.None)
             {
-                warpData.WarpPoints.Clear();
+                // 只有在非 None 和非 Custom 模式下才清除并自动生成特征点
+                if (warpData.Type != WarpedType.Custom)
+                {
+                    warpData.WarpPoints.Clear();
 
-                if (warpData.Type == WarpedType.Vault)
-                {
-                    float maxY = -999f; int apexIndex = 0;
-                    for (int i = 0; i < absolutePositions.Length; i++) { if (absolutePositions[i].y > maxY) { maxY = absolutePositions[i].y; apexIndex = i; } }
-                    warpData.WarpPoints.Add(new WarpPointDef { PointName = "Apex", NormalizedTime = (float)apexIndex / totalFrames, BakedLocalOffset = absolutePositions[apexIndex] });
+                    if (warpData.Type == WarpedType.Vault)
+                    {
+                        float maxY = -999f; int apexIndex = 0;
+                        for (int i = 0; i < absolutePositions.Length; i++) { if (absolutePositions[i].y > maxY) { maxY = absolutePositions[i].y; apexIndex = i; } }
+                        warpData.WarpPoints.Add(new WarpPointDef { PointName = "Apex", NormalizedTime = (float)apexIndex / totalFrames, BakedLocalOffset = absolutePositions[apexIndex] });
+                    }
+                    else if (warpData.Type == WarpedType.Dodge)
+                    {
+                        float maxXZ = -999f; int dodgeIndex = 0;
+                        for (int i = 0; i < absolutePositions.Length; i++) { float dist = new Vector2(absolutePositions[i].x, absolutePositions[i].z).magnitude; if (dist > maxXZ) { maxXZ = dist; dodgeIndex = i; } }
+                        warpData.WarpPoints.Add(new WarpPointDef { PointName = "MaxDodge", NormalizedTime = (float)dodgeIndex / totalFrames, BakedLocalOffset = absolutePositions[dodgeIndex] });
+                    }
                 }
-                else if (warpData.Type == WarpedType.Dodge)
-                {
-                    float maxXZ = -999f; int dodgeIndex = 0;
-                    for (int i = 0; i < absolutePositions.Length; i++) { float dist = new Vector2(absolutePositions[i].x, absolutePositions[i].z).magnitude; if (dist > maxXZ) { maxXZ = dist; dodgeIndex = i; } }
-                    warpData.WarpPoints.Add(new WarpPointDef { PointName = "MaxDodge", NormalizedTime = (float)dodgeIndex / totalFrames, BakedLocalOffset = absolutePositions[dodgeIndex] });
-                }
+                // Custom mode: keep existing warp points, no auto-generation
+                // 自定义模式：保留现有特征点，不自动生成
             }
 
             if (!warpData.WarpPoints.Any(wp => wp.NormalizedTime >= 0.98f))
             {
-                warpData.WarpPoints.Add(new WarpPointDef { PointName = "End", NormalizedTime = 1.0f, BakedLocalOffset = totalOffset });
+                // Only add End point if not in Custom mode (Custom mode respects user's point list)
+                // 仅在非 Custom 模式下添加 End 点（Custom 模式尊重用户的特征点列表）
+                if (warpData.Type != WarpedType.Custom)
+                {
+                    warpData.WarpPoints.Add(new WarpPointDef { PointName = "End", NormalizedTime = 1.0f, BakedLocalOffset = totalOffset });
+                }
             }
 
             warpData.WarpPoints = warpData.WarpPoints.OrderBy(wp => wp.NormalizedTime).ToList();
+            
+            // 为每个特征点计算相对于前一个点的局部位移
+            // For Custom type, ensure BakedLocalOffset is computed for user-defined points
+            // 对于 Custom 类型，需要确保计算用户定义点的 BakedLocalOffset
             Vector3 lastAbsPos = Vector3.zero;
             for (int k = 0; k < warpData.WarpPoints.Count; k++)
             {
                 var wp = warpData.WarpPoints[k];
+                
+                // 如果是 Custom 类型，尝试从 absolutePositions 获取该时刻的位置
+                if (warpData.Type == WarpedType.Custom && wp.BakedLocalOffset == Vector3.zero && k == 0)
+                {
+                    // 对于 Custom 类型的第一个点，从 absolutePositions 中查找对应时间的位置
+                    int frameIndex = Mathf.RoundToInt(wp.NormalizedTime * totalFrames);
+                    frameIndex = Mathf.Clamp(frameIndex, 0, absolutePositions.Length - 1);
+                    wp.BakedLocalOffset = absolutePositions[frameIndex];
+                }
+                else if (warpData.Type == WarpedType.Custom && wp.BakedLocalOffset == Vector3.zero && k > 0)
+                {
+                    // 对于 Custom 类型的后续点，从 absolutePositions 中查找对应时间的位置
+                    int frameIndex = Mathf.RoundToInt(wp.NormalizedTime * totalFrames);
+                    frameIndex = Mathf.Clamp(frameIndex, 0, absolutePositions.Length - 1);
+                    wp.BakedLocalOffset = absolutePositions[frameIndex];
+                }
+                
                 Vector3 currentAbsPos = wp.BakedLocalOffset;
                 wp.BakedLocalOffset = currentAbsPos - lastAbsPos;
                 warpData.WarpPoints[k] = wp;

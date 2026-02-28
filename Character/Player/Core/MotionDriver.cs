@@ -190,6 +190,21 @@ namespace Characters.Player.Core
             float rotVelY = _warpData.LocalRotationY.Evaluate(normalizedTime);
             Vector3 finalVelocity = baseWorldVel + _currentCompensationVel;
 
+            // 根据 WarpedMotionData 的开关决定是否叠加重力
+            Vector3 gravityVelocity = Vector3.zero;
+            if (_warpData.ApplyGravity)
+            {
+                // CalculateGravity 会更新 VerticalVelocity / IsGrounded
+                gravityVelocity = CalculateGravity();
+            }
+            else
+            {
+                // 保证 Grounded 标记是最新的，但不修改 VerticalVelocity
+                _data.IsGrounded = _cc.isGrounded;
+            }
+
+            finalVelocity += gravityVelocity;
+
             _cc.Move(finalVelocity * Time.deltaTime);
             _transform.Rotate(0f, rotVelY * Time.deltaTime, 0f, Space.World);
             _data.CurrentSpeed = _cc.velocity.magnitude;
@@ -379,7 +394,7 @@ namespace Characters.Player.Core
 
             // 落地时施加一个微小的持续向下的力，防止在斜坡上弹跳
             _data.VerticalVelocity = (_data.IsGrounded && _data.VerticalVelocity < 0)
-                ? -2f
+                ? _config.Core.ReboundForce
                 : _data.VerticalVelocity + _config.Core.Gravity * Time.deltaTime;
 
             return new Vector3(0f, _data.VerticalVelocity, 0f);

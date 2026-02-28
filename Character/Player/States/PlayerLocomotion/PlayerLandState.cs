@@ -114,23 +114,28 @@ namespace Characters.Player.States
                 switch (fallHeightLevel)
                 {
                     case 0:
-                        data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1Options;
+                        data.NextStatePlayOptions = config.JumpAndLanding.LandHeight_Level1_options;
                         level = 0;
-                        return config.JumpAndLanding.LandBuffer_WalkJog_L1;
+                        return config.JumpAndLanding.LandBuffer_WalkJog_L0;
                     case 1:
-                        data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L2Options;
+                        data.NextStatePlayOptions = config.JumpAndLanding.LandHeight_Level1_options;
                         level = 1;
-                        return config.JumpAndLanding.LandBuffer_WalkJog_L2;
+                        return config.JumpAndLanding.LandBuffer_WalkJog_L1;
                     case 2:
-                        data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L3Options;
+                        data.NextStatePlayOptions = config.JumpAndLanding.LandHeight_Level1_options;
                         level = 2;
-                        return config.JumpAndLanding.LandBuffer_WalkJog_L3;
+                        return config.JumpAndLanding.LandBuffer_WalkJog_L2;
                     case 3:
-                        data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L4Options;
+                        data.NextStatePlayOptions = config.JumpAndLanding.LandHeight_Level1_options;
                         level = 3;
-                        return config.JumpAndLanding.LandBuffer_WalkJog_L4;
+                        return config.JumpAndLanding.LandBuffer_WalkJog_L3;
+                    case 4:
+                        data.NextStatePlayOptions = config.JumpAndLanding.LandHeight_Level1_options;
+                        level = 99;
+                        return config.JumpAndLanding.LandBuffer_ExceedLimit;
                     default:
-                        data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1Options;
+                        Debug.Log("下落高度等级计算出现未知错误");
+                        data.NextStatePlayOptions = config.JumpAndLanding.LandHeight_Level1_options;
                         level = 0;
                         return config.JumpAndLanding.LandBuffer_WalkJog_L1;
                 }
@@ -139,23 +144,27 @@ namespace Characters.Player.States
             switch (fallHeightLevel)
             {
                 case 0:
-                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L1Options;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandHeight_Level1_options;
                     level = 10;
-                    return config.JumpAndLanding.LandBuffer_Sprint_L1;
+                    return config.JumpAndLanding.LandBuffer_Sprint_L0;
                 case 1:
-                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L2Options;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandHeight_Level1_options;
                     level = 11;
-                    return config.JumpAndLanding.LandBuffer_Sprint_L2;
+                    return config.JumpAndLanding.LandBuffer_Sprint_L1;
                 case 2:
-                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L3Options;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandHeight_Level1_options;
                     level = 12;
-                    return config.JumpAndLanding.LandBuffer_Sprint_L3;
+                    return config.JumpAndLanding.LandBuffer_Sprint_L2;
                 case 3:
-                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L4Options;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandHeight_Level1_options;
                     level = 13;
-                    return config.JumpAndLanding.LandBuffer_Sprint_L4;
+                    return config.JumpAndLanding.LandBuffer_Sprint_L3;
+                case 4:
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandHeight_Level1_options;
+                    level = 99;
+                    return config.JumpAndLanding.LandBuffer_ExceedLimit;
                 default:
-                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L1Options;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandHeight_Level1_options;
                     level = 10;
                     return config.JumpAndLanding.LandBuffer_Sprint_L1;
             }
@@ -163,44 +172,42 @@ namespace Characters.Player.States
 
         private void SetupMoveLoopByLevel()
         {
-            // level 映射关系：
-            // 0-3: Walk/Jog L1-L4
-            // 10-13: Sprint L1-L4
-            // 其他: 默认走路 L1
-
             switch (level)
             {
                 // Walk/Jog 档位
                 case 0:
-                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1Options;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L0ptions;
                     break;
                 case 1:
-                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L2Options;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1ptions;
                     break;
                 case 2:
-                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L3Options;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L2ptions;
                     break;
                 case 3:
-                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L4Options;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L3ptions;
                     break;
 
                 // Sprint 档位
                 case 10:
-                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L1Options;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L0ptions;
                     break;
                 case 11:
-                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L2Options;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L1ptions;
                     break;
                 case 12:
-                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L3Options;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L2ptions;
                     break;
                 case 13:
-                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L4Options;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_Sprint_L3ptions;
                     break;
 
-                // 默认降级到走路
+                case 99:
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_ExceedLimitOptions;
+                    break;
+
                 default:
-                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L1Options;
+                    data.NextStatePlayOptions = config.JumpAndLanding.LandToLoopFadeInTime_WalkJog_L0ptions;
                     break;
             }
         }

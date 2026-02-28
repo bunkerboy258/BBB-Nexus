@@ -5,41 +5,41 @@ using Characters.Player.Animation;
 namespace Characters.Player.States
 {
     /// <summary>
-    /// 玩家闪避状态类
+    /// 玩家翻滚状态类
     /// 职责：
-    /// 1. 根据当前运动状态和量化方向选择闪避动画；
+    /// 1. 根据运动状态和量化方向选择翻滚动画；
     /// 2. 利用 MotionDriver 的 Warped 模式驱动精准位移；
     /// 3. 在动作结束时平滑切回移动或空闲。
+    /// 
+    /// 与 DodgeState 的区别：
+    /// - DodgeState：快速闪避，低体力消耗
+    /// - RollState：较长的翻滚动作，高体力消耗，适合躲避范围攻击
     /// </summary>
-    public class PlayerDodgeState : PlayerBaseState
+    public class PlayerRollState : PlayerBaseState
     {
-        // 【已废除】不再需要直接引用 AnimancerState
-        // private AnimancerState _state;
-
-        // 缓存当前选中的闪避数据
+        // 缓存当前选中的翻滚数据
         private WarpedMotionData _selectedData;
 
         // 跟踪播放时长以及是否已按 EndTime 触发结束逻辑，防止重复触发
         private float _stateDuration;
         private bool _endTimeTriggered;
 
-        public PlayerDodgeState(PlayerController player) : base(player) { }
+        public PlayerRollState(PlayerController player) : base(player) { }
 
-        // 闪避过程不可被通用强制打断
+        // 翻滚过程不可被通用强制打断
         protected override bool CheckInterrupts() => false;
 
         #region State Lifecycle
 
         public override void Enter()
         {
-            data.IsDodgeing = true;
-            data.WantsToDodge = false;
+            data.WantsToRoll = false;
 
             _stateDuration = 0f;
             _endTimeTriggered = false;
 
             // 1. 动画选择逻辑
-            _selectedData = GetDodgeData();
+            _selectedData = GetRollData();
 
             // 防错处理
             if (_selectedData == null || _selectedData.Clip == null)
@@ -53,11 +53,11 @@ namespace Characters.Player.States
 
             ChooseOptionsAndPlay(_selectedData.Clip);
 
-            // 4. 设置结束回调（如果动画自然播完会走这里）
+            // 3. 设置结束回调（如果动画自然播完会走这里）
             player.AnimFacade.SetOnEndCallback(() =>
             {
                 if (_endTimeTriggered) return; // 已通过 EndTime 触发过，则忽略自然结束回调
-                HandleDodgeEnd();
+                HandleRollEnd();
             });
 
             data.ExpectedFootPhase = _selectedData.EndPhase; // 立即设置末相位，确保动画过渡正确
@@ -65,7 +65,7 @@ namespace Characters.Player.States
 
         protected override void UpdateStateLogic()
         {
-            //闪避不需要退出逻辑
+            //翻滚不需要主动退出逻辑
         }
 
         public override void PhysicsUpdate()
@@ -78,21 +78,18 @@ namespace Characters.Player.States
             // 累计播放时长（用于 EndTime 提前触发）
             _stateDuration = player.AnimFacade.CurrentTime;
 
-            if (!_endTimeTriggered && _selectedData.EndTime > 0f && _stateDuration >= _selectedData.EndTime)
+            if (!_endTimeTriggered && _selectedData.EndTime > 0f && _stateDuration >= _selectedData.EndTime&&data.CurrentLocomotionState!=LocomotionState.Idle)
             {
                 _endTimeTriggered = true;
-                HandleDodgeEnd();
+                HandleRollEnd();
                 return;
             }
         }
 
         public override void Exit()
         {
-            data.IsDodgeing = false;
-            // Motion Warping 相关数据也应由 MotionDriver 统一管理
-            // data.IsWarping = false; 
-            // data.ActiveWarpData = null;
-            data.WantsToDodge = false;
+            // Motion Warping 相关数据由 MotionDriver 统一管理
+            data.WantsToRoll = false;
 
             player.MotionDriver.ClearWarpData();
 
@@ -107,61 +104,61 @@ namespace Characters.Player.States
         #region Helper Methods
 
         /// <summary>
-        /// 根据运动状态和角度获取闪避动画数据。
-        /// 修改后：不再根据冲刺选择 Move* 变体，全部使用基础 8 方向动画字段。
+        /// 根据角度获取翻滚动画数据。
+        /// 逻辑与 DodgeState 相同，使用基础 8 方向的翻滚动画字段。
         /// </summary>
-        private WarpedMotionData GetDodgeData()
+        private WarpedMotionData GetRollData()
         {
             float angle = data.DesiredLocalMoveAngle;
 
             const float SectorAngle = 45f;
             const float HalfSectorAngle = 22.5f;
 
-            // 8方向判断逻辑（始终使用基础字段，而非 Move* 变体）
+            // 8方向判断逻辑
             if (angle > -HalfSectorAngle && angle <= HalfSectorAngle) // Fwd
-                return config.Dodging.ForwardDodge;
+                return config.Rolling.ForwardRoll;
 
             if (angle > HalfSectorAngle && angle <= HalfSectorAngle + SectorAngle) // Fwd-Right
-                return config.Dodging.ForwardRightDodge;
+                return config.Rolling.ForwardRightRoll;
 
             if (angle > HalfSectorAngle + SectorAngle && angle <= HalfSectorAngle + SectorAngle * 2) // Right
-                return config.Dodging.RightDodge;
+                return config.Rolling.RightRoll;
 
             if (angle > HalfSectorAngle + SectorAngle * 2 && angle <= 180f - HalfSectorAngle) // Back-Right
-                return config.Dodging.BackwardRightDodge;
+                return config.Rolling.BackwardRightRoll;
 
             if (angle > 180f - HalfSectorAngle || angle <= -180f + HalfSectorAngle) // Back
-                return config.Dodging.BackwardDodge;
+                return config.Rolling.BackwardRoll;
 
             if (angle > -180f + HalfSectorAngle && angle <= -HalfSectorAngle - SectorAngle * 2) // Back-Left
-                return config.Dodging.BackwardLeftDodge;
+                return config.Rolling.BackwardLeftRoll;
 
             if (angle > -HalfSectorAngle - SectorAngle * 2 && angle <= -HalfSectorAngle - SectorAngle) // Left
-                return config.Dodging.LeftDodge;
+                return config.Rolling.LeftRoll;
 
             if (angle > -HalfSectorAngle - SectorAngle && angle <= -HalfSectorAngle) // Fwd-Left
-                return config.Dodging.ForwardLeftDodge;
+                return config.Rolling.ForwardLeftRoll;
 
-            // 兜底使用左移闪避
-            return config.Dodging.LeftDodge;
+            // 兜底使用左翻滚
+            return config.Rolling.LeftRoll;
         }
 
-        private void HandleDodgeEnd()
+        private void HandleRollEnd()
         {
             // 防重入
             if (_endTimeTriggered) _endTimeTriggered = true;
 
-            // 闪避结束后，决定下一个状态的淡入时间
+            // 翻滚结束后，决定下一个状态的淡入时间
             if (data.CurrentLocomotionState == LocomotionState.Idle)
             {
-                // 如果停下了，要求 Idle 缓慢淡入，使用 DodgingSO 的 AnimPlayOptions
-                data.NextStatePlayOptions = config.Dodging.FadeInIdleOptions;
+                // 如果停下了，要求 Idle 缓慢淡入，使用 RollSO 的 AnimPlayOptions
+                data.NextStatePlayOptions = config.Rolling.FadeInIdleOptions;
                 player.StateMachine.ChangeState(player.IdleState);
             }
             else
             {
-                // 如果还在移动，根据是否冲刺决定 MoveLoop 的淡入时间
-                data.NextStatePlayOptions = config.Dodging.FadeInMoveLoopOptions;
+                // 如果还在移动，要求 MoveLoop 缓慢淡入
+                data.NextStatePlayOptions = config.Rolling.FadeInMoveLoopOptions;
                 data.ExpectedFootPhase = _selectedData.EndPhase; // 传递末相位给 MoveLoopState
                 player.StateMachine.ChangeState(player.MoveLoopState);
             }
