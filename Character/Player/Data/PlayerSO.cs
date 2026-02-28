@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using UnityEngine;
+using Characters.Player.Core;
 
 namespace Characters.Player.Data
 {
@@ -12,6 +14,9 @@ namespace Characters.Player.Data
         [Header("--- 核心功能模块 (Core Modules) ---")]
         [Tooltip("基础物理、视角、耐力等")]
         public CoreModuleSO Core;
+
+        [Header("--- 全局打断管线 (Transition Pipeline) ---")]
+        public List<StateInterceptorSO> GlobalInterceptors = new List<StateInterceptorSO>();
 
         [Tooltip("基础移动动画集 (走/跑/跳/起步/停止)")]
         public LocomotionAnimSetSO LocomotionAnims;

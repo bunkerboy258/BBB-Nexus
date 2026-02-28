@@ -1,4 +1,5 @@
 using Animancer;
+using Characters.Player.Animation;
 using Characters.Player.Core;      // For MotionDriver
 using Characters.Player.Data;
 using Characters.Player.Input;
@@ -9,8 +10,9 @@ using Core.StateMachine;
 using Items.Core;
 using Items.Data;
 using MagicaCloth2;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
-using Characters.Player.Animation;
 
 namespace Characters.Player
 {
@@ -58,6 +60,8 @@ namespace Characters.Player
 
         // --- 核心系统引用（供外部系统访问） ---
         public StateMachine StateMachine { get; private set; }
+
+        public GlobalInterruptProcessor InterruptProcessor { get; private set; }
         public PlayerRuntimeData RuntimeData { get; private set; }
         public PlayerInventoryController  InventoryController{ get; private set; }
         public PlayerInputReader InputReader { get; private set; } // 供状态机（如 IdleState）访问
@@ -179,6 +183,9 @@ namespace Characters.Player
         private void InitializeProcessors()
         {
             StateMachine = new StateMachine();
+
+            InterruptProcessor = new GlobalInterruptProcessor(this);
+
             MotionDriver = new MotionDriver(this); // MotionDriver 依赖 Controller，在此初始化
 
             EquipmentDriver = new EquipmentDriver(this);

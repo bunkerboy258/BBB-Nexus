@@ -39,71 +39,13 @@ namespace Characters.Player.States
         }
 
         /// <summary>
-        /// 全局强制转移检测。默认实现处理：
-        /// - 下落检测（WantsToFall 且当前不在 FallState）-> FallState
-        /// - 刚落地（JustLanded）且 FallHeightLevel>0 -> LandState
-        /// - IsAiming 全局优先转到 AimMove/AimIdle（仅当不是正在 Vault/Land）
-        /// 子类可 override 返回 true 来阻止默认行为（例如 Vault/Land 状态）。
+        /// 全局强制转移检测：重构后通过遍历拦截器实现解耦
         /// </summary>
         protected virtual bool CheckInterrupts()
         {
-            // ✅ 更新：全局下落检测 - 改用 WantsToFall 意图
-            // 条件：WantsToFall 为真 且当前不在 FallState
-            // 意图：当空中时间超过阈值时，进入下落状态
-            if (data.WantsToFall && this is not PlayerFallState&&this is not PlayerVaultState)
-            {
-                data.NextStatePlayOptions = config.LocomotionAnims.FadeInFallOptions;
-                player.StateMachine.ChangeState(player.FallState);
-                return true;
-            }
-
-            // 1) 刚落地事件 -> 进入 LandState（由 LandState 决定后续切换）
-            if (data.JustLanded && data.FallHeightLevel > 0 && this is not PlayerLandState)
-            {
-                player.StateMachine.ChangeState(player.LandState);
-                return true;
-            }
-
-            if (data.WantsToDodge)
-            {
-                // 使用新的 PlayOptions 覆写淡入时间
-                data.NextStatePlayOptions = data.LastLocomotionState == LocomotionState.Sprint ?
-                    config.LocomotionAnims.FadeInMoveDodgeOptions : config.LocomotionAnims.FadeInQuickDodgeOptions;
-                player.StateMachine.ChangeState(player.DodgeState);
-                return true;
-            }
-
-            if (data.WantsToRoll)
-            {
-                // 使用新的 PlayOptions 覆写淡入时间
-                data.NextStatePlayOptions = data.LastLocomotionState == LocomotionState.Sprint ?
-                    config.LocomotionAnims.FadeInMoveDodgeOptions : config.LocomotionAnims.FadeInQuickDodgeOptions;
-                player.StateMachine.ChangeState(player.RollState);
-                return true;
-            }
-
-            if (data.WantsToVault && this is not PlayerVaultState)
-            {
-                player.StateMachine.ChangeState(player.VaultState);
-                return true;
-            }
-            // 2) 全局瞄准切换：只在“非瞄准状态”时做一次性切换，避免每帧打断 Aim 状态自身逻辑。
-            if (data.IsAiming)
-            {
-                // 如果当前已经在瞄准状态（AimIdle/AimMove），让状态正常运行。
-                if (this is PlayerAimIdleState || this is PlayerAimMoveState)
-                    return false;
-
-                // 新增：如果处于跳跃、二段跳、落地、翻越等状态，不在此处强行拦截，保证动作表现完整。
-                if (this is PlayerJumpState || this is PlayerDoubleJumpState || this is PlayerLandState || this is PlayerVaultState)
-                    return false;
-
-                player.StateMachine.ChangeState(data.CurrentLocomotionState == LocomotionState.Idle ? player.AimIdleState : player.AimMoveState);
-                return true;
-            }
-
-            return false;
+            return player.InterruptProcessor.TryProcessInterrupts(this);
         }
+
 
         /// <summary>
         /// 状态自身的正常逻辑。
