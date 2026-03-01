@@ -2,17 +2,35 @@ using UnityEngine;
 
 namespace Items.Data
 {
-    // [æ³¨æ„] è¿™æ˜¯ä¸€ä¸ªæŠ½è±¡ç±»ï¼Œä¸èƒ½ç›´æ¥åˆ›å»ºå®ä¾‹
+    /// <summary>
+    /// ¾²Ì¬ÎïÆ·Í¼Ö½»ùÀà£º¶¨ÒåÎïÆ·µÄÖ»¶Á»ù´¡ÊôĞÔ¡£
+    /// </summary>
     public abstract class ItemDefinitionSO : ScriptableObject
     {
-        [Header("æ ¸å¿ƒä¿¡æ¯ (Core)")]
-        public string ID;
-        public string Name;
-        [TextArea] public string Description;
+        [Header("--- »ù´¡ĞÅÏ¢ (Basic Info) ---")]
+        [Tooltip("ÎïÆ·µÄÈ«¾ÖÎ¨Ò»¾²Ì¬ID (ÓÃÓÚÅä±íºÍ´æµµ¶ÁÈ¡)")]
+        public string ItemID;
+
+        [Tooltip("ÎïÆ·µÄ±¾µØ»¯Ãû³Æ")]
+        public string DisplayName;
+
+        [Tooltip("UI ÖĞÏÔÊ¾µÄÍ¼±ê")]
         public Sprite Icon;
 
-        [Header("å †å  (Stacking)")]
-        public bool IsStackable = false;
-        public int MaxStackSize = 1;
+        [TextArea(2, 4)]
+        [Tooltip("ÎïÆ·µÄÎÄ±¾ÃèÊö")]
+        public string Description;
+
+        [Tooltip("×î´ó¶ÑµşÊıÁ¿")]
+        public int MaxStack = 1;
+
+        // ÔÚ±à¼­Æ÷ÖĞ×Ô¶¯Éú³É»òĞ£Ñé ID
+        protected virtual void OnValidate()
+        {
+            if (string.IsNullOrEmpty(ItemID))
+            {
+                ItemID = System.Guid.NewGuid().ToString();
+            }
+        }
     }
 }

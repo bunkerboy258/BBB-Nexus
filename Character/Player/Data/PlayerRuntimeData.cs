@@ -1,6 +1,4 @@
-using Items.Data;
-using Items.Logic;
-using System.Collections.Generic;
+using Items.Core;
 using UnityEngine;
 using Characters.Player.Animation;
 
@@ -51,16 +49,6 @@ namespace Characters.Player.Data
         Right = 2,
     }
 
-    public class EquipmentSnapshot
-    {
-        public ItemDefinitionSO Definition;
-        public InteractableItem Instance;
-        public DeviceController DeviceLogic;
-
-        public bool HasItem => Instance != null;
-        public bool HasDevice => DeviceLogic != null;
-    }
-
     #endregion
 
     /// <summary>
@@ -106,6 +94,12 @@ namespace Characters.Player.Data
         public float CurrentSpeed;
         #endregion
 
+        #region ITEM - 当前物品/装备意图（新体系）
+        [Header("Item (Runtime)")]
+        [Tooltip("当前物品实例（也是装备意图/装备驱动的唯一来源）。为 null 表示空手。")]
+        public ItemInstance CurrentItem;
+        #endregion
+
         #region INTENT - 单帧动作意图
         [Header("Action Intents")]
         public Vector3 TargetAimPoint;
@@ -122,9 +116,6 @@ namespace Characters.Player.Data
         public bool WantsLowVault;
         public bool WantsHighVault;
         public VaultObstacleInfo CurrentVaultInfo;
-
-        [Header("Switching Intent")]
-        public ItemDefinitionSO DesiredItemDefinition;
 
         public DesiredDirection QuantizedDirection;
 
@@ -167,9 +158,6 @@ namespace Characters.Player.Data
         #endregion
 
         #region IK & EQUIPMENT - 装备与肢体对齐
-        [Header("Equipment Snapshot")]
-        public EquipmentSnapshot CurrentEquipment = new EquipmentSnapshot();
-
         [Header("IK Goals")]
         public bool WantsLeftHandIK;
         public bool WantsRightHandIK;

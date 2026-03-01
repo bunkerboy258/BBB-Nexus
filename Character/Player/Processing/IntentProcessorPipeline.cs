@@ -11,8 +11,6 @@ namespace Characters.Player.Processing
         // 核心处理器
         private readonly LocomotionIntentProcessor _locomotionIntentProcessor;
         private readonly AimIntentProcessor _aimIntentProcessor;
-        private readonly EquipIntentProcessor _equipIntentProcessor;
-        private readonly IKIntentProcessor _ikIntentProcessor;
         private readonly JumpOrVaultIntentProcessor _jumpOrVaultIntentProcessor;
 
         // 参数生成器
@@ -23,13 +21,11 @@ namespace Characters.Player.Processing
         {
             // 初始化顺序
             _viewRotationProcessor = new ViewRotationProcessor(player);
-            _equipIntentProcessor = new EquipIntentProcessor(player);
             _aimIntentProcessor = new AimIntentProcessor(player);
             _locomotionIntentProcessor = new LocomotionIntentProcessor(player);
             _jumpOrVaultIntentProcessor = new JumpOrVaultIntentProcessor(player);
 
             _movementParameterProcessor = new MovementParameterProcessor(player);
-            _ikIntentProcessor = new IKIntentProcessor(player);
         }
 
         public void update()
@@ -47,9 +43,6 @@ namespace Characters.Player.Processing
             // 1. 确定权威旋转参考系（AuthorityYaw/Pitch）
             _viewRotationProcessor.Update();
 
-            // 2. 处理装备切换意图
-            _equipIntentProcessor.Update();
-
             // 3. 处理瞄准状态意图
             _aimIntentProcessor.Update();
 
@@ -62,20 +55,18 @@ namespace Characters.Player.Processing
 
         /// <summary>
         /// 更新所有派生参数（第二阶段：逻辑意图 -> 表现层参数）。
-        /// 顺序：动画混合参数 -> IK 权重与目标。
+        /// 顺序：动画混合参数。
         /// </summary>
         public void UpdateParameterProcessors()
         {
             // 1. 根据运动意图计算动画混合参数 (BlendX, BlendY)
             _movementParameterProcessor.Update();
 
-            // 2. 根据运动和动作状态计算 IK 目标
-            _ikIntentProcessor.Update();
+            // IK 由 PlayerController 中的 IKController.Update() 单独处理
         }
 
         // --- 对外公开引用，供特殊初始化或调试使用 ---
         public LocomotionIntentProcessor Locomotion => _locomotionIntentProcessor;
-        public EquipIntentProcessor Equip => _equipIntentProcessor;
         public AimIntentProcessor Aim => _aimIntentProcessor;
         public JumpOrVaultIntentProcessor JumpOrVault => _jumpOrVaultIntentProcessor;
     }

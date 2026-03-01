@@ -1,148 +1,133 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using Items.Data;
 using UnityEngine;
-using System.Linq; // 引用 Linq
 
 namespace Items.Core
 {
     /// <summary>
-    /// 通用物品栏系统。
-    /// 职责：
-    /// 1. 管理一个物品列表 (List<InventoryItem>)。
-    /// 2. 处理物品的添加、移除、查找、堆叠逻辑。
-    /// 3. UI 无关，仅负责数据操作。
+    /// 通用物品栏系统（新 ItemInstance 体系）。
+    /// - 内部存储 ItemInstance（或其子类）。
+    /// - 堆叠依据 ItemDefinitionSO.MaxStack 与 ItemInstance.CurrentAmount。
     /// </summary>
     public class InventorySystem
     {
-        // 存储所有物品实例
-        private List<InventoryItem> _items;
-
-        // 背包容量
+        private readonly List<ItemInstance> _items;
         private readonly int _capacity;
 
-        // --- 事件 ---
-        // 当背包内容发生任何变化时触发，供 UI 或其他系统订阅
-        public event System.Action OnInventoryUpdated;
+        public event Action OnInventoryUpdated;
 
-        /// <summary>
-        /// 构造函数
-        /// </summary>
-        /// <param name="capacity">背包的总格子数</param>
         public InventorySystem(int capacity)
         {
             _capacity = capacity;
-            _items = new List<InventoryItem>(capacity);
+            _items = new List<ItemInstance>(capacity);
         }
 
-        // --- 核心 API ---
-
-        /// <summary>
-        /// 尝试向背包中添加一个或多个物品。
-        /// </summary>
-        /// <param name="definition">要添加的物品定义</param>
-        /// <param name="amount">数量</param>
-        /// <returns>返回 true 如果所有物品都被成功添加</returns>
-        public bool AddItem(ItemDefinitionSO definition, int amount = 1)
+        public bool TryAdd(ItemDefinitionSO definition, int amount = 1)
         {
             if (definition == null || amount <= 0) return false;
 
-            // 1. 尝试堆叠 (仅对可堆叠物品)
-            if (definition.IsStackable)
+            // 1) 先堆叠
+            if (definition.MaxStack > 1)
             {
-                // 查找背包中已有的、且未满堆叠的同类物品
-                var existingItems = _items.Where(i => i.Definition == definition && i.Quantity < definition.MaxStackSize).ToList();
-                foreach (var item in existingItems)
+                for (int i = 0; i < _items.Count && amount > 0; i++)
                 {
-                    int space = definition.MaxStackSize - item.Quantity;
+                    var inst = _items[i];
+                    if (inst == null) continue;
+                    if (inst.BaseData != definition) continue;
+
+                    int space = Mathf.Max(0, definition.MaxStack - inst.CurrentAmount);
+                    if (space <= 0) continue;
+
                     int add = Mathf.Min(space, amount);
-
-                    item.AddQuantity(add);
+                    inst.CurrentAmount += add;
                     amount -= add;
+                }
 
-                    if (amount <= 0)
-                    {
-                        NotifyUpdate();
-                        return true;
-                    }
+                if (amount <= 0)
+                {
+                    NotifyUpdate();
+                    return true;
                 }
             }
 
-            // 2. 放入新槽位
+            // 2) 再创建新实例塞入空位
             while (amount > 0)
             {
                 if (_items.Count >= _capacity)
                 {
-                    Debug.LogWarning("背包已满，部分物品未能添加！");
+                    Debug.LogWarning("[InventorySystem] 背包已满，部分物品未能添加！");
                     NotifyUpdate();
-                    return false; // 背包满了
+                    return false;
                 }
 
-                int addAmount = definition.IsStackable ? Mathf.Min(amount, definition.MaxStackSize) : 1;
-
-                var newItem = new InventoryItem(definition, addAmount);
-                _items.Add(newItem);
-
-                amount -= addAmount;
+                int stackAmount = definition.MaxStack > 1 ? Mathf.Min(amount, definition.MaxStack) : 1;
+                _items.Add(new ItemInstance(definition, stackAmount));
+                amount -= stackAmount;
             }
 
             NotifyUpdate();
             return true;
         }
 
-        /// <summary>
-        /// 从背包中移除指定数量的物品。
-        /// </summary>
-        public void RemoveItem(ItemDefinitionSO definition, int amount = 1)
+        public void Remove(ItemDefinitionSO definition, int amount = 1)
         {
-            // 从后往前遍历，因为我们会修改列表
-            for (int i = _items.Count - 1; i >= 0; i--)
+            if (definition == null || amount <= 0) return;
+
+            for (int i = _items.Count - 1; i >= 0 && amount > 0; i--)
             {
-                if (_items[i].Definition == definition)
+                var inst = _items[i];
+                if (inst == null || inst.BaseData != definition) continue;
+
+                int toRemove = Mathf.Min(amount, inst.CurrentAmount);
+                inst.CurrentAmount -= toRemove;
+                amount -= toRemove;
+
+                if (inst.CurrentAmount <= 0)
                 {
-                    int toRemove = Mathf.Min(amount, _items[i].Quantity);
-                    _items[i].RemoveQuantity(toRemove);
-                    amount -= toRemove;
-
-                    // 如果这组物品被移除完了，就从列表里删除
-                    if (_items[i].Quantity <= 0)
-                    {
-                        _items.RemoveAt(i);
-                    }
-
-                    if (amount <= 0) break;
+                    _items.RemoveAt(i);
                 }
             }
+
             NotifyUpdate();
         }
 
-        /// <summary>
-        /// 检查背包中是否有指定物品。
-        /// </summary>
-        public bool HasItem(ItemDefinitionSO definition, int amount = 1)
+        public bool Has(ItemDefinitionSO definition, int amount = 1)
         {
-            int count = GetItemCount(definition);
-            return count >= amount;
+            return GetCount(definition) >= amount;
         }
 
-        /// <summary>
-        /// 获取指定物品在背包中的总数量。
-        /// </summary>
-        public int GetItemCount(ItemDefinitionSO definition)
+        public int GetCount(ItemDefinitionSO definition)
         {
-            return _items.Where(i => i.Definition == definition).Sum(i => i.Quantity);
+            if (definition == null) return 0;
+            int sum = 0;
+            for (int i = 0; i < _items.Count; i++)
+            {
+                var inst = _items[i];
+                if (inst != null && inst.BaseData == definition)
+                    sum += inst.CurrentAmount;
+            }
+            return sum;
         }
 
-        /// <summary>
-        /// 获取背包中所有物品的只读列表 (供 UI 显示)。
-        /// </summary>
-        public IReadOnlyList<InventoryItem> GetAllItems()
+        public ItemInstance FindFirst(ItemDefinitionSO definition)
+        {
+            if (definition == null) return null;
+            for (int i = 0; i < _items.Count; i++)
+            {
+                var inst = _items[i];
+                if (inst != null && inst.BaseData == definition)
+                    return inst;
+            }
+            return null;
+        }
+
+        public IReadOnlyList<ItemInstance> GetAllItems()
         {
             return _items;
         }
 
-        /// <summary>
-        /// 触发更新事件。
-        /// </summary>
         private void NotifyUpdate()
         {
             OnInventoryUpdated?.Invoke();

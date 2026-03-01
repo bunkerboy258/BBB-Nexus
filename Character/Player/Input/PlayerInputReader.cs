@@ -26,6 +26,9 @@ namespace Characters.Player.Input
 
         public bool InteractPressed;
         public bool InteractHeld;
+
+        public bool FirePressed;
+        public bool FireHeld;
     }
 
     public class PlayerInputReader : MonoBehaviour
@@ -50,6 +53,7 @@ namespace Characters.Player.Input
         public bool IsAiming => _currentFrame.AimHeld;
         public bool IsDodgePressed => _currentFrame.DodgePressed;
         public bool IsRollPressed => _currentFrame.RollPressed;
+        public bool FireInput => _currentFrame.FireHeld;
 
         public PlayerInputFrame Current => _currentFrame;
         #endregion
@@ -85,6 +89,7 @@ namespace Characters.Player.Input
         public InputActionReference number3Action;
         public InputActionReference number4Action;
         public InputActionReference number5Action;
+        public InputActionReference fireAction;
         #endregion
 
         #region 5. 内部状态
@@ -138,12 +143,14 @@ namespace Characters.Player.Input
             frame.SprintHeld = sprintAction.action.IsPressed();
             frame.WalkHeld = walkAction.action.IsPressed();
             frame.AimHeld = aimAction.action.IsPressed();
+            frame.FireHeld = fireAction.action.IsPressed();
 
             // --- D. 手动边沿检测 (Pressed) ---
             // 这种方式算出来的 Pressed 状态是可以被 Consume 方法改写的 bool
             frame.JumpPressed = frame.JumpHeld && !_lastFrame.JumpHeld;
             frame.DodgePressed = frame.DodgeHeld && !_lastFrame.DodgeHeld;
             frame.RollPressed = frame.RollHeld && !_lastFrame.RollHeld;
+            frame.FirePressed = frame.FireHeld && !_lastFrame.FireHeld;
 
             return frame;
         }
@@ -160,7 +167,7 @@ namespace Characters.Player.Input
             InputActionReference[] all = {
                 moveAction, lookAction, jumpAction, sprintAction, walkAction,
                 aimAction, dodgeAction, rollAction, waveAction, LeftMouseAction,
-                number1Action, number2Action, number3Action, number4Action, number5Action
+                number1Action, number2Action, number3Action, number4Action, number5Action, fireAction
             };
 
             foreach (var ar in all)

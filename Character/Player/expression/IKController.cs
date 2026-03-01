@@ -2,7 +2,7 @@ using UnityEngine;
 using Characters.Player.Core;      
 using Characters.Player.Data;
 
-namespace Characters.Player.Layers
+namespace Characters.Player.Expression
 {
     /// <summary>
     /// IK 系统管理器 (Data-Driven)。

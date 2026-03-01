@@ -2,7 +2,7 @@ using Core.StateMachine;
 using Characters.Player.Core;
 using Characters.Player.Processing;
 
-namespace Characters.Player.States
+namespace Characters.Player.Expression
 {
     public class UpperBodyController
     {
@@ -27,11 +27,6 @@ namespace Characters.Player.States
                 StateRegistry.InitializeFromBrain(player.Config.Brain, player);
             }
 
-            // 3. 启动状态机 (取列表第0个)
-            if (StateRegistry.InitialState != null)
-            {
-                StateMachine.Initialize(StateRegistry.InitialState);
-            }
         }
 
         public void Update()

@@ -2,7 +2,7 @@ using UnityEngine;
 using Animancer;
 using Characters.Player.Data;
 
-namespace Characters.Player.Layers
+namespace Characters.Player.Expression
 {
     /// <summary>
     /// Facial layer controller

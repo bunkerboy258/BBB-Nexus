@@ -54,8 +54,7 @@ namespace Characters.Player.States
         /// </summary>
         private void SelectDoubleJumpAnimation()
         {
-            bool isHandsEmpty = data.CurrentEquipment.Definition == null;
-            //Debug.Log(data.CurrentEquipment.Definition);
+            bool isHandsEmpty = data.CurrentItem == null;
 
             // 根据运动状态和装备获取基础配置
             MotionClipData baseClip = null;

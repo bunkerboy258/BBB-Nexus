@@ -37,7 +37,7 @@ namespace Characters.Player.States
 
         private void SelectJumpAnimation()
         {
-            bool isHandsEmpty = data.CurrentEquipment.Definition == null;
+            bool isHandsEmpty = data.CurrentItem == null;
 
             switch (data.CurrentLocomotionState)
             {

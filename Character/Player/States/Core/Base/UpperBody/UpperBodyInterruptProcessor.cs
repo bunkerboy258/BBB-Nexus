@@ -1,5 +1,6 @@
 using Characters.Player.Core;
 using Characters.Player.States;
+using Characters.Player.Expression;
 
 namespace Characters.Player.Processing
 {

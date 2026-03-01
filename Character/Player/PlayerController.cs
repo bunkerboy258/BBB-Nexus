@@ -3,7 +3,7 @@ using Characters.Player.Animation;
 using Characters.Player.Core;       // For MotionDriver
 using Characters.Player.Data;
 using Characters.Player.Input;
-using Characters.Player.Layers;
+using Characters.Player.Expression;
 using Characters.Player.Processing;
 using Characters.Player.States;
 using Core.StateMachine;
@@ -54,7 +54,7 @@ namespace Characters.Player
         public StateMachine StateMachine { get; private set; }
         public GlobalInterruptProcessor InterruptProcessor { get; private set; }
         public PlayerRuntimeData RuntimeData { get; private set; }
-        public PlayerInventoryController InventoryController { get; private set; }
+        public Characters.Player.Expression.PlayerInventoryController InventoryController { get; private set; }
         public PlayerInputReader InputReader { get; private set; }
 
         // --- 驱动器与外观层 ---
@@ -96,8 +96,7 @@ namespace Characters.Player
             RuntimeData = new PlayerRuntimeData();
             if (Config != null) RuntimeData.CurrentStamina = Config.Core.MaxStamina;
 
-            // 3. 实例化所有系统控制器与驱动器 (依赖注入 this)
-            InventoryController = new PlayerInventoryController(this);
+            // 3. 实例化所有系统控制器与驱动器 
             StateMachine = new StateMachine();
             InterruptProcessor = new GlobalInterruptProcessor(this);
             MotionDriver = new MotionDriver(this);
@@ -106,6 +105,7 @@ namespace Characters.Player
             _characterStatusDriver = new CharacterStatusDriver(RuntimeData, Config);
 
             // 4. 实例化子分层控制器
+            InventoryController = new PlayerInventoryController(this);
             UpperBodyCtrl = new UpperBodyController(this); // 里面只做 new Registry，不启动
             _facialController = new FacialController(Animancer, Config);
             _ikController = new IKController(this);
@@ -135,6 +135,9 @@ namespace Characters.Player
             // 2. 初始化动画系统层级与遮罩（必须在状态机启动前设置好！）
             SetupAnimationLayers();
 
+            // 初始化物品栏控制器（绑定数字键等输入）
+            InventoryController?.Initialize();
+
             // 3. 初始化初始装备
             InitializeEquipments();
 
@@ -142,6 +145,12 @@ namespace Characters.Player
 
             // 4. 启动状态机！引擎通电！
             BootUpStateMachines();
+        }
+
+        private void OnDestroy()
+        {
+            // 释放输入绑定
+            InventoryController?.Dispose();
         }
 
         private void InitializeCamera()
@@ -166,8 +175,8 @@ namespace Characters.Player
         {
             if (DefaultEquipment != null)
             {
-                // 将默认装备放入槽位 0 (对应按键 1)
-                _intentProcessorPipeline.Equip.AssignItemToSlot(0, DefaultEquipment);
+                // 通过 InventoryController 绑定到快捷栏 0 (对应按键 1)
+                InventoryController?.AssignItemToSlot(0, DefaultEquipment);
             }
         }
 

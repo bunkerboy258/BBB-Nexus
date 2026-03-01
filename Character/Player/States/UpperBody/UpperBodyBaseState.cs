@@ -3,6 +3,7 @@ using Characters.Player.Data;
 using Characters.Player.Animation;
 using Animancer;
 using UnityEngine;
+using Characters.Player.Expression;
 
 namespace Characters.Player.States
 {
@@ -16,14 +17,14 @@ namespace Characters.Player.States
         {
             this.player = player;
             this.data = player.RuntimeData;
-            // controller 不需要在这里赋值，它会在 LogicUpdate 之前通过 player._upperBodyController 拿到最新引用
+            // 严重bug修复：UpperBodyController 可能在 PlayerController 的 Start 里才被赋值，所以这里不能直接获取，改为后加载。
         }
 
         public sealed override void LogicUpdate()
         {
-            // 确保在 LogicUpdate 时 controller 已经通过 player 准备好
+            // Lazy fetch to avoid null reference during startup ordering.
             if (controller == null) controller = player.UpperBodyCtrl;
-            
+
             if (CheckInterrupts()) return;
             UpdateStateLogic();
         }
@@ -32,6 +33,7 @@ namespace Characters.Player.States
 
         protected virtual bool CheckInterrupts()
         {
+            if (controller == null || controller.InterruptProcessor == null) return false;
             return controller.InterruptProcessor.TryProcessInterrupts(this);
         }
 

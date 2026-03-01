@@ -1,18 +1,42 @@
-using UnityEngine;
 using Animancer;
+using Characters.Player.Animation;
+using Items.Core;
+using UnityEngine;
 
 namespace Items.Data
 {
-    // è¿™ä¸ªç±»ä»ç„¶æ˜¯æŠ½è±¡çš„ï¼Œå› ä¸ºæˆ‘ä»¬å¸Œæœ›ç”¨æˆ·åˆ›å»ºæ›´å…·ä½“çš„ "Weapon" æˆ– "Tool"
+    /// <summary>
+    /// ¿É×°±¸ÎïÆ·Í¼Ö½»ùÀà£º°üº¬ÁËÊµÀı»¯ËùĞèµÄÍâ¿Ç Prefab ºÍ»ù´¡Í¨ÓÃ¶¯»­¡£
+    /// </summary>
     public abstract class EquippableItemSO : ItemDefinitionSO
     {
-        [Header("è£…å¤‡å±æ€§ (Equippable)")]
-        public GameObject Prefab; // åœºæ™¯æ¨¡å‹
-        public ItemHoldType HoldType; // æ¡æŒå§¿æ€
+        [Header("--- ÎïÀí±íÏÖ (Physical Avatar) ---")]
+        [Tooltip("ÊµÀı»¯µ½Íæ¼ÒÊÖÀïµÄÓÎÏ·¶ÔÏó (±ØĞë°üº¬ÊµÏÖÁË IHoldableItem µÄ½Å±¾)")]
+        public GameObject Prefab;
 
-        [Header("åŠ¨ç”»é…ç½®")]
-        public ClipTransition EquipIdleAnim;
+        public Vector3 HoldPositionOffset;
+        public Quaternion HoldRotationOffset;
+
+        [Header("--- Í¨ÓÃ±íÏÖ¶¯»­ (Universal Animations) ---")]
+        [Tooltip("°Î³ö/×°±¸Ê±µÄ¶¯»­")]
         public ClipTransition EquipAnim;
-        public ClipTransition UnequipAnim;
+
+        [Tooltip("³ÖÓĞÊ±Ä¬ÈÏµÄ´ı»ú¶¯»­ (¿ÉÑ¡)")]
+        public ClipTransition EquipIdleAnim;
+
+        /// <summary>
+        /// Ìá¹©Ò»¸ö¿ì½İ·½·¨£¬ÓÃÓÚÉú³ÉÄ¬ÈÏµÄÉÏ°ëÉí²¥·ÅÑ¡Ïî¡£
+        /// </summary>
+        public AnimPlayOptions GetUpperBodyPlayOptions()
+        {
+            return new AnimPlayOptions
+            {
+                Layer = 1,          // Ç¿ÖÆÖ¸¶¨µ½ÉÏ°ëÉí²ã¼¶ (Layer 1)
+                FadeDuration = -1f, // Ê¹ÓÃ ClipTransition Inspector ÖĞµÄÄ¬ÈÏÖµ
+                Speed = -1f,
+                NormalizedTime = -1f,
+                ForcePhaseSync = false
+            };
+        }
     }
 }
