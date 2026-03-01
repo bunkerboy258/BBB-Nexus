@@ -1,17 +1,14 @@
 using Animancer;
 using Characters.Player.Animation;
-using Characters.Player.Core;      // For MotionDriver
+using Characters.Player.Core;       // For MotionDriver
 using Characters.Player.Data;
 using Characters.Player.Input;
 using Characters.Player.Layers;
 using Characters.Player.Processing;
 using Characters.Player.States;
 using Core.StateMachine;
-using Items.Core;
 using Items.Data;
-using MagicaCloth2;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace Characters.Player
@@ -20,92 +17,184 @@ namespace Characters.Player
     /// 玩家角色的核心控制器。
     /// 职责:
     /// 1. 作为整个玩家系统的根节点（Root）。
-    /// 2. 初始化并持有核心依赖（状态机、运动驱动、输入、数据）。
-    /// 3. 在 Update 循环中，按固定顺序驱动各子系统更新。
+    /// 2. 严格遵循黄金初始化三阶段：Awake(内存/依赖) -> Start(环境配置) -> BootUp(状态机点火)。
+    /// 3. 在 Update 循环中，按固定物理与逻辑顺序驱动各子系统更新。
     /// 4. 不包含具体游戏逻辑，仅负责组件整合、指令分发。
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     [RequireComponent(typeof(PlayerInputReader))]
     [RequireComponent(typeof(AnimancerComponent))]
+    [RequireComponent(typeof(AnimancerFacade))]
     public class PlayerController : MonoBehaviour
     {
-        // --- 配置字段（在 Inspector 面板赋值） ---
-        [Header("Configuration")]
+        // ==========================================
+        // 1. 配置字段 (Inspector)
+        // ==========================================
+        [Header("--- 核心配置 (Core Config) ---")]
         [Tooltip("玩家的配置文件（ScriptableObject）")]
         public PlayerSO Config;
-        [Header("IK System")]
-        public PlayerIKSourceBase IKSource;
-        public IAnimationFacade AnimFacade { get; private set; }
-
         [Tooltip("玩家摄像机（可选，未指定时自动获取 MainCamera）")]
         public Transform PlayerCamera;
 
-        public Animator animator; // 预留 Animator 引用，供特殊需求使用（如 IK）
-        public event System.Action OnEquipmentChanged;
-        // 武器挂载容器 (在 Hierarchy 中手动创建一个空物体，放在 Player 下)
-        [Header("Runtime References")]
+        [Header("--- 表现与挂点 (Visuals & Sockets) ---")]
+        public PlayerIKSourceBase IKSource;
         public Transform WeaponContainer;
-        // 右手骨骼引用 (用于约束)
-        public Transform RightHandBone { get; private set; }
+        public Transform RightHandBone; // 用于约束
+        public Animator animator;       // 预留 Animator 引用，供特殊需求使用（如 IK）
 
         [Header("--- 调试选项 (Debug Options) ---")]
-        [Space(5)]
         [Tooltip("如果配置了此项，游戏开始时会自动装备这个物品")]
         public ItemDefinitionSO DefaultEquipment;
-
         public bool statedebug = false;
-        private PlayerBaseState laststate;
 
-        // [Removed] CameraRoot 同步已迁移到 Core.CameraSystem.CameraRigDriver（场景独立物体）。
 
-        // --- 核心系统引用（供外部系统访问） ---
+        // ==========================================
+        // 2. 运行时核心引用 (Runtime References)
+        // ==========================================
         public StateMachine StateMachine { get; private set; }
-
         public GlobalInterruptProcessor InterruptProcessor { get; private set; }
         public PlayerRuntimeData RuntimeData { get; private set; }
-        public PlayerInventoryController  InventoryController{ get; private set; }
-        public PlayerInputReader InputReader { get; private set; } // 供状态机（如 IdleState）访问
+        public PlayerInventoryController InventoryController { get; private set; }
+        public PlayerInputReader InputReader { get; private set; }
+
+        // --- 驱动器与外观层 ---
         public AnimancerComponent Animancer { get; private set; }
+        public IAnimationFacade AnimFacade { get; private set; }
         public CharacterController CharController { get; private set; }
         public MotionDriver MotionDriver { get; private set; }
         public EquipmentDriver EquipmentDriver { get; private set; }
 
-        // --- 状态实例 ---
+        // --- 状态注册表与子控制器 ---
         public PlayerStateRegistry StateRegistry { get; private set; }
-        // --- 私有控制器实例 ---
-        private UpperBodyController _upperBodyController;
+        public UpperBodyController UpperBodyCtrl { get; private set; } // 规范命名，公开供状态访问
         private FacialController _facialController;
         private IKController _ikController;
-
         private IntentProcessorPipeline _intentProcessorPipeline;
         private CharacterStatusDriver _characterStatusDriver;
 
-        // --- Unity 生命周期方法 ---
+        // --- 内部缓存 ---
+        private PlayerBaseState _lastState;
+        public event System.Action OnEquipmentChanged;
+
+
+        // ==========================================
+        // 阶段一：Awake (内存分配、找组件、依赖注入)
+        // 绝对不执行任何状态机逻辑！
+        // ==========================================
         private void Awake()
         {
-            animator = gameObject.GetComponent<Animator>(); // 获取 Animator 组件引用，供 IK 使用
-            InitializeData();
-            InitializeComponents();
-            InitializeProcessors();
-            InitializeStates();
-            InitializeLayers();
+            // 1. 获取 Unity 原生与桥接组件
+            animator = GetComponent<Animator>();
+            Animancer = GetComponent<AnimancerComponent>();
+            CharController = GetComponent<CharacterController>();
+            InputReader = GetComponent<PlayerInputReader>();
+            AnimFacade = GetComponent<AnimancerFacade>();
+
+            Animancer.Animator.applyRootMotion = false; // 由 MotionDriver 接管
+
+            // 2. 实例化纯数据容器
+            RuntimeData = new PlayerRuntimeData();
+            if (Config != null) RuntimeData.CurrentStamina = Config.Core.MaxStamina;
+
+            // 3. 实例化所有系统控制器与驱动器 (依赖注入 this)
+            InventoryController = new PlayerInventoryController(this);
+            StateMachine = new StateMachine();
+            InterruptProcessor = new GlobalInterruptProcessor(this);
+            MotionDriver = new MotionDriver(this);
+            EquipmentDriver = new EquipmentDriver(this);
+            _intentProcessorPipeline = new IntentProcessorPipeline(this);
+            _characterStatusDriver = new CharacterStatusDriver(RuntimeData, Config);
+
+            // 4. 实例化子分层控制器
+            UpperBodyCtrl = new UpperBodyController(this); // 里面只做 new Registry，不启动
+            _facialController = new FacialController(Animancer, Config);
+            _ikController = new IKController(this);
+
+            // 5. 装载状态字典 (反射或枚举映射，分配独立内存实例)
+            StateRegistry = new PlayerStateRegistry();
+            if (Config != null && Config.Brain != null)
+            {
+                StateRegistry.InitializeFromBrain(Config.Brain, this);
+            }
+            else
+            {
+                Debug.LogError("[PlayerController] 致命错误：未配置 PlayerSO 或 Brain！");
+            }
         }
 
+        // ==========================================
+        // 阶段二：Start (环境预热 与 正式点火)
+        // ==========================================
         private void Start()
         {
-            // 通过 InventoryController 进行正规初始化 🔥
-            if (DefaultEquipment != null)
-            {
-                // 1. 将默认装备放入槽位 0 (对应按键 1)
-                _intentProcessorPipeline.Equip.AssignItemToSlot(0, DefaultEquipment);
-            }
+            // --- 预热环境 (Setup Environment) ---
+
+            // 1. 初始化摄像机
             InitializeCamera();
-            StateMachine.Initialize(StateRegistry.InitialState);
+
+            // 2. 初始化动画系统层级与遮罩（必须在状态机启动前设置好！）
+            SetupAnimationLayers();
+
+            // 3. 初始化初始装备
+            InitializeEquipments();
+
+            // --- 正式点火 (Boot Up) ---
+
+            // 4. 启动状态机！引擎通电！
+            BootUpStateMachines();
         }
 
+        private void InitializeCamera()
+        {
+            if (PlayerCamera == null && Camera.main != null)
+            {
+                PlayerCamera = Camera.main.transform;
+            }
+            RuntimeData.CameraTransform = PlayerCamera;
+        }
+
+        private void SetupAnimationLayers()
+        {
+            // TODO: 未来如果你在 Config 里配置了 UpperBodyMask (AvatarMask)
+            // 可以在这里调用 AnimFacade.SetLayerMask(1, Config.UpperBodyMask);
+
+            // 预留：设置第 1 层（上半身）的初始权重为 1
+            AnimFacade.SetLayerWeight(1, 1f);
+        }
+
+        private void InitializeEquipments()
+        {
+            if (DefaultEquipment != null)
+            {
+                // 将默认装备放入槽位 0 (对应按键 1)
+                _intentProcessorPipeline.Equip.AssignItemToSlot(0, DefaultEquipment);
+            }
+        }
+
+        private void BootUpStateMachines()
+        {
+            // 1. 先启动全身/下半身底盘
+            if (StateRegistry.InitialState != null)
+            {
+                StateMachine.Initialize(StateRegistry.InitialState);
+            }
+
+            // 2. 再启动上半身 (调用 UpperBodyController 中我们新写的 Start 方法)
+            // 如果你没有在 UpperBodyController 写 Start()，可以直接这样调用：
+            if (UpperBodyCtrl.StateRegistry.InitialState != null)
+            {
+                UpperBodyCtrl.StateMachine.Initialize(UpperBodyCtrl.StateRegistry.InitialState);
+            }
+        }
+
+
+        // ==========================================
+        // 阶段三：Update (固定管线流转)
+        // ==========================================
         private void Update()
         {
-            laststate = StateMachine.CurrentState as PlayerBaseState;
+            _lastState = StateMachine.CurrentState as PlayerBaseState;
+
             // 1. 输入 -> 原始数据
             RuntimeData.MoveInput = InputReader.MoveInput;
             RuntimeData.LookInput = InputReader.LookInput;
@@ -116,120 +205,42 @@ namespace Characters.Player
             // 3. 被动状态更新：根据当前角色状态更新核心属性（体力/生命值等）
             _characterStatusDriver.Update();
 
-            // 4. 执行物理（执行移动逻辑） — 先于参数处理，让 grounded/vertical 等反映本帧物理结果
-            StateMachine.CurrentState.PhysicsUpdate();
+            // 4. 物理更新：先于逻辑处理，让 grounded/vertical 等反映本帧真实物理结果
+            StateMachine.CurrentState?.PhysicsUpdate();
 
-            // 5. 逻辑意图 -> 表现层参数 (含动画参数、IK)
+            // 5. 逻辑意图 -> 表现层参数 (更新动画 Mixer 参数等)
             _intentProcessorPipeline.UpdateParameterProcessors();
 
-            // 6. 更新状态机（状态切换、逻辑更新）
-            StateMachine.CurrentState.LogicUpdate();
+            // 6. 状态逻辑更新 (包含全局打断检测、状态流转逻辑)
+            StateMachine.CurrentState?.LogicUpdate();
 
-            // 6.5. 更新上身分层控制器（装备、瞄准等）
-            _upperBodyController.Update();
+            // 7. 更新上半身分层控制器（装备、瞄准、攻击等）
+            UpperBodyCtrl.Update();
 
-            // 7. 更新 IK
+            // 8. 更新 IK 结算
             _ikController.Update();
 
-            // 8. 重置data意图标记    
+            // 9. 清理帧尾标记 (极度重要：防止意图残留到下一帧)
             RuntimeData.ResetIntetnt();
 
-            if(statedebug&& StateMachine.CurrentState.GetType().Name!=laststate.GetType().Name) Debug.Log(StateMachine.CurrentState.GetType().Name);  
-
-        }
-
-        // [Removed] LateUpdate：CameraRoot 同步由 CameraRigDriver 负责。
-
-        // --- 初始化方法 ---
-        /// <summary>
-        /// 初始化运行时数据容器，设置初始耐力值
-        /// </summary>
-        private void InitializeData()
-        {
-            RuntimeData = new PlayerRuntimeData();
-            RuntimeData.CurrentStamina = Config.Core.MaxStamina;
-            InventoryController=new PlayerInventoryController(this);
-        }
-
-        /// <summary>
-        /// 初始化 Unity 组件引用，关闭动画根运动（由 MotionDriver 接管移动）
-        /// </summary>
-        private void InitializeComponents()
-        {
-            Animancer = GetComponent<AnimancerComponent>();
-            CharController = GetComponent<CharacterController>();
-            InputReader = GetComponent<PlayerInputReader>(); // 赋值供外部访问
-            Animancer.Animator.applyRootMotion = false;
-            if(GetComponent<AnimancerFacade>()==null)Debug.LogWarning("[PlayerController] 缺少 AnimancerFacade 组件！请确保它与 AnimancerComponent 在同一 GameObject 上，以便状态机正确播放动画。");
-            AnimFacade =GetComponent<AnimancerFacade>(); // 获取 AnimancerFacade 组件引用，供状态使用
-        }
-
-        /// <summary>
-        /// 初始化核心处理器（状态机、运动驱动、意图管线、角色状态系统）
-        /// </summary>
-        private void InitializeProcessors()
-        {
-            StateMachine = new StateMachine();
-
-            InterruptProcessor = new GlobalInterruptProcessor(this);
-
-            MotionDriver = new MotionDriver(this); // MotionDriver 依赖 Controller，在此初始化
-
-            EquipmentDriver = new EquipmentDriver(this);
-
-            // 初始化意图处理管道 (统一管理视角、移动、瞄准、装备、IK、参数)
-            _intentProcessorPipeline = new IntentProcessorPipeline(this);
-
-            // 初始化角色核心属性 Driver（被动响应）
-            _characterStatusDriver = new CharacterStatusDriver(RuntimeData, Config);
-        }
-
-        /// <summary>
-        /// 初始化所有状态实例，注入 Controller 依赖
-        /// </summary>
-        private void InitializeStates()
-        {
-            StateRegistry = new PlayerStateRegistry();
-
-            if (Config != null && Config.Brain != null)
+            // --- 调试监控 ---
+            if (statedebug && StateMachine.CurrentState != null && _lastState != null)
             {
-                // 让注册表自己去读配置、造状态
-                StateRegistry.InitializeFromBrain(Config.Brain, this);
-            }
-            else
-            {
-                Debug.LogError("[PlayerController] 致命错误：未配置 PlayerSO 或 Brain！");
+                if (StateMachine.CurrentState.GetType().Name != _lastState.GetType().Name)
+                {
+                    Debug.Log($"[状态切换] {_lastState.GetType().Name} -> {StateMachine.CurrentState.GetType().Name}");
+                }
             }
         }
 
-        /// <summary>
-        /// 初始化分层动画控制器（上半身、面部）
-        /// </summary>
-        private void InitializeLayers()
-        {
-            _upperBodyController = new UpperBodyController(this);
-            _facialController = new FacialController(Animancer, Config);
-            _ikController=new IKController(this); 
-        }
-
-        /// <summary>
-        /// 初始化摄像机引用，未指定时自动获取主摄像机
-        /// </summary>
-        private void InitializeCamera()
-        {
-            if (PlayerCamera == null && Camera.main != null)
-            {
-                PlayerCamera = Camera.main.transform;
-            }
-            RuntimeData.CameraTransform = PlayerCamera;
-        }
-
-        // --- 对外 API ---
+        // ==========================================
+        // 外部通讯 API
+        // ==========================================
         public void PlayHurtExpression() => _facialController.PlayHurtExpression();
+
         public void NotifyEquipmentChanged()
         {
             OnEquipmentChanged?.Invoke();
         }
-
     }
 }

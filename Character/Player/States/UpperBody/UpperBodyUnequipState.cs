@@ -7,7 +7,7 @@ namespace Characters.Player.States.UpperBody
 {
     public class UpperBodyUnequipState : UpperBodyBaseState
     {
-        public UpperBodyUnequipState(PlayerController p, UpperBodyController c) : base(p, c) { }
+        public UpperBodyUnequipState(PlayerController p) : base(p) { }
 
         public override void Enter()
         {
@@ -16,9 +16,8 @@ namespace Characters.Player.States.UpperBody
             // 1. 检查是否是可装备物品，且有卸载动画
             if (currentDef is EquippableItemSO equipDef && equipDef.UnequipAnim.Clip != null)
             {
-                var options = AnimPlayOptions.Default;
-                options.Layer = 1; // 上半身层
-                player.AnimFacade.PlayTransition(equipDef.UnequipAnim, options);
+                // 使用通用方法播放卸载动画
+                ChooseOptionsAndPlay(equipDef.UnequipAnim);
 
                 // 2. 绑定卸载事件
                 // 在动画播放到 70% (手放回背后) 时，销毁手中的模型
@@ -29,13 +28,13 @@ namespace Characters.Player.States.UpperBody
                 });
 
                 // 3. 结束 -> Idle
-                player.AnimFacade.SetOnEndCallback(() => controller.ChangeState(controller.IdleState));
+                player.AnimFacade.SetOnEndCallback(() => controller.StateMachine.ChangeState(controller.StateRegistry.GetState<UpperBodyIdleState>()));
             }
             else
             {
                 // 没有动画或不是装备 -> 瞬间卸载
                 player.EquipmentDriver.UnloadCurrentModel();
-                controller.ChangeState(controller.IdleState);
+                controller.StateMachine.ChangeState(controller.StateRegistry.GetState<UpperBodyIdleState>());
             }
         }
 

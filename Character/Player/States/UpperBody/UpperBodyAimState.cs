@@ -16,19 +16,16 @@ namespace Characters.Player.States.UpperBody
     /// </summary>
     public class UpperBodyAimState : UpperBodyBaseState
     {
-        public UpperBodyAimState(PlayerController p, UpperBodyController c) : base(p, c) { }
+        public UpperBodyAimState(PlayerController p) : base(p) { }
 
         public override void Enter()
         {
             var equip = data.CurrentEquipment;
 
-            // 1. 播放瞄准动画 (通过 Facade)
+            // 1. 播放瞄准动画 (使用通用方法)
             if (equip.Definition is RangedWeaponSO equipDef && equipDef.AimAnim != null)
             {
-                var options = AnimPlayOptions.Default;
-                options.Layer = 1; // 上半身层
-                options.FadeDuration = 0.15f;
-                player.AnimFacade.PlayTransition(equipDef.AimAnim, options);
+                ChooseOptionsAndPlay(equipDef.AimAnim);
             }
 
             player.InputReader.OnLeftMouseDown += HandleFireInput;
@@ -40,11 +37,12 @@ namespace Characters.Player.States.UpperBody
             // 如果松开右键 -> 切回 Idle
             if (!data.IsAiming)
             {
-                controller.ChangeState(controller.IdleState);
+                controller.StateMachine.ChangeState(controller.StateRegistry.GetState<UpperBodyIdleState>());
                 return;
             }
         }
 
+        public override void PhysicsUpdate() { }
         private void HandleFireInput()
         {
             var equip = data.CurrentEquipment;

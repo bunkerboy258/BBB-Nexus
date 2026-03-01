@@ -1,10 +1,14 @@
 ﻿// 文件路径: Characters/Player/Animation/IAnimationFacade.cs
 using UnityEngine;
+using Animancer;
 
 namespace Characters.Player.Animation
 {
     public interface IAnimationFacade
     {
+        // 初始化 AnimancerComponent 引用（可选，用于在外部显式初始化）
+        void InitializeAnimancer(AnimancerComponent animancerComponent);
+
         // 播放单个普通 AnimationClip
         void PlayClip(AnimationClip clip, AnimPlayOptions options);
 
@@ -20,6 +24,9 @@ namespace Characters.Player.Animation
 
         // 支持层权重控制（用于淡入/淡出分层动画）
         void SetLayerWeight(int layerIndex, float weight, float fadeDuration = 0f);
+
+        // 设置特定层的遮罩
+        void SetLayerMask(int layerIndex, AvatarMask mask);
 
         // 添加针对特定归一化时间的自定义回调支持
         void AddCallback(float normalizedTime, System.Action callback);

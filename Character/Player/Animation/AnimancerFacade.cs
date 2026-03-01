@@ -24,6 +24,18 @@ namespace Characters.Player.Animation
             ClearOnEndCallback();
         }
 
+        /// <summary>
+        /// 显式初始化 AnimancerComponent 引用。
+        /// 在 PlayerController.InitializeComponents 中调用，确保优先初始化。
+        /// </summary>
+        public void InitializeAnimancer(AnimancerComponent animancerComponent)
+        {
+            if (animancerComponent != null)
+            {
+                _animancer = animancerComponent;
+            }
+        }
+
         public void PlayClip(AnimationClip clip, AnimPlayOptions options)
         {
             if (clip == null) return;
@@ -141,6 +153,17 @@ namespace Characters.Player.Animation
             else
             {
                 layer.Weight = weight;
+            }
+        }
+
+        public void SetLayerMask(int layerIndex, AvatarMask mask)
+        {
+            // 1. 使用你现有的 GetLayerOrFallback 安全地获取层级实例
+            var layer = GetLayerOrFallback(layerIndex);
+
+            if (layer != null)
+            {
+                layer.Mask = mask;
             }
         }
 

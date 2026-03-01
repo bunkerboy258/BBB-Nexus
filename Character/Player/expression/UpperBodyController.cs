@@ -1,57 +1,42 @@
-using UnityEngine;
-using Animancer;
 using Core.StateMachine;
-using Characters.Player.Data;
-using Characters.Player.States.UpperBody;
+using Characters.Player.Core;
+using Characters.Player.Processing;
 
-namespace Characters.Player.Layers
+namespace Characters.Player.States
 {
     public class UpperBodyController
     {
         private PlayerController _player;
-        private StateMachine _stateMachine;
 
-        // 状态实例
-        public UpperBodyIdleState IdleState { get; private set; }
-        public UpperBodyEquipState EquipState { get; private set; }
-        public UpperBodyUnequipState UnequipState { get; private set; }
-        public UpperBodyAimState AimState { get; private set; }
-        public UpperBodyUnavailableState UnavailableState { get; private set; }
-        
+        public StateMachine StateMachine { get; private set; }
+        public UpperBodyStateRegistry StateRegistry { get; private set; }
+        public UpperBodyInterruptProcessor InterruptProcessor { get; private set; }
 
         public UpperBodyController(PlayerController player)
         {
             _player = player;
+            StateMachine = new StateMachine();
 
-            // Layer Setup
-            var layer = _player.Animancer.Layers[1];
-            layer.Mask = _player.Config.Core.UpperBodyMask;
-            layer.Weight = 1f;
-            layer.ApplyAnimatorIK = true;
+            // 1. 初始化注册表和处理器
+            StateRegistry = new UpperBodyStateRegistry();
+            InterruptProcessor = new UpperBodyInterruptProcessor(player, this);
 
-            // Set layer to additive mode so played clips are applied additively to base animation
-            // 将上半身层设置为 Additive 模式，使其动画以叠加方式应用于下层基础动作
-            //layer.IsAdditive = true;
+            // 2. 从 BrainSO 加载状态
+            if (player.Config != null && player.Config.Brain != null)
+            {
+                StateRegistry.InitializeFromBrain(player.Config.Brain, player);
+            }
 
-            // State Machine Setup
-            _stateMachine = new StateMachine();
-            IdleState = new UpperBodyIdleState(player, this);
-            EquipState = new UpperBodyEquipState(player, this);
-            UnequipState = new UpperBodyUnequipState(player, this);
-            AimState = new UpperBodyAimState(player, this);
-            UnavailableState = new UpperBodyUnavailableState(player, this);
-
-            _stateMachine.Initialize(IdleState);
+            // 3. 启动状态机 (取列表第0个)
+            if (StateRegistry.InitialState != null)
+            {
+                StateMachine.Initialize(StateRegistry.InitialState);
+            }
         }
 
         public void Update()
         {
-            _stateMachine.CurrentState.LogicUpdate();
+            StateMachine.CurrentState?.LogicUpdate();
         }
-
-        public void ChangeState(BaseState newState) => _stateMachine.ChangeState(newState);
-
-        // 提供给 State 使用的 Layer 访问器
-        public AnimancerLayer Layer => _player.Animancer.Layers[1];
     }
 }

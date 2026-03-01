@@ -15,7 +15,7 @@ namespace Characters.Player.States.UpperBody
         /// </summary>
         /// <param name="player">玩家核心控制器</param>
         /// <param name="controller">上半身分层控制器</param>
-        public UpperBodyAttackState(PlayerController player, UpperBodyController controller) : base(player, controller) { }
+        public UpperBodyAttackState(PlayerController p) : base(p) { }
 
         /// <summary>
         /// 进入状态：播放攻击动画，绑定动画结束事件（自动切回空闲状态）
@@ -28,6 +28,8 @@ namespace Characters.Player.States.UpperBody
         {
             // 该状态逻辑完全由动画事件驱动，无需在每帧更新中处理逻辑
         }
+
+        public override void PhysicsUpdate() { }
         public override void Exit()
         {
             // 离开状态时无需额外处理

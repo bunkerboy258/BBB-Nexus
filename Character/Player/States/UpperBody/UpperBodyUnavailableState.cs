@@ -4,7 +4,7 @@ namespace Characters.Player.States.UpperBody
 {
     public class UpperBodyUnavailableState : UpperBodyBaseState
     {
-        public UpperBodyUnavailableState(PlayerController p, UpperBodyController c) : base(p, c) { }
+        public UpperBodyUnavailableState(PlayerController p) : base(p) { }
 
         public override void Enter()
         {
@@ -19,7 +19,7 @@ namespace Characters.Player.States.UpperBody
             // 比如翻越结束了 (IsVaulting = false)
             if (!data.IsVaulting)
             {
-                controller.ChangeState(controller.IdleState);
+                controller.StateMachine.ChangeState(controller.StateRegistry.GetState<UpperBodyIdleState>());
                 return true;
             }
             return false;

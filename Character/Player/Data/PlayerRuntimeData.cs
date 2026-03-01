@@ -162,6 +162,8 @@ namespace Characters.Player.Data
         /// </summary>
         public AnimPlayOptions? NextStatePlayOptions = null;
 
+        public AnimPlayOptions? NextUpperBodyStatePlayOptions = null;
+
         #endregion
 
         #region IK & EQUIPMENT - 装备与肢体对齐

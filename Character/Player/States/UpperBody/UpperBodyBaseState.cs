@@ -1,62 +1,60 @@
-using Animancer;
-using Characters.Player.Data;
-using Characters.Player.Layers;
 using Core.StateMachine;
+using Characters.Player.Data;
+using Characters.Player.Animation;
+using Animancer;
 using UnityEngine;
 
-namespace Characters.Player.States.UpperBody
+namespace Characters.Player.States
 {
     public abstract class UpperBodyBaseState : BaseState
     {
         protected PlayerController player;
-        protected UpperBodyController controller;
         protected PlayerRuntimeData data;
-        protected AnimancerLayer layer;
+        protected UpperBodyController controller;
 
-        protected UpperBodyBaseState(PlayerController player, UpperBodyController controller)
+        public UpperBodyBaseState(PlayerController player)
         {
             this.player = player;
-            this.controller = controller;
             this.data = player.RuntimeData;
-            this.layer = player.Animancer.Layers[1];
+            // controller 不需要在这里赋值，它会在 LogicUpdate 之前通过 player._upperBodyController 拿到最新引用
         }
 
-        // 🔥 [核心] 封闭 LogicUpdate，强制子类实现两个分步逻辑 🔥
         public sealed override void LogicUpdate()
         {
-            // 1. 优先检查强制打断 (Interruption)
+            // 确保在 LogicUpdate 时 controller 已经通过 player 准备好
+            if (controller == null) controller = player.UpperBodyCtrl;
+            
             if (CheckInterrupts()) return;
-
-            // 2. 如果没被打断，执行正常状态逻辑 (Transition)
             UpdateStateLogic();
         }
+        
+        public override void PhysicsUpdate() { }
 
-        /// <summary>
-        /// 检查是否有高优先级的强制打断条件 (如翻越、装备变更)。
-        /// </summary>
-        /// <returns>如果切换了状态，返回 true</returns>
         protected virtual bool CheckInterrupts()
         {
-            // --- 全局通用打断逻辑 ---
-
-            // 1. 翻越 (Vault) -> Unavailable
-            if (data.IsVaulting)
-            {
-                // 如果已经在 Unavailable 状态就不用切了 (由子类重写避免重复切)
-                // 这里我们假设 BaseState 的默认行为是切过去
-                controller.ChangeState(controller.UnavailableState);
-                return true;
-            }
-
-            return false;
+            return controller.InterruptProcessor.TryProcessInterrupts(this);
         }
 
-        /// <summary>
-        /// 状态自身的正常逻辑 (如 Idle 检测 Aim)。
-        /// 子类必须实现这个，而不是 LogicUpdate。
-        /// </summary>
         protected abstract void UpdateStateLogic();
 
-        public override void PhysicsUpdate() { }
+        /// <summary>
+        /// 播放上半身动画的通用方法。
+        /// 默认 Layer = 1（上半身层），使用 NextStatePlayOptions 或默认选项。
+        /// </summary>
+        protected void ChooseOptionsAndPlay(ClipTransition clip)
+        {
+            if (player.AnimFacade == null)
+            {
+                Debug.LogError($"[{nameof(UpperBodyBaseState)}] AnimFacade is not initialized!");
+                return;
+            }
+
+            // 优先级：NextStatePlayOptions > 默认值
+            var options = data.NextStatePlayOptions ?? AnimPlayOptions.Default;
+            options.Layer = 1; // 上半身层
+            
+            player.AnimFacade.PlayTransition(clip, options);
+            data.NextStatePlayOptions = null;
+        }
     }
 }

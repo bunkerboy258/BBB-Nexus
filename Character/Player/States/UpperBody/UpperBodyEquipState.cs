@@ -7,7 +7,7 @@ namespace Characters.Player.States.UpperBody
 {
     public class UpperBodyEquipState : UpperBodyBaseState
     {
-        public UpperBodyEquipState(PlayerController p, UpperBodyController c) : base(p, c) { }
+        public UpperBodyEquipState(PlayerController p) : base(p) { }
 
         public override void Enter()
         {
@@ -15,16 +15,14 @@ namespace Characters.Player.States.UpperBody
 
             if (targetItem == null)
             {
-                controller.ChangeState(controller.IdleState);
+                controller.StateMachine.ChangeState(controller.StateRegistry.GetState<UpperBodyIdleState>());
                 return;
             }
 
             if (targetItem is EquippableItemSO equipDef && equipDef.EquipAnim.Clip != null)
             {
-                // 使用适配器播放动画
-                var options = AnimPlayOptions.Default;
-                options.Layer = 1; // 上半身层
-                player.AnimFacade.PlayTransition(equipDef.EquipAnim, options);
+                // 使用通用方法播放动画
+                ChooseOptionsAndPlay(equipDef.EquipAnim);
 
                 // 添加自定义事件：在 70% 时同步模型
                 player.AnimFacade.AddCallback(0.7f, () =>
@@ -33,9 +31,11 @@ namespace Characters.Player.States.UpperBody
                 });
 
                 // 设置结束回调
-                player.AnimFacade.SetOnEndCallback(() => controller.ChangeState(controller.IdleState));
+                player.AnimFacade.SetOnEndCallback(() => controller.StateMachine.ChangeState(controller.StateRegistry.GetState<UpperBodyIdleState>()));
             }
         }
+
+        public override void PhysicsUpdate() { }
 
         protected override void UpdateStateLogic() { }
 

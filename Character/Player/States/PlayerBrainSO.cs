@@ -16,6 +16,13 @@ namespace Characters.Player.Data
         [Tooltip("将打断器SO拖入此列表，从上到下决定绝对优先级。")]
         public List<StateInterceptorSO> GlobalInterceptors = new List<StateInterceptorSO>();
 
+        [Header("--- 上半身状态 (Upper Body & Combat) ---")]
+        [Tooltip("列表中排在首位的将作为上半身启动状态 ")]
+        public List<UpperBodyStateType> UpperBodyStates = new List<UpperBodyStateType>();
+
+        [Tooltip("上半身专属打断管线")]
+        public List<UpperBodyInterceptorSO> UpperBodyInterceptors = new List<UpperBodyInterceptorSO>();
+
     }
     // 一些设计说明:......
     // 为什么打断器是面板拖拽使用而具体状态用了[Serialize]序列化 还特地搞一个枚举中介？
