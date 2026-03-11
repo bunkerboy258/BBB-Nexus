@@ -55,16 +55,16 @@ namespace Characters.Player.Processing
         // 每帧更新 依次计算强度 方向 下落高度 下落意图 
         public void Update()
         {
-            // 1) 根据运动状态更新强度目标
+            // 根据运动状态更新强度目标
             UpdateIntensityLogic();
 
-            // 2) 平滑方向并输出 Mixer 参数
+            // 平滑方向并输出 Mixer 参数
             UpdateDirectionBlend();
 
-            // 3) 持续计算下落高度等级 每帧更新不依赖落地瞬间
+            // 持续计算下落高度等级 
             UpdateFallHeight();
 
-            // 4) 计算下落意图 当空中时间超过阈值时
+            // 计算下落意图 
             UpdateFallIntent();
         }
 
@@ -164,7 +164,7 @@ namespace Characters.Player.Processing
                 }
             }
 
-            // 重点修复 不平滑方向 DesiredLocalMoveAngle 是逻辑层应该瞬时响应
+            // 注意：这里不应该平滑方向 DesiredLocalMoveAngle 是逻辑层应该瞬时响应
             // 方向本身的平滑应该交给后续表现层的 Blend X Y SmoothDamp 处理
             _currentLocalDir = targetLocalDir;
             _currentLocalDir.y = 0f;

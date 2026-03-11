@@ -126,6 +126,13 @@ MonoBehaviour:
     type: 3}
   hitSound: {fileID: 8300000, guid: 3e28c0a739ed3224eb2e19f61b1b07cc, type: 3}
   lifeTime: 5
+  ExplodeOnImpact: 1
+  ExplosionRadius: 3
+  ExplosionForce: 9
+  ExplosionUpwardsModifier: 0
+  ExplosionAffectLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!54 &6223346765375314171
 Rigidbody:
   m_ObjectHideFlags: 0

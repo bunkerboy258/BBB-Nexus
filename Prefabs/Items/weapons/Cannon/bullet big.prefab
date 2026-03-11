@@ -122,9 +122,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a31042315e4ef7c40bba735a96437c1b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  hitVFXPrefab: {fileID: 100002, guid: 6ecf76dc4f268d340b2666896a954bcc, type: 3}
+  hitVFXPrefab: {fileID: 100002, guid: ccceb43e88ab5fe448d9384833840d9b, type: 3}
   hitSound: {fileID: 8300000, guid: 5d5ddc10eb9035f44bacbd83e7c191ae, type: 3}
   lifeTime: 5
+  ExplodeOnImpact: 1
+  ExplosionRadius: 5
+  ExplosionForce: 700
+  ExplosionUpwardsModifier: 0
+  ExplosionAffectLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
 --- !u!54 &4536223755743742214
 Rigidbody:
   m_ObjectHideFlags: 0

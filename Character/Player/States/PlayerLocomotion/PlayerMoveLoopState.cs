@@ -30,6 +30,32 @@ namespace Characters.Player.States
         {
             if (data.CurrentLocomotionState == LocomotionState.Idle)
             {
+                // 在从 MoveLoop 退出到 Stop 前，根据动画骨骼判断当前哪只脚在前
+                // 优先通过 Animator 获取左右脚骨骼世界位置，与角色朝向做点乘比较
+                try
+                {
+                    var animator = player.animator;
+                    if (animator != null)
+                    {
+                        var left = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
+                        var right = animator.GetBoneTransform(HumanBodyBones.RightFoot);
+
+                        if (left != null && right != null)
+                        {
+                            Vector3 toLeft = left.position - player.transform.position;
+                            Vector3 toRight = right.position - player.transform.position;
+                            float leftDot = Vector3.Dot(toLeft, player.transform.forward);
+                            float rightDot = Vector3.Dot(toRight, player.transform.forward);
+
+                            data.ExpectedFootPhase = leftDot > rightDot ? FootPhase.LeftFootDown : FootPhase.RightFootDown;
+                        }
+                    }
+                }
+                catch
+                {
+                    Debug.Log("急停相位判断失败，检查角色的animator和骨骼设置是否正确。默认使用上次记录的脚位。");
+                }
+
                 data.NextStatePlayOptions = config.LocomotionAnims.FadeInStopWalkOptions;
                 switch (data.LastLocomotionState)
                 {

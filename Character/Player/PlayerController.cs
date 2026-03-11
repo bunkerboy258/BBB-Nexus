@@ -15,7 +15,7 @@ using Items.Core;
 namespace Characters.Player
 {
     // 玩家角色的核心控制器 它是整个玩家系统的根节点 
-    // 在 Update 循环中按固定物理与逻辑顺序驱动各子系统更新 
+    // 采用 Update(逻辑) -> LateUpdate(物理与表现) 的错峰管线设计 
     // 不包含具体游戏逻辑 仅负责组件整合与指令分发 
     [RequireComponent(typeof(CharacterController))]
     [RequireComponent(typeof(PlayerInputReader))]
@@ -33,7 +33,7 @@ namespace Characters.Player
         public PlayerIKSourceBase IKSource;
         public Transform WeaponContainer;
         public Transform RightHandBone;
-        public Animator animator; 
+        public Animator animator;
 
         [Header("--- 调试选项 Debug Options ---")]
         [Tooltip("如果配置了此项 游戏开始时会自动装备这个物品 最多 3 个 用于调试")]
@@ -185,6 +185,7 @@ namespace Characters.Player
                 UpperBodyCtrl.StateMachine.Initialize(UpperBodyCtrl.StateRegistry.InitialState);
         }
 
+        // 逻辑与意图更新 (先于动画系统执行)
         private void Update()
         {
             _lastState = StateMachine.CurrentState as PlayerBaseState;
@@ -200,28 +201,19 @@ namespace Characters.Player
             // 3. 被动状态更新 根据当前角色状态更新核心属性 体力 生命值等
             _characterStatusDriver.Update();
 
-            // 4. 物理更新 先于逻辑处理 让 grounded vertical 等反映本帧真实物理结果
-            StateMachine.CurrentState?.PhysicsUpdate();
-
-            // 5. 逻辑意图 表现层参数 更新动画 Mixer 参数等
+            // 4. 逻辑意图 表现层参数 更新动画 Mixer 参数等
             _intentProcessorPipeline.UpdateParameterProcessors();
 
-            // 6. 状态逻辑更新 包含全局打断检测 状态流转逻辑
+            // 5. 状态逻辑更新 包含全局打断检测 状态流转逻辑
             StateMachine.CurrentState?.LogicUpdate();
 
-            // 7. 更新上半身分层控制器 装备 瞄准 攻击等
+            // 6. 更新上半身分层控制器 装备 瞄准 攻击等
             UpperBodyCtrl.Update();
 
-            // 7.5 更新表情 读取黑板意图并播放瞬时表情
+            // 7. 更新表情 读取黑板意图并播放瞬时表情
             _facialController?.Update();
 
-            // 8. 更新 IK 结算
-            _ikController.Update();
-
-            // 9. 清理帧尾标记 防止意图残留到下一帧的防御性编程
-            RuntimeData.ResetIntetnt();
-
-            // 调试
+            // 调试状态切换记录
             if (statedebug && StateMachine.CurrentState != null && _lastState != null)
             {
                 if (StateMachine.CurrentState.GetType().Name != _lastState.GetType().Name)
@@ -231,9 +223,31 @@ namespace Characters.Player
             }
         }
 
+        // 物理与表现对齐 (在动画引擎结算后执行)
+        private void LateUpdate()
+        {
+            // 注意：当代码执行到这里时，Unity内部已经自动推进了动画时间并结算了最新骨骼姿态。
+
+            // 8. 物理更新 先于逻辑处理 让 grounded vertical 等反映本帧真实物理结果
+            // （此时 MotionDriver 去读取时间，拿到的就是引擎刚刚推进好的最新时间戳）
+            StateMachine.CurrentState?.PhysicsUpdate();
+
+            // 9. 更新 IK 结算
+            // （必须在 PhysicsUpdate 之后执行，因为胶囊体移动完、骨骼摆放完，IK 贴合才能绝对精准不打滑）
+            _ikController.Update();
+
+            // 10. 清理帧尾标记 防止意图残留到下一帧的防御性编程
+            RuntimeData.ResetIntetnt();
+        }
+
         public void NotifyEquipmentChanged()
         {
             OnEquipmentChanged?.Invoke();
         }
+        //一些设计说明：
+        //为什么动画层的更新是反直觉的在物理更新之前？因为 我们的物理系统是死死咬合动画系统的归一化时间的
+        //之前的方案中 物理更新在前 导致骨骼的位置永远比物理位置慢一帧 造成了轻微的视觉问题
+        //尤其是在带有转向的动画 在低帧数的环境下 抽搐会更明显
+        //然鹅 unity并没有提供手动更新动画的选项 如果去修改时钟 可能会引发更多问题 故使用lateupdate
     }
 }

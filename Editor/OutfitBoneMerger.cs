@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 
-// 二次元角色骨骼合并工具 用于将换装衣服的蒙皮集成到素体骨架
+// 角色骨骼合并工具 用于将换装衣服的蒙皮集成到素体骨架
 // 核心目标 让衣服网格跟随素体骨骼运动 确保换装后的形象一致性
 public class OutfitBoneMerger : EditorWindow
 {
@@ -16,7 +16,7 @@ public class OutfitBoneMerger : EditorWindow
     // 分析状态标志 用于 UI 联动显示结果面板
     private bool _isAnalyzed = false;
 
-    [MenuItem("Tools/BBB-Nexus/Outfit Bone Merger (骨骼合并工具)")]
+    [MenuItem("Tools/BBB-Nexus/Outfit Bone Merger (骨骼合并工具 有问题待修复)")]
     public static void ShowWindow()
     {
         GetWindow<OutfitBoneMerger>("Bone Merger");
@@ -24,7 +24,7 @@ public class OutfitBoneMerger : EditorWindow
 
     private void OnGUI()
     {
-        GUILayout.Label("二次元角色换装骨骼合并工具 (v2.0)", EditorStyles.boldLabel);
+        GUILayout.Label("角色换装骨骼合并工具 (v2.0)", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox("请先将素体和衣服都拖入场景中，然后将它们拖到下面的槽位里。", MessageType.Info);
         EditorGUILayout.Space();
 

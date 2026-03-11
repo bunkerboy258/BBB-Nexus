@@ -35,7 +35,7 @@ namespace Editors
         // 绘制编辑器交互界面 执行配置注入与烘焙调度
         private void OnGUI()
         {
-            GUILayout.Label("Warped Motion 全量自动化烘焙", EditorStyles.boldLabel);
+            GUILayout.Label("Warped Motion 特化根运动烘焙器 v3.4.1", EditorStyles.boldLabel);
 
             _targetPrefab = (GameObject)EditorGUILayout.ObjectField("采样模型预制体", _targetPrefab, typeof(GameObject), false);
             _targetPlayerSO = (PlayerSO)EditorGUILayout.ObjectField("玩家总配置", _targetPlayerSO, typeof(PlayerSO), false);
@@ -67,6 +67,8 @@ namespace Editors
             }
             GUI.enabled = true;
             GUI.backgroundColor = Color.white;
+
+            EditorGUILayout.HelpBox("请保证模型预制体的根物体已经配置animator组件(还得有avatar)", MessageType.Info);
         }
 
         // 利用反射机制深度遍历配置树 寻找所有扭曲运动数据实例 支持列表与数组嵌套

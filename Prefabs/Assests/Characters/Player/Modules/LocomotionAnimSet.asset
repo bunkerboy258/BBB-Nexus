@@ -56,7 +56,7 @@ MonoBehaviour:
     ForcePhaseSync: 0
   FadeInStopWalkOptions:
     Layer: 0
-    FadeDuration: 0.35
+    FadeDuration: 0.2
     Speed: -1
     NormalizedTime: -1
     ForcePhaseSync: 0
@@ -68,7 +68,7 @@ MonoBehaviour:
     ForcePhaseSync: 0
   FadeInStopSprintOptions:
     Layer: 0
-    FadeDuration: 0.4
+    FadeDuration: 0.6
     Speed: -1
     NormalizedTime: -1
     ForcePhaseSync: 0

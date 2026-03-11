@@ -14,7 +14,7 @@ namespace Characters.Player.States
         public override void Enter()
         {
             // 根据运动状态和脚相位选择对应的急停动画
-            ClipTransition stopClip = SelectStopClipForLocomotionState(data.LastLocomotionState, data.CurrentRunCycleTime);
+            ClipTransition stopClip = SelectStopClipForLocomotionState(data.LastLocomotionState, data.ExpectedFootPhase);
 
             ChooseOptionsAndPlay(stopClip);
 
@@ -54,10 +54,10 @@ namespace Characters.Player.States
         }
 
         // 根据运动状态和脚相位选择对应的急停动画
-        private ClipTransition SelectStopClipForLocomotionState(LocomotionState locomotionState, float cycleTime)
+        private ClipTransition SelectStopClipForLocomotionState(LocomotionState locomotionState, FootPhase footPhase)
         {
             // 判定脚相位 小于 0.5 为左脚 大于等于 0.5 为右脚
-            bool isLeftFoot = cycleTime < 0.5f;
+            bool isLeftFoot = footPhase == FootPhase.LeftFootDown;
 
             return locomotionState switch
             {

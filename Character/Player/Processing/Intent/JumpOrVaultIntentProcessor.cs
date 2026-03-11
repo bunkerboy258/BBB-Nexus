@@ -164,8 +164,8 @@ namespace Characters.Player.Processing
                     Vector3 ledgeEdge = new Vector3(wallHit.point.x, ledgeHit.point.y, wallHit.point.z);
                     info.LedgePoint = ledgeEdge;
 
-                    // 关键点：手部左右的“正方向”必须稳定
-                    // 之前用 (ledge->root) 与 rightDir 点乘做翻转 在某些角度/贴墙位置会抖动导致左右手互换
+                    // 注意：手部左右的“正方向”必须稳定
+                    // 之前用 (ledge->root) 与 rightDir 点乘做翻转 在某些角度/贴墙位置会抖动导致左右手互换(总感觉怪怪的找了半天)
                     // 这里改成用“角色右方向”作为符号判定 只要角色朝向不突变 左右就不会反掉
 
                     // 用墙法线构建横向轴：沿墙面水平方向（避免 Y 分量污染）

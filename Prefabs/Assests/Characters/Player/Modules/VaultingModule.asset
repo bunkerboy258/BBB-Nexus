@@ -15,7 +15,7 @@ MonoBehaviour:
   ObstacleLayers:
     serializedVersion: 2
     m_Bits: 127
-  VaultForwardRayLength: 0.6
+  VaultForwardRayLength: 0.8
   VaultForwardRayHeight: 1
   VaultDownwardRayOffset: 0.1
   VaultDownwardRayLength: 2
@@ -23,10 +23,10 @@ MonoBehaviour:
   VaultLandDistance: 0.2
   VaultLandRayLength: 3
   RequireGroundBehindWall: 0
-  LowVaultMinHeight: 1.3
-  LowVaultMaxHeight: 1.5
-  HighVaultMinHeight: 1.2
-  HighVaultMaxHeight: 2.5
+  LowVaultMinHeight: 1.2
+  LowVaultMaxHeight: 1.7
+  HighVaultMinHeight: 1.7
+  HighVaultMaxHeight: 2.1
   VaultToIdleOptions:
     Layer: 0
     FadeDuration: 0.5
@@ -56,7 +56,7 @@ MonoBehaviour:
     WarpPoints:
     - PointName: Apex
       NormalizedTime: 0.55
-      TargetPositionOffset: {x: 0, y: -0.35, z: 0.4}
+      TargetPositionOffset: {x: 0, y: -0.35, z: 0.1}
       BakedLocalOffset: {x: 0.000000005786811, y: 0.8297736, z: 0.38834617}
       BakedLocalRotation: {x: 0, y: 0, z: 0, w: 1}
     - PointName: End
@@ -11373,7 +11373,7 @@ MonoBehaviour:
     WarpPoints:
     - PointName: apex
       NormalizedTime: 0.63
-      TargetPositionOffset: {x: 0, y: -0.35, z: 0.5}
+      TargetPositionOffset: {x: 0, y: -0.35, z: 0.2}
       BakedLocalOffset: {x: -0.18455052, y: 1.7464873, z: 0.39228448}
       BakedLocalRotation: {x: 0, y: 0, z: 0, w: 1}
     - PointName: End
@@ -11396,15 +11396,15 @@ MonoBehaviour:
       - serializedVersion: 3
         time: 0.15010354
         value: 0.012359608
-        inSlope: 7.011789
-        outSlope: 7.011789
+        inSlope: 3.6860466
+        outSlope: 3.6860466
         tangentMode: 34
         weightedMode: 0
         inWeight: 0.33333334
         outWeight: 0.33333334
       - serializedVersion: 3
-        time: 0.20071524
-        value: 0.71630293
+        time: 0.23359583
+        value: 0.61828166
         inSlope: 7.036287
         outSlope: 7.036287
         tangentMode: 0
@@ -11412,8 +11412,8 @@ MonoBehaviour:
         inWeight: 0.33333334
         outWeight: 0.33333334
       - serializedVersion: 3
-        time: 0.31966424
-        value: 1.003937
+        time: 0.3211033
+        value: 0.8431845
         inSlope: 0.014537641
         outSlope: 0.014537641
         tangentMode: 0
@@ -11421,8 +11421,8 @@ MonoBehaviour:
         inWeight: 0.33333334
         outWeight: 0.75805765
       - serializedVersion: 3
-        time: 0.47080147
-        value: 0.7166511
+        time: 0.43935046
+        value: 0.5794213
         inSlope: -6.920143
         outSlope: -6.920143
         tangentMode: 0
@@ -11432,8 +11432,8 @@ MonoBehaviour:
       - serializedVersion: 3
         time: 0.510357
         value: 0.0025119311
-        inSlope: -9.034425
-        outSlope: -9.034425
+        inSlope: -4.0697503
+        outSlope: -4.0697503
         tangentMode: 34
         weightedMode: 0
         inWeight: 0.33333334

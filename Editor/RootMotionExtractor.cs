@@ -96,7 +96,7 @@ public class RootMotionExtractorWindow : EditorWindow
     // 渲染编辑器界面逻辑 
     private void OnGUI()
     {
-        GUILayout.Label("Root Motion 烘焙器 v2.0 四元数内核", EditorStyles.boldLabel);
+        GUILayout.Label("Root Motion 烘焙器 v2.3.5", EditorStyles.boldLabel);
         using (new EditorGUILayout.VerticalScope(GUI.skin.box))
         {
             GUILayout.Label("核心配置", EditorStyles.boldLabel);
@@ -104,7 +104,7 @@ public class RootMotionExtractorWindow : EditorWindow
             _targetAsset = EditorGUILayout.ObjectField(new GUIContent("任意序列化文件", "可选择任意包含动画数据的资源对象"), _targetAsset, typeof(UnityEngine.Object), false);
             _characterPrefab = (GameObject)EditorGUILayout.ObjectField("采样模型预制体", _characterPrefab, typeof(GameObject), false);
             _sampleRateMode = (SampleRateMode)EditorGUILayout.EnumPopup("烘焙采样率", _sampleRateMode);
-            EditorGUILayout.HelpBox("采样率越高细节越丰富 但会显著增加数据包体积", MessageType.Info);
+            EditorGUILayout.HelpBox("请保证模型预制体的根物体已经配置animator组件(还得有avatar)", MessageType.Info);
         }
 
         using (new EditorGUILayout.VerticalScope(GUI.skin.box))

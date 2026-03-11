@@ -261,7 +261,7 @@ namespace Items.Logic.Weapons
                 _ikDisableScheduled = true;
                 _ikDisableTimePoint = Time.time + _akconfig.DisableIKTime;
 
-                Debug.Log($"<color=#FF8800>[AK46]</color> 计划在 {_akconfig.DisableIKTime:0.00}s 后关闭左手 IK（相对于收起动画开始）。");
+                //Debug.Log($"<color=#FF8800>[AK46]</color> 计划在 {_akconfig.DisableIKTime:0.00}s 后关闭左手 IK（相对于收起动画开始）。");
             }
             else
             {
@@ -292,7 +292,7 @@ namespace Items.Logic.Weapons
                 }
             }
 
-            Debug.Log($"<color=#FF0000>[AK46]</color> 已发起收枪流程，等待延时关闭 IK（若配置）。");
+            //Debug.Log($"<color=#FF0000>[AK46]</color> 已发起收枪流程，等待延时关闭 IK（若配置）。");
         }
 
         // 尝试开火 检查冷却与弹药 生成特效与投射物 

@@ -83,9 +83,9 @@ MonoBehaviour:
     ForcePhaseSync: 0
   MaxAmmo: 30
   FireRate: 1
-  EquipEndTime: 0.5
-  EnableIKTime: 0.4
-  DisableIKTime: 0.4
+  EquipEndTime: 0.6
+  EnableIKTime: 0.7
+  DisableIKTime: 0.7
   ProjectilePrefab: {fileID: 5536105300875749745, guid: f7dc059e183f85e4782f92410569a3bf,
     type: 3}
   ProjectileSpeed: 100
@@ -93,9 +93,9 @@ MonoBehaviour:
   ShootSound: {fileID: 8300000, guid: 664e484a1d17a95448f5f91bce733a63, type: 3}
   ProjectileHitSound: {fileID: 0}
   MuzzleVFXPrefab: {fileID: 0}
-  RecoilPitchAngle: 3
+  RecoilPitchAngle: 4
   RecoilYawAngle: 3
-  RecoilPitchRandomRange: 0.5
+  RecoilPitchRandomRange: 3
   RecoilYawRandomRange: 4
   references:
     version: 2

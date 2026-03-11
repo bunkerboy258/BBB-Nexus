@@ -14,6 +14,18 @@ public class SimpleProjectile : MonoBehaviour
     // 投射物的生存时长 防止无限漂流在地图上导致内存泄漏 
     public float lifeTime = 5f;
 
+    // 是否在命中时触发爆炸效果（爆炸会对周围刚体施加冲击力）
+    [Tooltip("命中时是否触发爆炸并对周围刚体施加冲击力")]
+    public bool ExplodeOnImpact = false;
+    [Tooltip("爆炸影响半径（米）")]
+    public float ExplosionRadius = 5f;
+    [Tooltip("爆炸施加的最大冲击力")]
+    public float ExplosionForce = 700f;
+    [Tooltip("爆炸向上修正，越大效果越向上抬起")] 
+    public float ExplosionUpwardsModifier = 0.0f;
+    [Tooltip("哪些层会受爆炸影响（LayerMask）")]
+    public LayerMask ExplosionAffectLayers = ~0; // 默认影响所有层
+
     // 防止重复触发碰撞 确保只处理一次击中 避免多次播放特效与音效 
     private bool _hasImpacted = false;
 
@@ -79,6 +91,36 @@ public class SimpleProjectile : MonoBehaviour
         if (hitSound != null)
         {
             AudioSource.PlayClipAtPoint(hitSound, point);
+        }
+
+        // 可选：爆炸对周围刚体施加冲击力
+        if (ExplodeOnImpact)
+        {
+            // 使用 OverlapSphere 根据 LayerMask 获取受影响的碰撞体
+            int layerMask = ExplosionAffectLayers;
+            Collider[] hits = Physics.OverlapSphere(point, ExplosionRadius, layerMask, QueryTriggerInteraction.Ignore);
+
+            if (hits != null && hits.Length > 0)
+            {
+                // 为避免对同一刚体重复施力 使用 HashSet 跳过重复刚体
+                System.Collections.Generic.HashSet<Rigidbody> affected = new System.Collections.Generic.HashSet<Rigidbody>();
+
+                foreach (var col in hits)
+                {
+                    if (col == null) continue;
+                    Rigidbody rb = col.attachedRigidbody;
+                    if (rb == null) continue;
+                    if (affected.Contains(rb)) continue;
+
+                    // 忽略静态或不受力刚体
+                    if (rb.isKinematic) continue;
+
+                    // 对刚体施加爆炸冲击力
+                    rb.AddExplosionForce(ExplosionForce, point, ExplosionRadius, ExplosionUpwardsModifier, ForceMode.Impulse);
+
+                    affected.Add(rb);
+                }
+            }
         }
 
         // 这里可以添加伤害计算 标签检测等游戏逻辑 
