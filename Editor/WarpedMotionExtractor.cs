@@ -26,7 +26,7 @@ namespace Editors
         private WarpedType _batchTargetType = WarpedType.Simple;
 
         // 注册至 Unity 菜单工具栏 开启编辑器入口
-        [MenuItem("Tools/BBB-Nexus/Warped Motion 全量烘焙器")]
+        [MenuItem("Tools/BBB-Nexus/WarpedMotionBaker v3.4.1")]
         public static void ShowWindow()
         {
             GetWindow<WarpedMotionExtractor>("Warped 烘焙");
@@ -69,6 +69,7 @@ namespace Editors
             GUI.backgroundColor = Color.white;
 
             EditorGUILayout.HelpBox("请保证模型预制体的根物体已经配置animator组件(还得有avatar)", MessageType.Info);
+            EditorGUILayout.HelpBox("注意 若选择较低的烘焙采样率 要注意结果是否产生了贝塞尔过冲", MessageType.Info);
         }
 
         // 利用反射机制深度遍历配置树 寻找所有扭曲运动数据实例 支持列表与数组嵌套

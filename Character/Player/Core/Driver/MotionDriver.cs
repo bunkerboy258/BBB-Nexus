@@ -29,6 +29,9 @@ namespace Characters.Player.Core
         // 平滑速度缓冲区 
         private float _currentSmoothSpeed;
         private float _smoothSpeedVelocity;
+        
+        // 瞄准模式方向反转检测 用于处理速度平滑过渡
+        private Vector3 _lastAimMoveDir = Vector3.zero;
 
         // 曲线驱动模式偏航角增量缓存 
         private float _lastCurveDrivenAngle;
@@ -278,7 +281,7 @@ namespace Characters.Player.Core
         }
 
         // 瞄准模式 角色朝向相机权威系 采用平移运动逻辑 
-        private Vector3 CalculateAimVelocity(float speedMult)
+        private Vector3 CalculateAimVelocity(float speedMult = 1f)
         {
             // 强行平滑对齐相机偏航角 
             ApplySmoothRotation(_data.AuthorityYaw, _config.Aiming.AimRotationSmoothTime);
@@ -287,6 +290,7 @@ namespace Characters.Player.Core
             if (input.sqrMagnitude < 0.001f)
             {
                 _currentSmoothSpeed = 0f;
+                _lastAimMoveDir = Vector3.zero;
                 return Vector3.zero;
             }
 
@@ -295,6 +299,15 @@ namespace Characters.Player.Core
             Vector3 right = _transform.right.SetY(0).normalized;
             Vector3 moveDir = (right * input.x + forward * input.y).normalized;
 
+            // 检测方向是否发生反向 如果反向则强制速度先归零
+            if (_lastAimMoveDir.sqrMagnitude > 0.1f && Vector3.Dot(moveDir, _lastAimMoveDir) < 0f)
+            {
+                // 方向反向了 强制速度归零 然后再平滑过渡到新方向的目标速度
+                _currentSmoothSpeed = 0f;
+                _smoothSpeedVelocity = 0f;
+            }
+
+            _lastAimMoveDir = moveDir;
             return CalculateSmoothedVelocity(moveDir, true, speedMult);
         }
 
@@ -384,6 +397,7 @@ namespace Characters.Player.Core
             if (_data.IsAiming == _wasAimingLastFrame) return;
 
             _data.RotationVelocity = 0f;
+            _lastAimMoveDir = Vector3.zero;
             _wasAimingLastFrame = _data.IsAiming;
         }
 

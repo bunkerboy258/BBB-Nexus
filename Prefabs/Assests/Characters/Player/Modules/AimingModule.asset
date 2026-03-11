@@ -17,8 +17,8 @@ MonoBehaviour:
   AimJogSpeed: 2.5
   AimSprintSpeed: 5
   AimRotationSmoothTime: 0.05
-  AimXAnimBlendSmoothTime: 0.4
-  AimYAnimBlendSmoothTime: 0.4
+  AimXAnimBlendSmoothTime: 0.5
+  AimYAnimBlendSmoothTime: 0.5
   AimIkChaseSmoothTime: 0.1
   AimLocomotionMixer:
     _FadeDuration: 0.25
@@ -28,7 +28,6 @@ MonoBehaviour:
       _Callbacks: []
       _Names: []
     _Animations:
-    - {fileID: 1827226128182048838, guid: 0660b16472b526b4fb30b5d695f95903, type: 3}
     - {fileID: 2821294066042242215, guid: 66306f4f658418247a7f2f9efaa385e3, type: 3}
     - {fileID: 904551039516720066, guid: c3f0e1c8a2843a74cb38c5dd9bf630dc, type: 3}
     - {fileID: 3035356834667824861, guid: fde4de65d56af1745af1f95b694c8aae, type: 3}
@@ -56,7 +55,6 @@ MonoBehaviour:
     _Speeds: []
     _SynchronizeChildren: 
     _Thresholds:
-    - {x: 0, y: 0}
     - {x: 0, y: 0.3}
     - {x: -0.2121, y: 0.2121}
     - {x: -0.3, y: 0}

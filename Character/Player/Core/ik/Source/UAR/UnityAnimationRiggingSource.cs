@@ -3,6 +3,8 @@ using UnityEngine.Animations.Rigging;
 
 namespace Characters.Player.Core
 {
+    //注意 我没有支持UAR的脚部ik 因为如果要这么适配 就得打一堆特化逻辑 还会破坏上级的架构设计
+    //原生的UAR如果需要适配 就要写一堆数学类 也是原因之一(绝对不是因为我懒得适配)
     public class UnityAnimationRiggingSource : PlayerIKSourceBase
     {
         [Header("Hand IK Components")]

@@ -110,13 +110,13 @@ namespace Characters.Player.Processing
             return state switch
             {
                 // Walk 缓慢行走 强度 0.3 0.4
-                LocomotionState.Walk => 0.35f,
+                LocomotionState.Walk => 0.6f,
 
                 // Jog 正常慢跑 强度 0.65 0.75
-                LocomotionState.Jog => 0.7f,
+                LocomotionState.Jog => 0.8f,
 
                 // Sprint 快速冲刺 强度 0.95 1.0
-                LocomotionState.Sprint => 0.98f,
+                LocomotionState.Sprint => 1f,
 
                 // Idle 站立 停止 强度 0.0
                 LocomotionState.Idle => 0.0f,

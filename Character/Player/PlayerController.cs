@@ -40,6 +40,7 @@ namespace Characters.Player
         public EquippableItemSO DefaultEquipment1;
         public EquippableItemSO DefaultEquipment2;
         public EquippableItemSO DefaultEquipment3;
+        [Tooltip("开启状态切换日志 输出每次状态机切换的状态名称")]
         public bool statedebug = false;
 
         // 运行时核心引用

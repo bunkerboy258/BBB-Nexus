@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ObstacleLayers:
     serializedVersion: 2
-    m_Bits: 127
+    m_Bits: 64
   VaultForwardRayLength: 0.8
   VaultForwardRayHeight: 1
   VaultDownwardRayOffset: 0.1
@@ -24,8 +24,8 @@ MonoBehaviour:
   VaultLandRayLength: 3
   RequireGroundBehindWall: 0
   LowVaultMinHeight: 1.2
-  LowVaultMaxHeight: 1.7
-  HighVaultMinHeight: 1.7
+  LowVaultMaxHeight: 1.5
+  HighVaultMinHeight: 1.5
   HighVaultMaxHeight: 2.1
   VaultToIdleOptions:
     Layer: 0
@@ -50,13 +50,13 @@ MonoBehaviour:
       _Clip: {fileID: -1925514724445038810, guid: 41d610d2dbbfbab4490eb6403e5d2912,
         type: 3}
       _NormalizedStartTime: NaN
-    EndTime: 0
+    EndTime: 1.6
     EndPhase: 0
     Type: 4
     WarpPoints:
     - PointName: Apex
       NormalizedTime: 0.55
-      TargetPositionOffset: {x: 0, y: -0.35, z: 0.1}
+      TargetPositionOffset: {x: 0, y: -0.45, z: 0.1}
       BakedLocalOffset: {x: 0.000000005786811, y: 0.8297736, z: 0.38834617}
       BakedLocalRotation: {x: 0, y: 0, z: 0, w: 1}
     - PointName: End
@@ -79,44 +79,44 @@ MonoBehaviour:
       - serializedVersion: 3
         time: 0.10307418
         value: 0
-        inSlope: 6.736995
-        outSlope: 6.736995
+        inSlope: 5.453715
+        outSlope: 5.453715
         tangentMode: 34
         weightedMode: 0
         inWeight: 0.33333334
         outWeight: 0.33333334
       - serializedVersion: 3
-        time: 0.1419204
-        value: 0.52341366
-        inSlope: 8.569719
-        outSlope: 8.569719
+        time: 0.14048983
+        value: 0.40810862
+        inSlope: 7.271797
+        outSlope: 7.271797
         tangentMode: 34
         weightedMode: 0
         inWeight: 0.33333334
         outWeight: 0.33333334
       - serializedVersion: 3
-        time: 0.24553709
-        value: 0.9032153
-        inSlope: 0.2963091
-        outSlope: 0.2963091
+        time: 0.2441065
+        value: 0.7848759
+        inSlope: 0.58299613
+        outSlope: 0.58299613
         tangentMode: 34
         weightedMode: 0
         inWeight: 0.33333334
         outWeight: 0.33333334
       - serializedVersion: 3
-        time: 0.34540713
-        value: 0.5963316
-        inSlope: -6.186865
-        outSlope: -6.186865
+        time: 0.342546
+        value: 0.5417134
+        inSlope: -4.3425817
+        outSlope: -4.3425817
         tangentMode: 34
         weightedMode: 0
         inWeight: 0.33333334
         outWeight: 0.33333334
       - serializedVersion: 3
-        time: 0.405142
-        value: 0.04074348
-        inSlope: -4.684452
-        outSlope: -4.684452
+        time: 0.428035
+        value: 0.010400057
+        inSlope: -3.1165195
+        outSlope: -3.1165195
         tangentMode: 34
         weightedMode: 0
         inWeight: 0.33333334
@@ -124,8 +124,8 @@ MonoBehaviour:
       - serializedVersion: 3
         time: 1.004267
         value: 0
-        inSlope: -0.06800498
-        outSlope: -0.06800498
+        inSlope: -0.018048387
+        outSlope: -0.018048387
         tangentMode: 34
         weightedMode: 0
         inWeight: 0.33333334
@@ -11367,13 +11367,13 @@ MonoBehaviour:
       _Clip: {fileID: -1892663007654305709, guid: 7c74be228318bcd46a80b21ab03910cb,
         type: 3}
       _NormalizedStartTime: NaN
-    EndTime: 0
+    EndTime: 2.1
     EndPhase: 0
     Type: 4
     WarpPoints:
     - PointName: apex
       NormalizedTime: 0.63
-      TargetPositionOffset: {x: 0, y: -0.35, z: 0.2}
+      TargetPositionOffset: {x: 0, y: -0.45, z: 0.2}
       BakedLocalOffset: {x: -0.18455052, y: 1.7464873, z: 0.39228448}
       BakedLocalRotation: {x: 0, y: 0, z: 0, w: 1}
     - PointName: End

@@ -87,7 +87,7 @@ public class RootMotionExtractorWindow : EditorWindow
     private struct PoseInfo { public Vector3 LeftLocal; public Vector3 RightLocal; }
 
     // 菜单入口 注册到工具栏 
-    [MenuItem("Tools/BBB-Nexus/Root Motion Extractor (Ultimate)")]
+    [MenuItem("Tools/BBB-Nexus/RootMotionBaker v2.3.5")]
     public static void ShowWindow()
     {
         GetWindow<RootMotionExtractorWindow>("RM Baker");
@@ -105,6 +105,7 @@ public class RootMotionExtractorWindow : EditorWindow
             _characterPrefab = (GameObject)EditorGUILayout.ObjectField("采样模型预制体", _characterPrefab, typeof(GameObject), false);
             _sampleRateMode = (SampleRateMode)EditorGUILayout.EnumPopup("烘焙采样率", _sampleRateMode);
             EditorGUILayout.HelpBox("请保证模型预制体的根物体已经配置animator组件(还得有avatar)", MessageType.Info);
+            EditorGUILayout.HelpBox("注意 若选择较低的烘焙采样率 要注意结果是否产生了贝塞尔过冲", MessageType.Info);
         }
 
         using (new EditorGUILayout.VerticalScope(GUI.skin.box))
