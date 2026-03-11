@@ -16,11 +16,11 @@ MonoBehaviour:
   AimWalkSpeed: 1.5
   AimJogSpeed: 2.5
   AimSprintSpeed: 5
-  AimRotationSmoothTime: 0.05
-  AimXAnimBlendSmoothTime: 0.5
-  AimYAnimBlendSmoothTime: 0.5
+  AimRotationSmoothTime: 0.04
+  AimXAnimBlendSmoothTime: 0.25
+  AimYAnimBlendSmoothTime: 0.25
   AimIkChaseSmoothTime: 0.1
-  AimLocomotionMixer:
+  AimWalkMixer:
     _FadeDuration: 0.25
     _Speed: 1
     _Events:
@@ -36,6 +36,29 @@ MonoBehaviour:
     - {fileID: 1116818929085324444, guid: 5f8964489ab816d4db6da07b3287afb7, type: 3}
     - {fileID: 6785046472699525978, guid: 546902129a1f7fc43bce09d80de7ed24, type: 3}
     - {fileID: -3826477286391756377, guid: 83d98935bcd25d346b775b96b3e53f8e, type: 3}
+    _Speeds: []
+    _SynchronizeChildren: 
+    _Thresholds:
+    - {x: 0, y: 1}
+    - {x: -0.71, y: 0.71}
+    - {x: -1, y: 0}
+    - {x: -0.71, y: -0.71}
+    - {x: 0, y: -1}
+    - {x: 0.71, y: -0.71}
+    - {x: 1, y: 0}
+    - {x: 0.71, y: 0.71}
+    _DefaultParameter: {x: 0, y: 0}
+    _Type: 0
+    _ParameterNameX: {fileID: 0}
+    _ParameterNameY: {fileID: 0}
+  AimJogMixer:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Animations:
     - {fileID: 8354263467833128773, guid: d679509ae141f4348b6b2090d04bc0d6, type: 3}
     - {fileID: 1688330098788768770, guid: 3718ffb7f09e03644847baeced7d85fc, type: 3}
     - {fileID: -2688103478027486633, guid: 2860c1acf48546541a90108cb3faa79c, type: 3}
@@ -44,6 +67,29 @@ MonoBehaviour:
     - {fileID: 8638027258606233577, guid: f61ef4d27b01f6d4c8459367d5e96306, type: 3}
     - {fileID: 8850296027475065873, guid: c4e1662dce3b41e45bcb579272d5d5ce, type: 3}
     - {fileID: -2816308556098882259, guid: e64f5674a7545704a87d9ea7e58d6f50, type: 3}
+    _Speeds: []
+    _SynchronizeChildren: 
+    _Thresholds:
+    - {x: 0, y: 1}
+    - {x: -0.71, y: 0.71}
+    - {x: -1, y: 0}
+    - {x: -0.71, y: -0.71}
+    - {x: 0, y: -1}
+    - {x: 0.71, y: -0.71}
+    - {x: 1, y: 0}
+    - {x: 0.71, y: 0.71}
+    _DefaultParameter: {x: 0, y: 0}
+    _Type: 0
+    _ParameterNameX: {fileID: 0}
+    _ParameterNameY: {fileID: 0}
+  AimSprintMixer:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Animations:
     - {fileID: -6954995946510343063, guid: c836f669b606ed3469dbfe95c876c49b, type: 3}
     - {fileID: 3368602566857609092, guid: 0e18f9d3062ad7e40909c84708718465, type: 3}
     - {fileID: -4726398514936257520, guid: 643119e6ac73a7d42b4ed518abe37820, type: 3}
@@ -55,30 +101,14 @@ MonoBehaviour:
     _Speeds: []
     _SynchronizeChildren: 
     _Thresholds:
-    - {x: 0, y: 0.3}
-    - {x: -0.2121, y: 0.2121}
-    - {x: -0.3, y: 0}
-    - {x: -0.2121, y: -0.2121}
-    - {x: 0, y: -0.3}
-    - {x: 0.2121, y: -0.2121}
-    - {x: 0.3, y: 0}
-    - {x: 0.2121, y: 0.2121}
-    - {x: 0, y: 0.7}
-    - {x: -0.495, y: 0.495}
-    - {x: -0.7, y: 0}
-    - {x: -0.495, y: -0.495}
-    - {x: 0, y: -0.7}
-    - {x: 0.495, y: -0.495}
-    - {x: 0.7, y: 0}
-    - {x: 0.495, y: 0.495}
-    - {x: 0, y: 0.98}
-    - {x: -0.6929, y: 0.6929}
-    - {x: -0.98, y: 0}
-    - {x: -0.6929, y: -0.6929}
-    - {x: 0, y: -0.98}
-    - {x: 0.6929, y: -0.6929}
-    - {x: 0.98, y: 0}
-    - {x: 0.6929, y: 0.6929}
+    - {x: 0, y: 1}
+    - {x: -0.71, y: 0.71}
+    - {x: -1, y: 0}
+    - {x: -0.71, y: -0.71}
+    - {x: 0, y: -1}
+    - {x: 0.71, y: -0.71}
+    - {x: 1, y: 0}
+    - {x: 0.71, y: 0.71}
     _DefaultParameter: {x: 0, y: 0}
     _Type: 0
     _ParameterNameX: {fileID: 0}

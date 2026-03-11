@@ -3,22 +3,12 @@ using Characters.Player.Data;
 
 namespace Characters.Player.Processing
 {
-    // 动画参数处理器 它把运动意图转换成动画混合参数 
-    // 负责计算 X Y 动画混合参数 并驱动下落检测与意图生成 
+    // 动画参数处理器 只负责计算 X Y 动画混合参数（单位圆方向）并驱动下落检测与意图生成
     public class MovementParameterProcessor
     {
         private PlayerSO _config;
         private PlayerRuntimeData _data;
         private Transform _playerTransform;
-
-        // 平滑状态变量 强度档位的平滑缓冲 
-        private float _blendTimer;
-        private float _startIntensity;
-        private float _targetIntensity;
-        private float _currentIntensity;
-
-        // 方向向量平滑 替代角度平滑避免 -180 180 跳变 
-        private Vector3 _currentLocalDir = Vector3.forward;
 
         // 动画 X Y 参数平滑状态 
         private float _currentAnimBlendX;
@@ -33,14 +23,14 @@ namespace Characters.Player.Processing
         // 下落意图计算状态 累积空中时间判断是否应该进入下落动画 
         private float _airborneTime;
 
+        // 新增：记录上一次瞄准状态
+        private bool _lastAiming = false;
+
         public MovementParameterProcessor(PlayerController player)
         {
             _config = player.Config;
             _data = player.RuntimeData;
             _playerTransform = player.transform;
-
-            _currentIntensity = 0.0f;
-            _currentLocalDir = Vector3.forward;
 
             _currentAnimBlendX = 0f;
             _xBlendVelocity = 0f;
@@ -52,11 +42,11 @@ namespace Characters.Player.Processing
             _airborneTime = 0f;
         }
 
-        // 每帧更新 依次计算强度 方向 下落高度 下落意图 
+        // 每帧更新 依次计算方向 下落高度 下落意图 
         public void Update()
         {
-            // 根据运动状态更新强度目标
-            UpdateIntensityLogic();
+            // 维护 DesiredLocalMoveAngle：世界方向与角色正前的夹角
+            UpdateDesiredLocalMoveAngleFromWorldDir();
 
             // 平滑方向并输出 Mixer 参数
             UpdateDirectionBlend();
@@ -68,122 +58,56 @@ namespace Characters.Player.Processing
             UpdateFallIntent();
         }
 
-        // Y 轴逻辑 强度 速度混合 
-        // 根据当前运动状态映射到不同的强度目标值 
-        private void UpdateIntensityLogic()
+        // 新增：根据世界移动方向和角色朝向维护 DesiredLocalMoveAngle
+        private void UpdateDesiredLocalMoveAngleFromWorldDir()
         {
-            // 根据运动状态获取目标强度
-            float target = GetTargetIntensityForState(_data.CurrentLocomotionState);
-
-            // 检测目标变化 按键切换或运动状态变化
-            if (Mathf.Abs(target - _targetIntensity) > 0.01f)
+            Vector3 worldDir = _data.DesiredWorldMoveDir;
+            if (worldDir.sqrMagnitude < 0.0001f)
             {
-                _blendTimer = 0f;
-                _startIntensity = _currentIntensity;
-                _targetIntensity = target;
+                _data.DesiredLocalMoveAngle = 0f;
+                return;
             }
-
-            // 使用配置的曲线平滑强度变化
-            float curveTime = 0.3f; 
-            if (_config.Core.SprintBlendCurve.length > 0)
+            // 角色正前
+            Vector3 forward = _playerTransform.forward;
+            worldDir.y = 0f;
+            forward.y = 0f;
+            if (worldDir.sqrMagnitude < 0.0001f || forward.sqrMagnitude < 0.0001f)
             {
-                curveTime = _config.Core.SprintBlendCurve.keys[_config.Core.SprintBlendCurve.length - 1].time;
+                _data.DesiredLocalMoveAngle = 0f;
+                return;
             }
-
-            if (_blendTimer < curveTime)
-            {
-                _blendTimer += Time.deltaTime;
-                float t = _blendTimer / curveTime;
-                float factor = _config.Core.SprintBlendCurve.Evaluate(t);
-                _currentIntensity = Mathf.Lerp(_startIntensity, _targetIntensity, factor);
-            }
-            else
-            {
-                _currentIntensity = _targetIntensity;
-            }
-        }
-
-        // 根据运动状态获取目标强度值 
-        // 返回值范围 0.0 Idle 到 1.0 Sprint
-        private float GetTargetIntensityForState(LocomotionState state)
-        {
-            return state switch
-            {
-                // Walk 缓慢行走 强度 0.3 0.4
-                LocomotionState.Walk => 0.6f,
-
-                // Jog 正常慢跑 强度 0.65 0.75
-                LocomotionState.Jog => 0.8f,
-
-                // Sprint 快速冲刺 强度 0.95 1.0
-                LocomotionState.Sprint => 1f,
-
-                // Idle 站立 停止 强度 0.0
-                LocomotionState.Idle => 0.0f,
-
-                _ => 0.0f
-            };
+            worldDir.Normalize();
+            forward.Normalize();
+            float angle = Vector3.SignedAngle(forward, worldDir, Vector3.up);
+            _data.DesiredLocalMoveAngle = angle;
         }
 
         // 计算动画混合参数 X Y 
-        // 考虑瞄准模式的特殊性 直接用摇杆输入而非世界方向 
+        // 简化逻辑：将 MoveInput 映射到单位圆边上，再平滑写入黑板
         private void UpdateDirectionBlend()
         {
-            // 目标局部方向
-            // Aim 模式 直接用 MoveInput 的本地语义 避免引入 AuthorityYaw 带来的二次抖动
-            // FreeLook 模式 以 DesiredWorldMoveDir 为准 再转到角色本地
-            Vector3 targetLocalDir;
-
-            if (_data.MoveInput.sqrMagnitude < 0.001f)
+            Vector2 input = _data.MoveInput;
+            Vector2 circle;
+            if (input.sqrMagnitude < 0.0001f)
             {
-                // 无输入时回到正前方 防止停下后保留侧向导致混合停在 Lean 上
-                targetLocalDir = Vector3.forward;
-            }
-            else if (_data.IsAiming)
-            {
-                // Aim 直接使用输入语义作为局部方向
-                Vector2 input = _data.MoveInput.normalized;
-                targetLocalDir = new Vector3(input.x, 0f, input.y);
+                circle = Vector2.zero;
             }
             else
             {
-                // FreeLook 把相机参考系的世界方向转入角色本地
-                Vector3 worldDir = _data.DesiredWorldMoveDir;
-                if (worldDir.sqrMagnitude < 0.0001f)
-                {
-                    targetLocalDir = Vector3.forward;
-                }
-                else
-                {
-                    targetLocalDir = _playerTransform.InverseTransformDirection(worldDir);
-                    targetLocalDir.y = 0f;
-                    if (targetLocalDir.sqrMagnitude > 0.0001f)
-                        targetLocalDir.Normalize();
-                    else
-                        targetLocalDir = Vector3.forward;
-                }
+                circle = input.normalized; // 单位圆边上
             }
 
-            // 注意：这里不应该平滑方向 DesiredLocalMoveAngle 是逻辑层应该瞬时响应
-            // 方向本身的平滑应该交给后续表现层的 Blend X Y SmoothDamp 处理
-            _currentLocalDir = targetLocalDir;
-            _currentLocalDir.y = 0f;
-            if (_currentLocalDir.sqrMagnitude > 0.0001f)
-                _currentLocalDir.Normalize();
-            else
-                _currentLocalDir = Vector3.forward;
+            // 检查瞄准状态切换，切换时重置平滑速度，防止跳变
+            bool aimingNow = _data.IsAiming;
+            if (aimingNow != _lastAiming)
+            {
+                _xBlendVelocity = 0f;
+                _yBlendVelocity = 0f;
+            }
+            _lastAiming = aimingNow;
 
-            // 由方向向量求角度
-            float angle = Mathf.Atan2(_currentLocalDir.x, _currentLocalDir.z) * Mathf.Rad2Deg;
-            _data.DesiredLocalMoveAngle = angle;
-
-            // 极坐标 笛卡尔坐标 Cartesian Mixer
-            float rad = angle * Mathf.Deg2Rad;
-            float targetX = Mathf.Sin(rad) * _currentIntensity;
-            float targetY = Mathf.Cos(rad) * _currentIntensity;
-
-            float xSmoothTime; float ySmoothTime;
-            // X Y 都平滑 避免快速换向时 X 突跳导致权重抖动
+            // 直接平滑写入
+            float xSmoothTime, ySmoothTime;
             if (_config.Aiming == null)
             {
                 xSmoothTime = _config.Core.XAnimBlendSmoothTime;
@@ -191,13 +115,13 @@ namespace Characters.Player.Processing
             }
             else
             {
-                xSmoothTime = Mathf.Max(0.0001f, _data.IsAiming ? _config.Aiming.AimXAnimBlendSmoothTime : _config.Core.XAnimBlendSmoothTime);
-                ySmoothTime = Mathf.Max(0.0001f, _data.IsAiming ? _config.Aiming.AimYAnimBlendSmoothTime : _config.Core.YAnimBlendSmoothTime);
+                xSmoothTime = Mathf.Max(0.0001f, aimingNow ? _config.Aiming.AimXAnimBlendSmoothTime : _config.Core.XAnimBlendSmoothTime);
+                ySmoothTime = Mathf.Max(0.0001f, aimingNow ? _config.Aiming.AimYAnimBlendSmoothTime : _config.Core.YAnimBlendSmoothTime);
             }
 
             _currentAnimBlendX = Mathf.SmoothDamp(
                 _currentAnimBlendX,
-                targetX,
+                circle.x,
                 ref _xBlendVelocity,
                 xSmoothTime,
                 Mathf.Infinity,
@@ -207,7 +131,7 @@ namespace Characters.Player.Processing
 
             _currentAnimBlendY = Mathf.SmoothDamp(
                 _currentAnimBlendY,
-                targetY,
+                circle.y,
                 ref _yBlendVelocity,
                 ySmoothTime,
                 Mathf.Infinity,

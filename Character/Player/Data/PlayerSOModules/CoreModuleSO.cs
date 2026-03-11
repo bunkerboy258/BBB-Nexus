@@ -49,9 +49,6 @@ namespace Characters.Player.Data
 
         [Header("动画混合 (Animation Blending) - 让动画跟上意图管线")]
         
-        [Tooltip("冲刺时动画参数过渡曲线 X时间轴是0~目标时长 Y幅度轴是0~1 控制加速度感")]
-        public AnimationCurve SprintBlendCurve = AnimationCurve.EaseInOut(0, 0, 0.3f, 1);
-        
         [Tooltip("前后方向(X)动画参数平滑时间 越大越软 0.2秒左右比较顺手")]
         public float XAnimBlendSmoothTime = 0.2f;
         

@@ -39,8 +39,14 @@ namespace Characters.Player.Data
         public float AimIkChaseSmoothTime = 0.1f;
 
         [Header("动画资源 (Animation Assets) - 瞄准状态下的动画混合树")]
-        
-        [Tooltip("瞄准时的2D混合树 包含瞄准前后左右的动画混合 通常是持枪姿态的专用动画集")]
-        public MixerTransition2D AimLocomotionMixer;
+
+        [Tooltip("瞄准 Walk 状态的2D混合树 参数 (x,y) 统一映射到半径为1的圆内坐标")]
+        public MixerTransition2D AimWalkMixer;
+
+        [Tooltip("瞄准 Jog 状态的2D混合树 参数 (x,y) 统一映射到半径为1的圆内坐标")]
+        public MixerTransition2D AimJogMixer;
+
+        [Tooltip("瞄准 Sprint 状态的2D混合树 参数 (x,y) 统一映射到半径为1的圆内坐标")]
+        public MixerTransition2D AimSprintMixer;
     }
 }

@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Characters.Player.States
 {
     // 下落全局拦截器 
-    // 负责检测下落意图 当空中时间过长自动触发下落动画 优先级较高
+    // 负责检测下落意图 当空中时间过长且向下速度大于配置值时自动触发下落动画 优先级较高
     [CreateAssetMenu(fileName = "FallInterceptor", menuName = "BBBNexus/Player/Interceptors/Fall")]
     public class FallInterceptorSO : StateInterceptorSO
     {
@@ -12,11 +12,16 @@ namespace Characters.Player.States
         {
             nextState = null;
             var data = player.RuntimeData;
+            var config = player.Config;
 
-            // 检测下落意图 如果不在下落或翻越状态 则切换到下落状态
-            if (data.WantsToFall && currentState is not PlayerFallState && currentState is not PlayerVaultState)
+            // 检测下落意图和垂直速度
+            if (
+                data.WantsToFall &&
+                data.VerticalVelocity < config.Core.FallVerticalVelocityThreshold &&
+                currentState is not PlayerFallState &&
+                currentState is not PlayerVaultState)
             {
-                data.NextStatePlayOptions = player.Config.LocomotionAnims.FadeInFallOptions;
+                data.NextStatePlayOptions = config.LocomotionAnims.FadeInFallOptions;
                 nextState = player.StateRegistry.GetState<PlayerFallState>();
                 return true;
             }
