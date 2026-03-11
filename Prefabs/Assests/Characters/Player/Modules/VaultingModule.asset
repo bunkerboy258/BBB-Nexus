@@ -50,7 +50,7 @@ MonoBehaviour:
       _Clip: {fileID: -1925514724445038810, guid: 41d610d2dbbfbab4490eb6403e5d2912,
         type: 3}
       _NormalizedStartTime: NaN
-    EndTime: 1.6
+    EndTime: 2.1
     EndPhase: 0
     Type: 4
     WarpPoints:
@@ -11367,7 +11367,7 @@ MonoBehaviour:
       _Clip: {fileID: -1892663007654305709, guid: 7c74be228318bcd46a80b21ab03910cb,
         type: 3}
       _NormalizedStartTime: NaN
-    EndTime: 2.1
+    EndTime: 2.4
     EndPhase: 0
     Type: 4
     WarpPoints:

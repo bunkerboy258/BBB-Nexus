@@ -240,6 +240,8 @@ namespace Characters.Player
 
             // 10. 清理帧尾标记 防止意图残留到下一帧的防御性编程
             RuntimeData.ResetIntetnt();
+
+            Debug.Log(RuntimeData.CurrentSpeed);
         }
 
         public void NotifyEquipmentChanged()

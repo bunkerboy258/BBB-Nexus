@@ -34,6 +34,9 @@ public class RootMotionExtractorWindow : EditorWindow
     // 位移死区 过滤微小移动 
     private float _localDirMinDistance = 0.02f;
 
+    // 新增：旋转完成角度容忍度（度）
+    private float _rotationAngleToleranceDeg = 5f;
+
     // 日志开关 
     private bool _verboseLogging = true;
     // 采样日志输出步长 
@@ -126,6 +129,8 @@ public class RootMotionExtractorWindow : EditorWindow
             _rightFootBone = (HumanBodyBones)EditorGUILayout.EnumPopup("右脚骨骼引用", _rightFootBone);
             _localDirFilterAngleDeg = Mathf.Clamp(EditorGUILayout.FloatField("本地旋转过滤阈值", _localDirFilterAngleDeg), 0f, 90f);
             _localDirMinDistance = Mathf.Max(0f, EditorGUILayout.FloatField("最小有效位移距离", _localDirMinDistance));
+            _rotationAngleToleranceDeg = Mathf.Max(0f, EditorGUILayout.FloatField("旋转结束角度容忍度(度)", _rotationAngleToleranceDeg));
+            EditorGUILayout.HelpBox("注意 rotationfinishtime 的烘焙不一定准确 不一定能反映旋转过冲 出现问题请手动调整", MessageType.Info);
         }
 
         EditorGUILayout.Space(10);
@@ -616,18 +621,38 @@ public class RootMotionExtractorWindow : EditorWindow
         };
     }
 
-    // 旋转完成判定算法 基于累计旋转阈值 
-    private static float CalculateRotationFinishedTime(AnimationCurve rotCurve, float totalTime)
+    // 旋转完成判定算法：使用“最终目标角度 + 容忍度”策略
+    private float CalculateRotationFinishedTime(AnimationCurve rotCurve, float totalTime)
     {
-        if (rotCurve == null || rotCurve.length < 2) return 0f;
-        float total = Mathf.Abs(rotCurve.keys[rotCurve.length - 1].value);
-        if (total < 15f) return 0f;
-        float threshold = total * 0.95f;
-        foreach (var key in rotCurve.keys)
+        if (rotCurve == null || rotCurve.length == 0) return 0f;
+
+        // 最后一帧的累计角度作为最终基准角度
+        int lastIndex = rotCurve.length - 1;
+        float finalAngle = rotCurve.keys[lastIndex].value;
+
+        // 从最后一帧向前遍历，只要落在 [finalAngle - tol, finalAngle + tol] 范围内都认为是抖动
+        float tol = _rotationAngleToleranceDeg;
+
+        // 如果整个曲线都在容忍度内，则认为从起始就已完成，返回曲线起始时间
+        int i = lastIndex;
+        for (; i >= 0; i--)
         {
-            if (Mathf.Abs(key.value) >= threshold) return Mathf.Clamp(key.time, 0f, totalTime);
+            float v = rotCurve.keys[i].value;
+            if (Mathf.Abs(Mathf.DeltaAngle(v, finalAngle)) > tol)
+            {
+                break; // 找到第一个超出容忍度的帧
+            }
         }
-        return totalTime;
+
+        // 如果 i < 0，说明从头到尾都在容忍区间，认为旋转在开头就完成
+        if (i < 0)
+        {
+            return Mathf.Clamp(rotCurve.keys[0].time, 0f, totalTime);
+        }
+
+        // 否则，旋转完成时间就是比 i 晚一点的那一帧的时间（i+1）
+        int finishedIndex = Mathf.Min(lastIndex, i + 1);
+        return Mathf.Clamp(rotCurve.keys[finishedIndex].time, 0f, totalTime);
     }
 
     // 滑动窗口平滑算法 优化物理曲线表现 (没用到 因为我们的烘焙算法就是反映原动画运动的 再平滑就是画蛇添足)
