@@ -21,6 +21,7 @@ namespace Characters.Player
     [RequireComponent(typeof(PlayerInputReader))]
     [RequireComponent(typeof(AnimancerComponent))]
     [RequireComponent(typeof(AnimancerFacade))]
+    [RequireComponent(typeof(Animator))]
     [DefaultExecutionOrder(-300)]
     public class PlayerController : MonoBehaviour
     {

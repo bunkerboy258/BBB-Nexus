@@ -4,14 +4,14 @@ using Animancer;
 
 namespace Characters.Player.Animation
 {
-    // 动画外观层 它是表现层的核心 负责转接动画意图 
+    // 表现层的核心 负责转接动画意图 
     [RequireComponent(typeof(AnimancerComponent))]
     public class AnimancerFacade : MonoBehaviour, IAnimationFacade
     {
         // 插件核心组件引用 它是实际干活的底层驱动 
         private AnimancerComponent _animancer;
 
-        // 多层回调字典 这是为了解决多层级动作串线的终极方案 
+        // 多层回调字典 这是为了解决多层级动作串线
         // 每个动画层都有自己的独立回调槽位 互不干扰 
         // 别随便改这里的逻辑 不然换弹动作可能会卡在最后一帧 
         private Dictionary<int, System.Action> _layerOnEndActions = new Dictionary<int, System.Action>();
@@ -30,11 +30,6 @@ namespace Characters.Player.Animation
                 ClearOnEndCallback(layerIndex);
             }
             _layerOnEndActions.Clear();
-        }
-
-        public void InitializeAnimancer(AnimancerComponent animancerComponent)
-        {
-            if (animancerComponent != null) _animancer = animancerComponent;
         }
 
         // 播放基础动画 先清理老回调再注入新动作 
@@ -77,6 +72,8 @@ namespace Characters.Player.Animation
             ApplyOptions(state, options);
             RebindOnEndIfNeeded(layerIndex, state);
         }
+        // 注 这个方法乍一看是有装拆箱风险的 但是实际并不会
+        // 在Animancer的源码中 所有的Transition都是clas，它们天生就是分配在堆上的引用类型
 
         // 核心逻辑 它是让角色跑动起来不再滑步的关键 
         // 负责把意图管线算出来的摇杆矢量 喂给动画混合树 

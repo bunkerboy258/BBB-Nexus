@@ -1,11 +1,9 @@
 ﻿using UnityEngine;
-using Animancer;
 
 namespace Characters.Player.Animation
 {
     public interface IAnimationFacade
     {
-        void InitializeAnimancer(AnimancerComponent animancerComponent);
         void PlayClip(AnimationClip clip, AnimPlayOptions options);
         void PlayTransition(object transitionObj, AnimPlayOptions options);
         void SetMixerParameter(Vector2 parameter, int layerIndex = 0);

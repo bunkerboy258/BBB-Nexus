@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 38c9eddd7885c5b4eac4ffaeccc04f2e, type: 3}
   m_Name: JumpModule
   m_EditorClassIdentifier: 
-  JumpForce: 6
+  JumpForce: 7
   JumpAirAnim:
     Clip:
       _FadeDuration: 0.25
@@ -2438,7 +2438,7 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
     RotationFinishedTime: 0
-  JumpForceWalk: 7
+  JumpForceWalk: 8
   JumpAirAnimWalk:
     Clip:
       _FadeDuration: 0.25
@@ -5080,7 +5080,7 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
     RotationFinishedTime: 0
-  JumpForceSprint: 7
+  JumpForceSprint: 9
   JumpAirAnimSprint:
     Clip:
       _FadeDuration: 0.25
@@ -7578,7 +7578,7 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
     RotationFinishedTime: 0
-  JumpForceSprintEmpty: 8
+  JumpForceSprintEmpty: 10
   JumpAirAnimSprintEmpty:
     Clip:
       _FadeDuration: 0.25
@@ -11372,7 +11372,7 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
     RotationFinishedTime: 0
-  DoubleJumpForceUp: 7
+  DoubleJumpForceUp: 8
   DoubleJumpEmptyHandSprintForceUp: 8
   DoubleJumpUp:
     Clip:
