@@ -26,15 +26,19 @@ namespace Characters.Player.AI.Data
         public readonly Vector2 LookInput;
         public readonly bool WantsToAttack;
         public readonly bool WantsToAim;
-        public readonly bool WantsToJump; 
+        public readonly bool WantsToJump;
+        public readonly bool WantsToDodge;
+        public readonly bool WantsToRoll;
 
-        public TacticalIntent(Vector2 moveInput, Vector2 lookInput, bool attack, bool aim, bool jump)
+        public TacticalIntent(Vector2 moveInput, Vector2 lookInput, bool attack, bool aim, bool jump, bool dodge = false, bool roll = false)
         {
             MovementInput = moveInput;
             LookInput = lookInput;
             WantsToAttack = attack;
             WantsToAim = aim;
             WantsToJump = jump;
+            WantsToDodge = dodge;
+            WantsToRoll = roll;
         }
     }
 }

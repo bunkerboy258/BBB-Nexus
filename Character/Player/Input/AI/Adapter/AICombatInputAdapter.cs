@@ -18,9 +18,15 @@ namespace Characters.Player.AI.Adapter
         [SerializeReference]
         public IAITacticalBrain _brain;
 
+        [Header("AI Configuration")]
+        [Tooltip("AI 战术配置 - 所有 AI 行为参数都在这里")]
+        public Characters.Player.AI.Data.AITacticalBrainConfigSO TacticalConfig;
+
         private bool _lastAttackIntent;
         private bool _lastAimIntent;
         private bool _lastJumpIntent;
+        private bool _lastDodgeIntent;
+        private bool _lastRollIntent;
 
         public NavigatorSensorBase NavigatorSensor => _navigatorSensor;
         public IAITacticalBrain Brain => _brain;
@@ -39,6 +45,15 @@ namespace Characters.Player.AI.Adapter
 
             // 【依赖注入】：纯 C# 类不知道自己长在哪，必须由挂载点把 Transform 喂给它！
             _brain.Initialize(this.transform);
+
+            // 注入配置 - 如果 brain 是 MeleeRusherBrain，会使用这个配置
+            if (_brain is MeleeRusherBrain meleeRusher && TacticalConfig != null)
+            {
+                // 通过反射设置配置（因为 _config 是 private）
+                var configField = typeof(MeleeRusherBrain).GetField("_config", 
+                    System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                configField?.SetValue(meleeRusher, TacticalConfig);
+            }
         }
 
         public override void FetchRawInput(ref RawInputData rawData)
@@ -62,21 +77,28 @@ namespace Characters.Player.AI.Adapter
             rawData.Expression1Held = currentAttackIntent;
             rawData.Expression1JustPressed = currentAttackIntent && !_lastAttackIntent;
 
-            // --- 新增跳跃信号映射 ---
+            // --- 跳跃信号映射 ---
             bool currentJumpIntent = intent.WantsToJump;
             rawData.JumpHeld = currentJumpIntent;
-            rawData.JumpJustPressed = currentJumpIntent && !_lastJumpIntent; // 精准生成按下瞬间的判定
-                                                                             // ------------------------
+            rawData.JumpJustPressed = currentJumpIntent && !_lastJumpIntent;
+
+            // --- 闪避信号映射 ---
+            bool currentDodgeIntent = intent.WantsToDodge;
+            rawData.DodgeHeld = currentDodgeIntent;
+            rawData.DodgeJustPressed = currentDodgeIntent && !_lastDodgeIntent;
+
+            // --- 翻滚信号映射 ---
+            bool currentRollIntent = intent.WantsToRoll;
+            rawData.RollHeld = currentRollIntent;
+            rawData.RollJustPressed = currentRollIntent && !_lastRollIntent;
 
             _lastAttackIntent = currentAttackIntent;
             _lastAimIntent = currentAimIntent;
-            _lastJumpIntent = currentJumpIntent; // 保存当前跳跃状态
+            _lastJumpIntent = currentJumpIntent;
+            _lastDodgeIntent = currentDodgeIntent;
+            _lastRollIntent = currentRollIntent;
 
-            // 清理多余的动作，只留我们要的
-            rawData.RollHeld = false;
-            rawData.RollJustPressed = false;
-            rawData.DodgeHeld = false;
-            rawData.DodgeJustPressed = false;
+            // 不需要手动清理，这些在意图管线中会被处理
         }
 
         private void ClearIntent(ref RawInputData rawData)
@@ -86,8 +108,17 @@ namespace Characters.Player.AI.Adapter
             rawData.AimHeld = false;
             rawData.Expression1Held = false;
             rawData.Expression1JustPressed = false;
+            rawData.JumpHeld = false;
+            rawData.JumpJustPressed = false;
+            rawData.DodgeHeld = false;
+            rawData.DodgeJustPressed = false;
+            rawData.RollHeld = false;
+            rawData.RollJustPressed = false;
             _lastAttackIntent = false;
             _lastAimIntent = false;
+            _lastJumpIntent = false;
+            _lastDodgeIntent = false;
+            _lastRollIntent = false;
         }
     }
 }

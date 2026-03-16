@@ -72,7 +72,7 @@ namespace Characters.Player.Core
                 else
                 {
                     // 驱动初始持握逻辑 触发初始化表现
-                    Debug.Log("装备装配成功 正在启动拔枪流程");
+                    //Debug.Log("装备装配成功 正在启动拔枪流程");
                     CurrentItemDirector.OnEquipEnter(_player);
                 }
             }

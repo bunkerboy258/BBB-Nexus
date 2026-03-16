@@ -13,14 +13,14 @@ namespace Characters.Player.AI.Brain
         public virtual void Initialize(Transform selfTransform)
         {
             _selfTransform = selfTransform;
-            _currentIntent = new TacticalIntent(Vector2.zero, Vector2.zero, false, false,false);
+            _currentIntent = new TacticalIntent(Vector2.zero, Vector2.zero, false, false, false, false, false);
         }
 
         public ref readonly TacticalIntent EvaluateTactics(in NavigationContext context)
         {
             if (!context.HasValidTarget || _selfTransform == null)
             {
-                _currentIntent = new TacticalIntent(Vector2.zero, Vector2.zero, false, false, false);
+                _currentIntent = new TacticalIntent(Vector2.zero, Vector2.zero, false, false, false, false, false);
                 return ref _currentIntent;
             }
 
