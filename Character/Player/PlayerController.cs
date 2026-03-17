@@ -1,4 +1,5 @@
 using Animancer;
+using BBBHe.Core.Combat;
 using Characters.Player.Animation;
 using Characters.Player.Core;
 using Characters.Player.Data;
@@ -6,11 +7,12 @@ using Characters.Player.Expression;
 using Characters.Player.Input;
 using Characters.Player.Processing;
 using Characters.Player.States;
+using Characters.Player.Arbitration;
 using Core.StateMachine;
+using Items.Core;
 using Items.Data;
 using System.Collections.Generic;
 using UnityEngine;
-using Items.Core;
 
 namespace Characters.Player
 {
@@ -25,7 +27,7 @@ namespace Characters.Player
     [RequireComponent(typeof(AnimancerFacade))]
     [RequireComponent(typeof(Animator))]
     [DefaultExecutionOrder(-300)]
-    public class PlayerController : MonoBehaviour
+    public class PlayerController : MonoBehaviour, IDamageable
     {
         [Header("--- 输入与表现源 (Input & Presentation Sources) ---")]
         [Tooltip("输入源 - 可拖拽赋值任何继承 IInputSourceBase 的组件")]
@@ -79,6 +81,7 @@ namespace Characters.Player
 
         //仲裁器(后期需要注册表化)
         public LODArbiter LodArbiter { get; private set; }
+        public ArbiterPipeline ArbiterPipeline { get; private set; }
 
         //调试用缓存
         private PlayerBaseState _lastState;
@@ -132,8 +135,7 @@ namespace Characters.Player
             Animancer.Animator.applyRootMotion = false;
 
             // 1. 实例化纯数据容器
-            RuntimeData = new PlayerRuntimeData();
-            if (Config != null) RuntimeData.CurrentStamina = Config.Core.MaxStamina;
+            RuntimeData = new PlayerRuntimeData(this);
             InputData = new InputData();
 
             // 2. 实例化所有系统控制器与驱动器 
@@ -143,6 +145,9 @@ namespace Characters.Player
             EquipmentDriver = new EquipmentDriver(this);
             _characterStatusDriver = new CharacterStatusDriver(RuntimeData, Config);
             LodArbiter = new LODArbiter(this);
+
+            // 2.5 实例化仲裁管线
+            ArbiterPipeline = new ArbiterPipeline(this);
 
             // 3. 建立双管线并注入依赖 (直接传递 InputSourceRef)
             // InputPipeline 构造函数已更改为只接受 InputSourceBase，所有 timing 配置从 InputSourceRef 注入
@@ -220,31 +225,17 @@ namespace Characters.Player
         {
             _lastState = StateMachine.CurrentState as PlayerBaseState;
 
-            // LOD 仲裁
-            LodArbiter.Arbitrate();
+            ArbiterPipeline?.ProcessUpdateArbiters();
 
-            // 输入管线更新
             InputPipeline.Update();
-
-            // 基于输入快照 向黑板写入纯意图
             MainProcessorPipeline.UpdateIntentProcessors();
-
-            // 快捷栏系统 基于最新意图处理切枪逻辑
             InventoryController.Update();
-
-            // 被动属性更新 
             _characterStatusDriver.Update();
-
-            // 计算动画参数
             MainProcessorPipeline.UpdateParameterProcessors();
 
-            // 驱动状态机
             StateMachine.CurrentState?.LogicUpdate();
 
-            // 驱动上半身状态机
             UpperBodyCtrl.Update();
-
-            // 驱动表情系统
             _facialController?.Update();
 
             if (statedebug && StateMachine.CurrentState != null && _lastState != null)
@@ -266,13 +257,12 @@ namespace Characters.Player
         //物理与表现层的更新 (在动画引擎运算之后)
         private void LateUpdate()
         {
-            // 物理更新
             StateMachine.CurrentState?.PhysicsUpdate();
 
-            // IK 结算
             _ikController.Update();
 
-            // 清除黑板的意图数据
+            ArbiterPipeline?.ProcessLateUpdateArbiters();
+
             RuntimeData.ResetIntetnt();
         }
 
@@ -280,5 +270,23 @@ namespace Characters.Player
         {
             OnEquipmentChanged?.Invoke();
         }
+
+        public void RequestOverride(in ActionRequest request, bool flushImmediately = true)
+        {
+            var arbiter = ArbiterPipeline?.Action;
+            if (arbiter != null)
+                arbiter.SubmitRequest(in request, flushImmediately);
+        }
+
+        #region IDamageable 接口实现
+        public void RequestDamage(in DamageRequest request)
+        {
+            var health = ArbiterPipeline?.Health;
+            if (health == null) return;
+
+            health.Enqueue(in request);
+        }
+
+        #endregion
     }
 }

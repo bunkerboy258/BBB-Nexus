@@ -16,6 +16,8 @@ namespace Characters.Player.Animation
         // 别随便改这里的逻辑 不然换弹动作可能会卡在最后一帧 
         private Dictionary<int, System.Action> _layerOnEndActions = new Dictionary<int, System.Action>();
 
+        private bool _fullBodyRootMotionEnabled;
+
         private void Awake()
         {
             _animancer = GetComponent<AnimancerComponent>();
@@ -25,9 +27,13 @@ namespace Characters.Player.Animation
         // 这是为了防止角色销毁后 内存里还挂着没跑完的动画逻辑 
         private void OnDisable()
         {
-            foreach (var layerIndex in _layerOnEndActions.Keys)
+            if (_layerOnEndActions.Count > 0)
             {
-                ClearOnEndCallback(layerIndex);
+                var keys = new List<int>(_layerOnEndActions.Keys);
+                for (int i = 0; i < keys.Count; i++)
+                {
+                    ClearOnEndCallback(keys[i]);
+                }
             }
             _layerOnEndActions.Clear();
         }
@@ -192,6 +198,32 @@ namespace Characters.Player.Animation
             if ((uint)layerIndex < (uint)layers.Count) return layers[layerIndex];
 
             return layers[0];
+        }
+
+        public override void PlayFullBodyAction(AnimationClip clip, float fadeDuration = 0.2f)
+        {
+            if (clip == null) return;
+
+            if (_animancer.Animator != null)
+            {
+                _fullBodyRootMotionEnabled = true;
+                _animancer.Animator.applyRootMotion = true;
+            }
+
+            const int layerIndex = 0;
+            ClearOnEndCallback(layerIndex);
+
+            SetLayerWeight(1, 0f, fadeDuration);
+            _animancer.Layers[layerIndex].Play(clip, fadeDuration);
+        }
+
+        public override void StopFullBodyAction()
+        {
+            if (_fullBodyRootMotionEnabled && _animancer != null && _animancer.Animator != null)
+            {
+                _animancer.Animator.applyRootMotion = false;
+            }
+            _fullBodyRootMotionEnabled = false;
         }
 
         // 基础层当前的播放进度 它是意图管线判断动作是否播完的重要依据 

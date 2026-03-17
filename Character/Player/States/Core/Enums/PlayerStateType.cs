@@ -17,6 +17,8 @@ namespace Characters.Player.Data
         Roll,
         Vault,
         AimIdle,
-        AimMove
+        AimMove,
+        Action,
+        Death
     }
 }

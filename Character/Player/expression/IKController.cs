@@ -46,6 +46,17 @@ namespace Characters.Player.Expression
         {
             if (_ikSource == null) return;
 
+            if (_data.Arbitration.BlockIK)
+            {
+                if (_isIKActive)
+                {
+                    ResetAllIKWeights();
+                    _ikSource.DisableAllIK();
+                    _isIKActive = false;
+                }
+                return;
+            }
+
             // LOD 性能降级拦截
             if (_data.CurrentLOD > CharacterLOD.High)
             {

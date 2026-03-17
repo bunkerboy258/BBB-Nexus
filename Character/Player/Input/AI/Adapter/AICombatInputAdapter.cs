@@ -3,6 +3,7 @@ using Characters.Player.Input;
 using Characters.Player.Data;
 using Characters.Player.AI.Sensor;
 using Characters.Player.AI.Brain;
+using Characters.Player.AI.Data;
 using Characters.Player.Core.Attributes; // 引入 UI 黑魔法
 
 namespace Characters.Player.AI.Adapter
@@ -20,7 +21,7 @@ namespace Characters.Player.AI.Adapter
 
         [Header("AI Configuration")]
         [Tooltip("AI 战术配置 - 所有 AI 行为参数都在这里")]
-        public Characters.Player.AI.Data.AITacticalBrainConfigSO TacticalConfig;
+        public AITacticalBrainConfigSO TacticalConfig;
 
         private bool _lastAttackIntent;
         private bool _lastAimIntent;
@@ -38,21 +39,33 @@ namespace Characters.Player.AI.Adapter
 
             if (_brain == null)
             {
-                Debug.LogError($"[AI 灾难] {_brain} 为空！请在 Inspector 中使用下拉菜单选择战术大脑！", this);
+                Debug.LogError($"{_brain} 为空！请在 Inspector 中使用下拉菜单选择战术大脑！", this);
                 enabled = false;
                 return;
             }
 
             // 【依赖注入】：纯 C# 类不知道自己长在哪，必须由挂载点把 Transform 喂给它！
-            _brain.Initialize(this.transform);
+            _brain.Initialize(this.transform, TacticalConfig);
 
             // 注入配置 - 如果 brain 是 MeleeRusherBrain，会使用这个配置
-            if (_brain is MeleeRusherBrain meleeRusher && TacticalConfig != null)
+            if (TacticalConfig != null)
+                InjectConfigIfSupported(_brain, TacticalConfig);
+        }
+
+        private static void InjectConfigIfSupported(IAITacticalBrain brain, Characters.Player.AI.Data.AITacticalBrainConfigSO config)
+        {
+            if (brain is MeleeRusherBrain melee)
             {
-                // 通过反射设置配置（因为 _config 是 private）
-                var configField = typeof(MeleeRusherBrain).GetField("_config", 
+                var field = typeof(MeleeRusherBrain).GetField("_config",
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                configField?.SetValue(meleeRusher, TacticalConfig);
+
+                if (field == null)
+                {
+                    Debug.LogWarning("MeleeRusherBrain _config field missing");
+                    return;
+                }
+
+                field.SetValue(melee, config);
             }
         }
 

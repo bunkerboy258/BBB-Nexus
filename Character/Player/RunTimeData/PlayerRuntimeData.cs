@@ -1,6 +1,8 @@
 using Items.Core;
 using UnityEngine;
 using Characters.Player.Animation;
+using Characters.Player.Arbitration;
+using Core.StateMachine;
 
 namespace Characters.Player.Data
 {
@@ -10,9 +12,58 @@ namespace Characters.Player.Data
     /// </summary>
     public class PlayerRuntimeData
     {
+        public struct OverrideContext
+        {
+            public bool IsActive;
+            public ActionRequest Request;
+            public BaseState ReturnState;
+
+            public void Clear()
+            {
+                IsActive = false;
+                Request = default;
+                ReturnState = null;
+            }
+        }
+
+        public struct ArbitrationFlags
+        {
+            public bool BlockInput;
+            public bool BlockUpperBody;
+            public bool BlockFacial;
+            public bool BlockIK;
+            public bool BlockInventory;
+            public bool IsDead;
+
+            public void Clear()
+            {
+                BlockInput = false;
+                BlockUpperBody = false;
+                BlockFacial = false;
+                BlockIK = false;
+                BlockInventory = false;
+                IsDead = false;
+            }
+        }
+
+        public OverrideContext Override;
+        public ArbitrationFlags Arbitration;
+
+        public PlayerRuntimeData(PlayerController player)
+        {
+            CurrentHealth = player.Config.Core.MaxHealth;
+            CameraTransform = player.PlayerCamera;
+            CurrentStamina = player.Config.Core.MaxStamina;
+            Override.Clear();
+            Arbitration.Clear();
+        }
+
         #region 核心状态
         public CharacterLOD CurrentLOD { get; set; } = CharacterLOD.High;
+        public float CurrentHealth;
+        public bool IsDead;
         #endregion
+
         #region 输入（来自输入系统）
 
         [Header("输入 - 玩家原始输入")]
@@ -252,7 +303,6 @@ namespace Characters.Player.Data
         #endregion
 
         #region 状态与追踪
-        [Header("数值与追踪")]
 
         [Tooltip("当前体力值")]
         public float CurrentStamina;
@@ -260,12 +310,10 @@ namespace Characters.Player.Data
         [Tooltip("体力枯竭标志")]
         public bool IsStaminaDepleted;
 
-        [Header("周期追踪")]
         [Tooltip("本次空中是否已使用二段跳")]
         public bool HasPerformedDoubleJumpInAir;
 
-        [Header("全局引用")]
-        [Tooltip("相机 Transform 引用")]
+        [Tooltip("玩家相机 Transform，用于计算视角与朝向")]
         public Transform CameraTransform;
         #endregion
 

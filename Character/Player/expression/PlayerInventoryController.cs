@@ -50,6 +50,7 @@ namespace Characters.Player.Expression
         public void Update()
         {
             if (_data == null) return;
+            if (_data.Arbitration.BlockInventory) return;
 
             // 监视黑板：是否有切换快捷栏的意图？
             if (_data.WantsToEquipHotbarIndex != -1)
@@ -71,7 +72,7 @@ namespace Characters.Player.Expression
             {
                 MainInventory.TryAdd(oldItem);
             }
-            Debug.Log($"[Inventory] 快捷栏[{slotIndex + 1}] 绑定: {itemInstance.BaseData.DisplayName}");
+            //Debug.Log($"[Inventory] 快捷栏[{slotIndex + 1}] 绑定: {itemInstance.BaseData.DisplayName}");
         }
 
         public bool MoveToHotbar(InventorySystem source, int sourceSlot, int hotbarSlot)
@@ -123,7 +124,7 @@ namespace Characters.Player.Expression
             var targetInstance = HotbarInventory.GetAt(slotIndex);
             if (targetInstance == null)
             {
-                Debug.Log($"[Inventory] 槽位 {slotIndex + 1} 为空 -> 卸载");
+                //Debug.Log($"[Inventory] 槽位 {slotIndex + 1} 为空 -> 卸载");
                 Unequip();
 
                 // 消费对应的数字键输入
@@ -133,7 +134,7 @@ namespace Characters.Player.Expression
 
             if (targetInstance.BaseData is EquippableItemSO)
             {
-                Debug.Log($"[Inventory] 意图切换 -> {targetInstance.BaseData.DisplayName}");
+                //Debug.Log($"[Inventory] 意图切换 -> {targetInstance.BaseData.DisplayName}");
                 _player.RuntimeData.CurrentItem = targetInstance;
 
                 // 成功尝试装备后 消费对应的数字键输入

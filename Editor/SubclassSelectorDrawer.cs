@@ -1,5 +1,4 @@
 #if UNITY_EDITOR
-using BBBHe.Core.Attributes;
 using System;
 using System.Linq;
 using UnityEditor;

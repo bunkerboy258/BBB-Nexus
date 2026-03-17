@@ -68,5 +68,15 @@ namespace Characters.Player.Animation
         /// 获取指定层的归一化播放时间
         /// </summary>
         public abstract float GetLayerNormalizedTime(int layerIndex);
+
+        /// <summary>
+        /// 强行播放全身动画
+        /// </summary>
+        public abstract void PlayFullBodyAction(AnimationClip clip, float fadeDuration = 0.2f);
+
+        /// <summary>
+        /// 停止全身动画
+        /// </summary>
+        public abstract void StopFullBodyAction();
     }
 }

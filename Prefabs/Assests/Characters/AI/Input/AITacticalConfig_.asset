@@ -16,12 +16,12 @@ MonoBehaviour:
   AttackRange: 2
   JumpCooldown: 1.5
   DoubleJumpDelay: 0.35
-  DodgeTriggerRange: 8
-  DodgeCooldown: 2.5
-  DodgeChance: 0.4
-  DodgeMaxAttempts: 3
-  RollTriggerRange: 6
-  RollCooldown: 3
+  DodgeTriggerRange: 20
+  DodgeCooldown: 0.1
+  DodgeChance: 0.6
+  DodgeMaxAttempts: 10
+  RollTriggerRange: 20
+  RollCooldown: 2
   RollChance: 0.25
   RollMaxAttempts: 2
   StrafeCooldownMin: 1.5

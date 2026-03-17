@@ -17,10 +17,20 @@ namespace Characters.Player.Input
         [Tooltip("动作按键的缓存时间（秒），按下后该按键在此时间内被视为已按下，便于输入缓冲）")]
         public float ActionBufferTime = 0.2f;
 
+        protected PlayerRuntimeData _runtimeData;
+
+        protected virtual void Awake()
+        {
+            var player = GetComponentInParent<Characters.Player.PlayerController>();
+            if (player != null) _runtimeData = player.RuntimeData;
+        }
+
         /// <summary>
         /// 由具体实现类重写 负责获取原始输入数据
         /// </summary>
         /// <param name="rawData">用于存储原始输入的结构体引用</param>
         public abstract void FetchRawInput(ref RawInputData rawData);
+
+        public bool IsBlocked => _runtimeData != null && _runtimeData.Arbitration.BlockInput;
     }
 }

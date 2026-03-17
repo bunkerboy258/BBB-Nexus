@@ -64,8 +64,15 @@ namespace Characters.Player.Processing
             // 推进历史帧
             _inputData.lastFrameData = _inputData.currentFrameData;
 
-            // 采样硬件真实状态
-            _inputSource.FetchRawInput(ref _rawData);
+            if (_inputSource != null && _inputSource.IsBlocked)
+            {
+                _rawData = default;
+            }
+            else
+            {
+                // 采样硬件真实状态
+                _inputSource.FetchRawInput(ref _rawData);
+            }
 
             // 后处理数据并压入内存
             ProcessRawInput();

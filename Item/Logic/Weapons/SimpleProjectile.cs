@@ -1,3 +1,4 @@
+using BBBHe.Core.Combat; // 【核心改动】：只引入公共战斗接口，彻底剥离对 Player 命名空间的依赖
 using UnityEngine;
 
 // 简单投射物脚本 处理子弹 炮弹等投射物的碰撞反应与销毁 
@@ -21,10 +22,18 @@ public class SimpleProjectile : MonoBehaviour
     public float ExplosionRadius = 5f;
     [Tooltip("爆炸施加的最大冲击力")]
     public float ExplosionForce = 700f;
-    [Tooltip("爆炸向上修正，越大效果越向上抬起")] 
+    [Tooltip("爆炸向上修正，越大效果越向上抬起")]
     public float ExplosionUpwardsModifier = 0.0f;
     [Tooltip("哪些层会受爆炸影响（LayerMask）")]
     public LayerMask ExplosionAffectLayers = ~0; // 默认影响所有层
+
+    [Header("Damage Settings")]
+    // 是否在命中时对爆炸范围内的指定标签角色发送伤害请求
+    [Tooltip("命中时是否对爆炸范围内的指定标签角色发送伤害请求")]
+    public bool DealDamageOnImpact = false;
+
+    [Tooltip("爆炸造成的伤害量")]
+    public float DamageAmount = 10f;
 
     // 防止重复触发碰撞 确保只处理一次击中 避免多次播放特效与音效 
     private bool _hasImpacted = false;
@@ -81,7 +90,6 @@ public class SimpleProjectile : MonoBehaviour
         _hasImpacted = true;
 
         // 生成击中视觉特效 
-        // 特效会在击中点生成 并且面向击中面法线 确保特效朝向正确 
         if (hitVFXPrefab != null)
         {
             Instantiate(hitVFXPrefab, point, Quaternion.LookRotation(normal));
@@ -93,40 +101,77 @@ public class SimpleProjectile : MonoBehaviour
             AudioSource.PlayClipAtPoint(hitSound, point);
         }
 
-        // 可选：爆炸对周围刚体施加冲击力
+        // 1. 物理层：爆炸对周围刚体施加冲击力
         if (ExplodeOnImpact)
         {
-            // 使用 OverlapSphere 根据 LayerMask 获取受影响的碰撞体
-            int layerMask = ExplosionAffectLayers;
-            Collider[] hits = Physics.OverlapSphere(point, ExplosionRadius, layerMask, QueryTriggerInteraction.Ignore);
+            ApplyExplosionPhysics(point);
+        }
 
-            if (hits != null && hits.Length > 0)
+        // 2. 逻辑层：处理伤害
+        if (DealDamageOnImpact && DamageAmount > 0f)
+        {
+            // 如果是爆炸范围伤害 (AOE)
+            ApplyDamageToTargets(point);
+        }
+        else if (DamageAmount > 0f && other != null)
+        {
+            IDamageable directTarget = other.GetComponentInParent<IDamageable>();
+            if (directTarget != null)
             {
-                // 为避免对同一刚体重复施力 使用 HashSet 跳过重复刚体
-                System.Collections.Generic.HashSet<Rigidbody> affected = new System.Collections.Generic.HashSet<Rigidbody>();
-
-                foreach (var col in hits)
-                {
-                    if (col == null) continue;
-                    Rigidbody rb = col.attachedRigidbody;
-                    if (rb == null) continue;
-                    if (affected.Contains(rb)) continue;
-
-                    // 忽略静态或不受力刚体
-                    if (rb.isKinematic) continue;
-
-                    // 对刚体施加爆炸冲击力
-                    rb.AddExplosionForce(ExplosionForce, point, ExplosionRadius, ExplosionUpwardsModifier, ForceMode.Impulse);
-
-                    affected.Add(rb);
-                }
+                var req = new DamageRequest(DamageAmount);
+                directTarget.RequestDamage(in req);
             }
         }
 
-        // 这里可以添加伤害计算 标签检测等游戏逻辑 
-        // 比如 if (other != null && other.CompareTag("Enemy")) { ... } 
-
         // 销毁投射物实例 
         Destroy(gameObject);
+    }
+
+    // 物理力施加提取为一个独立方法，保持代码整洁
+    private void ApplyExplosionPhysics(Vector3 explosionCenter)
+    {
+        Collider[] hits = Physics.OverlapSphere(explosionCenter, ExplosionRadius, ExplosionAffectLayers, QueryTriggerInteraction.Ignore);
+        if (hits == null || hits.Length == 0) return;
+
+        System.Collections.Generic.HashSet<Rigidbody> affected = new System.Collections.Generic.HashSet<Rigidbody>();
+
+        foreach (var col in hits)
+        {
+            if (col == null) continue;
+            Rigidbody rb = col.attachedRigidbody;
+            if (rb == null || rb.isKinematic) continue;
+            if (affected.Contains(rb)) continue;
+
+            rb.AddExplosionForce(ExplosionForce, explosionCenter, ExplosionRadius, ExplosionUpwardsModifier, ForceMode.Impulse);
+            affected.Add(rb);
+        }
+    }
+
+    // 【核心重构】：向爆炸范围内的对象发送伤害请求（完全基于接口）
+    private void ApplyDamageToTargets(Vector3 explosionCenter)
+    {
+        // 查询爆炸范围内的所有碰撞体
+        Collider[] targetColliders = Physics.OverlapSphere(explosionCenter, ExplosionRadius);
+
+        if (targetColliders == null || targetColliders.Length == 0)
+            return;
+
+        System.Collections.Generic.HashSet<IDamageable> damagedTargets = new System.Collections.Generic.HashSet<IDamageable>();
+
+        foreach (var collider in targetColliders)
+        {
+            if (collider == null) continue;
+
+            IDamageable damageable = collider.GetComponentInParent<IDamageable>();
+            if (damageable == null) continue;
+
+            if (damagedTargets.Contains(damageable))
+                continue;
+
+            var damageRequest = new DamageRequest(DamageAmount);
+            damageable.RequestDamage(in damageRequest);
+
+            damagedTargets.Add(damageable);
+        }
     }
 }

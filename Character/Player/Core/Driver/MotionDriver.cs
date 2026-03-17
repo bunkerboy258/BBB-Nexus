@@ -73,6 +73,13 @@ namespace Characters.Player.Core
 
         #region Public API: Core Motion Updates
 
+        public void UpdateGravityOnly()
+        {
+            Vector3 verticalVelocity = CalculateGravity();
+            _cc.Move(verticalVelocity * Time.deltaTime);
+            _data.CurrentSpeed = _cc.velocity.magnitude;
+        }
+
         public void UpdateMotion(MotionClipData clipData, float stateTime)
         {
             HandleAimModeTransition();

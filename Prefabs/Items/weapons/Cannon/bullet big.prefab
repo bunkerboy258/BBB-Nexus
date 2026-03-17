@@ -132,6 +132,8 @@ MonoBehaviour:
   ExplosionAffectLayers:
     serializedVersion: 2
     m_Bits: 4294967295
+  DealDamageOnImpact: 1
+  DamageAmount: 40
 --- !u!54 &4536223755743742214
 Rigidbody:
   m_ObjectHideFlags: 0

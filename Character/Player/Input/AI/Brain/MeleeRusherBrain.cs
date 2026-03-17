@@ -7,7 +7,6 @@ namespace Characters.Player.AI.Brain
     [Serializable]
     public class MeleeRusherBrain : AITacticalBrainBase
     {
-        [SerializeField] private AITacticalBrainConfigSO _config;
 
         private float _strafeTimer;
         private float _strafeDirection = 1f;
@@ -25,9 +24,9 @@ namespace Characters.Player.AI.Brain
         private float _rollCooldownTimer;
         private int _rollAttemptCount;
 
-        public override void Initialize(Transform selfTransform)
+        public override void Initialize(Transform selfTransform,AITacticalBrainConfigSO config)
         {
-            base.Initialize(selfTransform);
+            base.Initialize(selfTransform, config);
             
             // 如果没有配置，创建默认配置
             if (_config == null)

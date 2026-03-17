@@ -42,7 +42,7 @@ MonoBehaviour:
     WarpPoints:
     - PointName: End
       NormalizedTime: 1
-      TargetPositionOffset: {x: 0, y: 0, z: 6}
+      TargetPositionOffset: {x: 0, y: 0, z: 5}
       BakedLocalOffset: {x: 0.00000012462064, y: 1.7180628e-31, z: 2.7877178}
       BakedLocalRotation: {x: 0, y: 0, z: 0, w: 1}
     HandIKWeightCurve:
@@ -1823,7 +1823,7 @@ MonoBehaviour:
     WarpPoints:
     - PointName: End
       NormalizedTime: 1
-      TargetPositionOffset: {x: 0, y: 0, z: 0}
+      TargetPositionOffset: {x: 0, y: 0, z: 5}
       BakedLocalOffset: {x: -0.00000011961883, y: -1.6491075e-31, z: -2.6758277}
       BakedLocalRotation: {x: 0, y: 0, z: 0, w: 1}
     HandIKWeightCurve:
@@ -3604,7 +3604,7 @@ MonoBehaviour:
     WarpPoints:
     - PointName: End
       NormalizedTime: 1
-      TargetPositionOffset: {x: 0, y: 0, z: 0}
+      TargetPositionOffset: {x: 0, y: 0, z: 5}
       BakedLocalOffset: {x: -2.600106, y: -7.1172624e-24, z: 0.00000011623372}
       BakedLocalRotation: {x: 0, y: 0, z: 0, w: 1}
     HandIKWeightCurve:
@@ -5385,7 +5385,7 @@ MonoBehaviour:
     WarpPoints:
     - PointName: End
       NormalizedTime: 1
-      TargetPositionOffset: {x: 0, y: 0, z: 0}
+      TargetPositionOffset: {x: 0, y: 0, z: 5}
       BakedLocalOffset: {x: 2.6601515, y: 7.281626e-24, z: -0.00000011891795}
       BakedLocalRotation: {x: 0, y: 0, z: 0, w: 1}
     HandIKWeightCurve:
@@ -7166,7 +7166,7 @@ MonoBehaviour:
     WarpPoints:
     - PointName: End
       NormalizedTime: 1
-      TargetPositionOffset: {x: 0, y: 0, z: 0}
+      TargetPositionOffset: {x: 0, y: 0, z: 5}
       BakedLocalOffset: {x: -1.8259492, y: -4.9981683e-24, z: 1.8635056}
       BakedLocalRotation: {x: 0, y: 0, z: 0, w: 1}
     HandIKWeightCurve:
@@ -8947,7 +8947,7 @@ MonoBehaviour:
     WarpPoints:
     - PointName: End
       NormalizedTime: 1
-      TargetPositionOffset: {x: 0, y: 0, z: 0}
+      TargetPositionOffset: {x: 0, y: 0, z: 5}
       BakedLocalOffset: {x: 1.8445803, y: 5.0491677e-24, z: 1.9010111}
       BakedLocalRotation: {x: 0, y: 0, z: 0, w: 1}
     HandIKWeightCurve:
@@ -10728,7 +10728,7 @@ MonoBehaviour:
     WarpPoints:
     - PointName: End
       NormalizedTime: 1
-      TargetPositionOffset: {x: 0, y: 0, z: 0}
+      TargetPositionOffset: {x: 0, y: 0, z: 5}
       BakedLocalOffset: {x: -1.8635085, y: -5.100977e-24, z: -1.8635055}
       BakedLocalRotation: {x: 0, y: 0, z: 0, w: 1}
     HandIKWeightCurve:
@@ -12509,7 +12509,7 @@ MonoBehaviour:
     WarpPoints:
     - PointName: End
       NormalizedTime: 1
-      TargetPositionOffset: {x: 0, y: 0, z: 0}
+      TargetPositionOffset: {x: 0, y: 0, z: 5}
       BakedLocalOffset: {x: 1.8371893, y: 5.0289354e-24, z: -1.8416662}
       BakedLocalRotation: {x: 0, y: 0, z: 0, w: 1}
     HandIKWeightCurve:

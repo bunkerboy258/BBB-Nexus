@@ -41,6 +41,9 @@ namespace Characters.Player.Expression
         // 只是简单地驱动当前上半身状态的逻辑更新 没有额外的侧通道管理
         public void Update()
         {
+            if (_player != null && _player.RuntimeData != null && _player.RuntimeData.Arbitration.BlockUpperBody)
+                return;
+
             StateMachine.CurrentState?.LogicUpdate();
         }
     }

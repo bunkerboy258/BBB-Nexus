@@ -44,6 +44,7 @@ namespace Characters.Player.Core
                     PlayerStateType.Vault => new PlayerVaultState(player),
                     PlayerStateType.AimIdle => new PlayerAimIdleState(player),
                     PlayerStateType.AimMove => new PlayerAimMoveState(player),
+                    PlayerStateType.Death => new Characters.Player.States.Override.PlayerDeathState(player),
                     _ => null
                 };
 
@@ -63,7 +64,7 @@ namespace Characters.Player.Core
                     }
                 }
             }
-            Debug.Log($"[StateRegistry] 成功装载了 {_states.Count} 个状态！");
+            //Debug.Log($"[StateRegistry] 成功装载了 {_states.Count} 个状态！");
         }
 
         /// <summary>

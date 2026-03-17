@@ -1,6 +1,7 @@
-using System;
-using UnityEngine;
 using Characters.Player.AI.Data;
+using System;
+using Unity.VisualScripting.FullSerializer;
+using UnityEngine;
 
 namespace Characters.Player.AI.Brain
 {
@@ -9,10 +10,12 @@ namespace Characters.Player.AI.Brain
     {
         protected Transform _selfTransform;
         protected TacticalIntent _currentIntent;
+        protected AITacticalBrainConfigSO _config;
 
-        public virtual void Initialize(Transform selfTransform)
+        public virtual void Initialize(Transform selfTransform, AITacticalBrainConfigSO config)
         {
             _selfTransform = selfTransform;
+            _config = config;
             _currentIntent = new TacticalIntent(Vector2.zero, Vector2.zero, false, false, false, false, false);
         }
 

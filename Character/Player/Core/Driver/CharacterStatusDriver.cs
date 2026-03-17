@@ -26,7 +26,7 @@ namespace Characters.Player.Core
         public void Update()
         {
             UpdateStamina();
-            // 以后在这里挂载生命值等的被动更新逻辑 
+            // 注： 以后在这里挂载其他状态的更新 饥饿值之类的
         }
 
         // 处理黑板中的体力更新 

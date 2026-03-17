@@ -16,5 +16,8 @@ namespace Characters.Player.Animation
         float CurrentNormalizedTime { get; }
         float GetLayerTime(int layerIndex);
         float GetLayerNormalizedTime(int layerIndex);
+
+        void PlayFullBodyAction(AnimationClip clip, float fadeDuration = 0.2f);
+        void StopFullBodyAction();
     }
 }

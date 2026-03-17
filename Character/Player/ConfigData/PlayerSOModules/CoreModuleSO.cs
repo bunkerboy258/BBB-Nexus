@@ -8,6 +8,14 @@ namespace Characters.Player.Data
     [CreateAssetMenu(fileName = "CoreModule", menuName = "BBBNexus/Player/Modules/Core Module")]
     public class CoreModuleSO : ScriptableObject
     {
+        #region 基础游戏属性
+        [Tooltip("生命值的上限")]
+        public float MaxHealth = 100f;
+
+        [Tooltip("死亡动画 生命值归零时强制播放")]
+        public AnimationClip DeathAnim;
+        #endregion
+
         #region LOD 性能降级设置
 
         [Header("性能降级设置 (LOD) - 决定同屏AI的性能消耗")]
