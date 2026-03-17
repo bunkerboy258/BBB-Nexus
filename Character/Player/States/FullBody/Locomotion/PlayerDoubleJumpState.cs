@@ -1,10 +1,7 @@
 using Animancer;
-using Characters.Player.Animation;
-using Characters.Player.Data;
-using Core.StateMachine;
 using UnityEngine;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 玩家二段跳状态 
     // 负责在空中执行二段跳 选择对应的二段跳动画 标记已使用二段跳 最后落地

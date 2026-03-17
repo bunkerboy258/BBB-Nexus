@@ -1,8 +1,6 @@
 using UnityEngine;
-using Characters.Player.Data;
-using Characters.Player.Input;
 
-namespace Characters.Player.Processing
+namespace BBBNexus
 {
     /// <summary>
     /// 系统流转的第一道关卡 唯一的数据生产者

@@ -1,10 +1,8 @@
-using Characters.Player.Data;
-using Characters.Player.States;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Characters.Player.Core
+namespace BBBNexus
 {
     /// <summary>
     /// 上半身状态注册表：根据 BrainSO 的枚举配置，映射并创建对应的状态实例。

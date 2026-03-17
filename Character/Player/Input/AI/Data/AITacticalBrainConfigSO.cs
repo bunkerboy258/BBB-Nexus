@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Characters.Player.AI.Data
+namespace BBBNexus
 {
     /// <summary>
     /// AI 战术大脑配置 - 存储所有 AI 行为的自定义参数

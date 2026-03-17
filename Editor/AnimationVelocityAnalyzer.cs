@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 
-namespace Editors
+namespace BBBNexus
 {
     // 根运动速度分析器 用于离线计算动画本地速度曲线与物理推荐参数 
     // 支持逆向推导 JumpForce 确保 Y 向初速度与动画高度匹配 

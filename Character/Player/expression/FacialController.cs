@@ -1,9 +1,7 @@
 using Animancer;
-using Characters.Player.Data;
-using Characters.Player.Processing;
 using UnityEngine;
 
-namespace Characters.Player.Expression
+namespace BBBNexus
 {
     public class FacialController
     {

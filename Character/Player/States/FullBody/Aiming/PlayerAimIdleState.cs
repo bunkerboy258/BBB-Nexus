@@ -1,7 +1,4 @@
-using Characters.Player.Data;
-using Characters.Player.Animation;
-
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 玩家瞄准空闲状态 
     // 在瞄准模式下保持站立 对应FreeLook的IdleState 

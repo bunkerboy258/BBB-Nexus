@@ -1,8 +1,6 @@
 using UnityEngine;
-using Characters.Player.Data;
-using Characters.Player.Animation;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 玩家下落状态 
     // 负责播放下落动画 持续应用重力 检测落地时机切换到LandState 

@@ -1,9 +1,7 @@
-using Items.Data;
 using Animancer;
-using Characters.Player.Animation;
 using UnityEngine;
 
-namespace Items.Data.Weapons
+namespace BBBNexus
 {
     /// <summary>
     /// 近战武器基类：定义近战武器的基础属性和动画配置。

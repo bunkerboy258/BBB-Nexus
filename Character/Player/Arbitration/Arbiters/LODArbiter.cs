@@ -1,7 +1,6 @@
 using UnityEngine;
-using Characters.Player.Data;
 
-namespace Characters.Player.Core
+namespace BBBNexus
 {
     /// <summary>
     /// LOD ĞÔÄÜÖÙ²ÃÆ÷ (Ö±Êô Core ²ã)

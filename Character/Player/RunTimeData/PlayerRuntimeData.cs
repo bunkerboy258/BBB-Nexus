@@ -1,10 +1,6 @@
-using Items.Core;
 using UnityEngine;
-using Characters.Player.Animation;
-using Characters.Player.Arbitration;
-using Core.StateMachine;
 
-namespace Characters.Player.Data
+namespace BBBNexus
 {
     /// <summary>
     /// 玩家运行时数据：用于在输入、物理、动画与 IK 之间共享的帧级黑板。

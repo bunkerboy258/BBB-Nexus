@@ -1,7 +1,6 @@
-using Characters.Player.Data;
 using UnityEngine;
 
-namespace Characters.Player.Processing
+namespace BBBNexus
 {
     // 视角旋转处理器 负责维护视觉朝向的权威方向
     public class ViewRotationProcessor

@@ -1,13 +1,12 @@
 using UnityEngine;
 using UnityEditor;
-using Characters.Player.Data;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
 using Animancer;
 using System;
 
-namespace Editors
+namespace BBBNexus
 {
     // 扭曲位移全量烘焙器 负责提取非线性运动特征点 存储为离线物理数据
     public class WarpedMotionExtractor : EditorWindow

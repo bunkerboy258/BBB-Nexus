@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Items.Data
+namespace BBBNexus
 {
     /// <summary>
     /// 静态物品图纸基类：定义物品的只读基础属性。

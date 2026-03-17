@@ -1,9 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
-using Characters.Player.Core;
-using Characters.Player.States;
 
-namespace Characters.Player.Data
+namespace BBBNexus
 {
     [CreateAssetMenu(fileName = "PlayerBrain_Default", menuName = "BBBNexus/Player/Modules/Player Brain")]
     public class PlayerBrainSO : ScriptableObject

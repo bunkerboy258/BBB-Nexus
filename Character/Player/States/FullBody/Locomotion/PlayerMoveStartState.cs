@@ -1,8 +1,6 @@
 ﻿using UnityEngine;
-using Characters.Player.Data;
-using Characters.Player.Animation;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 玩家起步状态 
     // 负责根据运动状态和移动方向选择8方向起步动画 并驱动角色初始移动 

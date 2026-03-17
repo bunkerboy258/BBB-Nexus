@@ -1,7 +1,6 @@
-using Characters.Player.Core;
 using UnityEngine;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 翻越全局拦截器 
     // 负责检测翻越意图 当玩家按下跳跃键触发翻越条件时自动切换到翻越状态

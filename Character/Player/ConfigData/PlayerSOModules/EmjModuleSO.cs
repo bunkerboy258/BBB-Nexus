@@ -1,8 +1,7 @@
 ﻿using UnityEngine;
 using Animancer;
-using Characters.Player.Animation;
 
-namespace Characters.Player.Data
+namespace BBBNexus
 {
     // 表情系统配置模块 负责管理角色的脸部表情动画 包括基础循环与瞬时特殊表情 
     // 表情是独立的动画层 不会干扰身体动作 可以随时打断和叠加 

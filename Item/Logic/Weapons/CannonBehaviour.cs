@@ -1,9 +1,6 @@
-using Characters.Player;
-using Items.Core;
-using Items.Data;
 using UnityEngine;
 
-namespace Items.Logic.Weapons
+namespace BBBNexus
 {
     // 类星体加农炮的行为脚本 与步枪类似但具有更强的后坐力与冷却时间 
     // 负责装备 瞄准 开火 IK 管理等完整流程 
@@ -103,7 +100,7 @@ namespace Items.Logic.Weapons
                 _player.AnimFacade.PlayTransition(_cannonConfig.EquipAnim, _cannonConfig.EquipAnimPlayOptions);
             }
 
-            Debug.Log($"<color=#FFFF00>[CANNON]</color> 正在拔枪... {equipAnimDuration} 秒内禁止开火。");
+            //Debug.Log($"<color=#FFFF00>[CANNON]</color> 正在拔枪... {equipAnimDuration} 秒内禁止开火。");
         }
 
         // 逻辑更新 每帧处理 IK 调度与输入 

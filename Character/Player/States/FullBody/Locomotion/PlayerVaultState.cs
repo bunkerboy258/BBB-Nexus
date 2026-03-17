@@ -1,8 +1,6 @@
 using UnityEngine;
-using Characters.Player.Data;
-using Characters.Player.Animation;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 玩家翻越状态 
     // 负责执行翻越障碍物的动画和运动变形 根据输入或高度自动选择低翻或高翻 

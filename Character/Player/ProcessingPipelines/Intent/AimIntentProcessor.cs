@@ -1,6 +1,4 @@
-using Characters.Player.Data;
-
-namespace Characters.Player.Processing
+namespace BBBNexus
 {
     // 瞄准与开火意图处理器 
     public class AimIntentProcessor

@@ -1,8 +1,7 @@
 using UnityEngine;
 using RootMotion.FinalIK;
-using Characters.Player.Data;
 
-namespace Characters.Player.Core.IK.Source
+namespace BBBNexus
 {
     // Final IK 插件适配器 负责将抽象的 IK 意图转化为具体的插件指令
     public class FinalIKSource : PlayerIKSourceBase

@@ -1,6 +1,4 @@
-using Characters.Player.Data;
-
-namespace Characters.Player.Processing
+namespace BBBNexus
 {
     // 表情意图处理器 
     public class EojIntentProcessor

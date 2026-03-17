@@ -1,8 +1,6 @@
-using Characters.Player.Core;
-using Characters.Player.Data;
 using UnityEngine;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 跳跃全局拦截器
     // 统一处理“跳跃意图 -> 进入跳跃状态”的强制转移，避免各状态内重复检测。

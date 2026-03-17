@@ -1,14 +1,13 @@
 using UnityEngine;
 using UnityEngine.Animations.Rigging;
 using System.Collections.Generic;
-using Characters.Player.Core;
 
 
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
-namespace Characters.Player.IK
+namespace BBBNexus
 {
     /// <summary>
     /// 编辑器辅助工具：一键绑定 IK Prefab 到角色骨骼，并自动配置 RigBuilder。

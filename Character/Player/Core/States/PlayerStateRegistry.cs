@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Characters.Player.States;
-using Characters.Player.Data;
 using UnityEngine;
 
-namespace Characters.Player.Core
+namespace BBBNexus
 {
     public class PlayerStateRegistry
     {
@@ -44,7 +42,7 @@ namespace Characters.Player.Core
                     PlayerStateType.Vault => new PlayerVaultState(player),
                     PlayerStateType.AimIdle => new PlayerAimIdleState(player),
                     PlayerStateType.AimMove => new PlayerAimMoveState(player),
-                    PlayerStateType.Death => new Characters.Player.States.Override.PlayerDeathState(player),
+                    PlayerStateType.Death => new PlayerDeathState(player),
                     _ => null
                 };
 

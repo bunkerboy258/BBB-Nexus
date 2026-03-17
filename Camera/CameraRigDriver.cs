@@ -1,7 +1,6 @@
-using Characters.Player;
 using UnityEngine;
 
-namespace Core.CameraSystem
+namespace BBBNexus
 {
     // 摄像机刚体驱动 它是摄像机表现层与角色数据的桥接器
     // 负责把角色黑板中的“权威朝向(AuthorityRotation)”同步到场景中的 CameraRig
@@ -85,7 +84,7 @@ namespace Core.CameraSystem
         }
 
         // 从屏幕中心发射射线，寻找实际的物理交点，并写入黑板（RuntimeData）
-        private void CalculateAndPushAimPoint(Characters.Player.Data.PlayerRuntimeData data)
+        private void CalculateAndPushAimPoint(PlayerRuntimeData data)
         {
             // 获取屏幕正中心的射线（即准星位置）
             Ray screenRay = _mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));

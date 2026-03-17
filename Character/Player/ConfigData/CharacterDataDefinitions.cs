@@ -2,7 +2,7 @@ using UnityEngine;
 using Animancer;
 using System.Collections.Generic;
 
-namespace Characters.Player.Data
+namespace BBBNexus
 {
     #region Enums (Ã¶¾Ù¶¨Òå)
 

@@ -1,9 +1,7 @@
 using UnityEngine;
 using System;
-using Characters.Player.Data;
-using Characters.Player.Animation;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 玩家空闲状态 
     // 负责播放空闲动画 并检测移动等输入意图触发状态切换

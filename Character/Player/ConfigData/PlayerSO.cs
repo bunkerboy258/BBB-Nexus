@@ -1,8 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
-using Characters.Player.Core;
 
-namespace Characters.Player.Data
+namespace BBBNexus
 {
     /// <summary>
     /// Player 总配置文件 - 游戏角色系统的中枢骨架

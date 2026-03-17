@@ -1,7 +1,6 @@
 using UnityEngine;
-using Characters.Player.AI.Data;
 
-namespace Characters.Player.AI.Sensor
+namespace BBBNexus
 {
     public abstract class NavigatorSensorBase : MonoBehaviour, INavigatorSensor
     {

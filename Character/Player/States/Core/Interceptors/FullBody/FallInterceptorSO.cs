@@ -1,7 +1,6 @@
-using Characters.Player.Core;
 using UnityEngine;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 下落全局拦截器 
     // 负责检测下落意图 当空中时间过长且向下速度大于配置值时自动触发下落动画 优先级较高

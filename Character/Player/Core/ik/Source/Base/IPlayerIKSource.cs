@@ -11,7 +11,7 @@ public enum IKTarget
     AimReference
 }
 
-namespace Characters.Player.Core
+namespace BBBNexus
 {
     public interface IPlayerIKSource
     {

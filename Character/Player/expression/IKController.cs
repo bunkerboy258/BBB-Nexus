@@ -1,8 +1,6 @@
 using UnityEngine;
-using Characters.Player.Core;
-using Characters.Player.Data;
 
-namespace Characters.Player.Expression
+namespace BBBNexus
 {
     // IK 结算控制器
     // 负责处理左手/右手的 IK 权重 平滑追踪 Aim IK 与 Warp IK 的拦截逻辑

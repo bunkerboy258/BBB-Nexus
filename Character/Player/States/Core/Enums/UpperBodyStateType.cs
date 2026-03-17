@@ -1,4 +1,4 @@
-namespace Characters.Player.Data
+namespace BBBNexus
 {
     // 上半身状态类型枚举 
     // 定义了所有可用的上半身状态 独立于下半身的状态系统

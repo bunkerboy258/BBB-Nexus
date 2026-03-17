@@ -4,7 +4,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-namespace Characters.Player.Core.Attributes.Editor
+namespace BBBNexus
 {
     // 告诉Unity只要看到 SubclassSelectorAttribute  就用这个来接管面板渲染
     [CustomPropertyDrawer(typeof(SubclassSelectorAttribute))]

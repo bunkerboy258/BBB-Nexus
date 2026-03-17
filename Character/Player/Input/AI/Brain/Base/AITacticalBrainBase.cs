@@ -1,9 +1,8 @@
-using Characters.Player.AI.Data;
 using System;
 using Unity.VisualScripting.FullSerializer;
 using UnityEngine;
 
-namespace Characters.Player.AI.Brain
+namespace BBBNexus
 {
     [Serializable]
     public abstract class AITacticalBrainBase : IAITacticalBrain

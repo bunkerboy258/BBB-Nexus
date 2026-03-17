@@ -1,11 +1,9 @@
 using System;
-using Characters.Player.Arbitration;
-using Characters.Player.Data;
 
-namespace Characters.Player.States.Override
+namespace BBBNexus
 {
     [Serializable]
-    public sealed class PlayerDeathState : Characters.Player.States.PlayerBaseState
+    public sealed class PlayerDeathState : PlayerBaseState
     {
         public PlayerDeathState(PlayerController player) : base(player) { }
 

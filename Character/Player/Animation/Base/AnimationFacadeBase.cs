@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Characters.Player.Animation
+namespace BBBNexus
 {
     /// <summary>
     /// 动画外观基类 - 所有动画外观类的抽象基类

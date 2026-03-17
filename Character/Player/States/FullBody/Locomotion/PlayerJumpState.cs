@@ -1,8 +1,6 @@
 using UnityEngine;
-using Characters.Player.Data;
-using Characters.Player.Animation;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 玩家跳跃状态 
     // 负责播放跳跃动画 施加跳跃力量 检测落地时机切换到落地或下落状态 

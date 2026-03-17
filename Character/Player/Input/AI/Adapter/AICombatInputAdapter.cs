@@ -1,12 +1,6 @@
 using UnityEngine;
-using Characters.Player.Input;
-using Characters.Player.Data;
-using Characters.Player.AI.Sensor;
-using Characters.Player.AI.Brain;
-using Characters.Player.AI.Data;
-using Characters.Player.Core.Attributes; // ÒýÈë UI ºÚÄ§·¨
 
-namespace Characters.Player.AI.Adapter
+namespace BBBNexus
 {
     [DisallowMultipleComponent]
     public class AICombatInputAdapter : InputSourceBase
@@ -32,7 +26,7 @@ namespace Characters.Player.AI.Adapter
         public NavigatorSensorBase NavigatorSensor => _navigatorSensor;
         public IAITacticalBrain Brain => _brain;
 
-        private void Awake()
+        protected override void Awake()
         {
             if (_navigatorSensor == null)
                 _navigatorSensor = GetComponent<NavigatorSensorBase>();
@@ -52,7 +46,7 @@ namespace Characters.Player.AI.Adapter
                 InjectConfigIfSupported(_brain, TacticalConfig);
         }
 
-        private static void InjectConfigIfSupported(IAITacticalBrain brain, Characters.Player.AI.Data.AITacticalBrainConfigSO config)
+        private static void InjectConfigIfSupported(IAITacticalBrain brain, AITacticalBrainConfigSO config)
         {
             if (brain is MeleeRusherBrain melee)
             {

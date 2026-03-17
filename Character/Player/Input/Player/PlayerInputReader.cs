@@ -1,8 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Characters.Player.Data;
 
-namespace Characters.Player.Input
+namespace BBBNexus
 {
     public class PlayerInputReader : InputSourceBase
     {

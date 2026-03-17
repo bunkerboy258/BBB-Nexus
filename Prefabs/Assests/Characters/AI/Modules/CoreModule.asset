@@ -12,6 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e92b4698a9c1cce4f9e932743fcc4493, type: 3}
   m_Name: CoreModule
   m_EditorClassIdentifier: 
+  MaxHealth: 100
+  DeathAnim: {fileID: 7400020, guid: fa608feaf64a07040bef63f640abf835, type: 3}
   LODCheckInterval: 2
   MediumLODDistance: 15
   LowLODDistance: 30

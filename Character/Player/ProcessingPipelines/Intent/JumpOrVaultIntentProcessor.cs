@@ -1,7 +1,6 @@
-﻿using Characters.Player.Data;
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace Characters.Player.Processing
+namespace BBBNexus
 {
     // 跳跃与翻越意图处理器
     // 高段移动的决策中枢 负责检测翻越障碍物 仲裁跳跃/翻越与二段跳 的优先级

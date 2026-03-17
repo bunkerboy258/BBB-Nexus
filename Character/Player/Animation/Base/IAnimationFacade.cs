@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Characters.Player.Animation
+namespace BBBNexus
 {
     public interface IAnimationFacade
     {

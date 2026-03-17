@@ -2,7 +2,7 @@
 using UnityEngine;
 using Animancer;
 
-namespace Characters.Player.Animation
+namespace BBBNexus
 {
     // 表现层的核心 负责转接动画意图 
     [RequireComponent(typeof(AnimancerComponent))]

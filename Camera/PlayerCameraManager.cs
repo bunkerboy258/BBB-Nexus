@@ -1,8 +1,7 @@
 using UnityEngine;
 using Cinemachine;
-using Characters.Player;
 
-namespace Core.CameraSystem
+namespace BBBNexus
 {
     // 玩家摄像机管理器 它是摄像机行为的协调者 负责虚拟相机切换与运行时鼠标控制
     // 同时负责屏幕中央准星的简单绘制 仅作为演示/调试用

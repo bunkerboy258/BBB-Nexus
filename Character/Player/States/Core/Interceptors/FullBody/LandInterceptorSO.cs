@@ -1,7 +1,6 @@
-using Characters.Player.Core;
 using UnityEngine;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 落地全局拦截器 
     // 负责检测刚刚落地事件 当下落高度等级大于0时触发落地缓冲动画

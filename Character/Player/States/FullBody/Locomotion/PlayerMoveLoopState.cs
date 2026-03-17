@@ -1,9 +1,7 @@
 using UnityEngine;
 using Animancer;
-using Characters.Player.Data;
-using Characters.Player.Animation;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 玩家持续移动循环状态 
     // 负责持续播放移动循环动画 检测运动状态变化 脚相位切换 以及各类中断条件 

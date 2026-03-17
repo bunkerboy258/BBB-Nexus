@@ -1,8 +1,6 @@
 using UnityEngine;
-using Characters.Player.Data;
-using Characters.Player.Animation;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 玩家落地状态 
     // 负责选择对应的落地缓冲动画 处理瞄准时直接切换到瞄准状态 最后回到移动或空闲状态 

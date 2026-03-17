@@ -1,7 +1,6 @@
 using UnityEngine;
-using Characters.Player.Animation;
 
-namespace Characters.Player.Data
+namespace BBBNexus
 {
     // 闪避系统配置模块 它统一管理所有8方向闪避的根运动与体力消耗 
     // 闪避的核心是WarpdMotion 在动画播放时动态修改根运动轨迹 实现躲闪效果 

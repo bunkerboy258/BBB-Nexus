@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Characters.Player.AI.Data
+namespace BBBNexus
 {
     public readonly struct NavigationContext
     {

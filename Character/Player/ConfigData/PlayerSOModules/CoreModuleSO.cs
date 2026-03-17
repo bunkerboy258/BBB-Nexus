@@ -1,7 +1,7 @@
 using UnityEngine;
 using Animancer;
 
-namespace Characters.Player.Data
+namespace BBBNexus
 {
     // 核心功能模块 它是玩家基础系统的心脏 负责转接物理 视角 速度等底层参数 
     // 别乱改这里的数值 一个小数点的偏差就能让整个控制手感完全变样 

@@ -1,7 +1,7 @@
 using Animancer;
 using UnityEngine;
 
-namespace Characters.Player.Data
+namespace BBBNexus
 {
     // 瞄准系统配置模块 它独立管理瞄准状态下的所有参数 包括灵敏度 移动速度 混合树等 
     // 瞄准时会从常规移动状态切到瞄准移动状态 所有参数都独立设置 

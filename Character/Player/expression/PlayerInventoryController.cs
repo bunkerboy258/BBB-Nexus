@@ -1,11 +1,8 @@
 using System;
 using System.Linq;
-using Items.Core;
-using Items.Data;
-using Characters.Player.Data; // 引入RuntimeData
 using UnityEngine;
 
-namespace Characters.Player.Expression
+namespace BBBNexus
 {
     // 物品栏管理器
     // 管理主背包与快捷栏，现在它是一个纯粹的业务执行者，只监视黑板意图
@@ -165,7 +162,7 @@ namespace Characters.Player.Expression
         private void Unequip()
         {
             if (_player == null) return;
-            Debug.Log("[Inventory] 意图卸载");
+            //Debug.Log("[Inventory] 意图卸载");
             _player.RuntimeData.CurrentItem = null;
         }
 

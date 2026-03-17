@@ -1,7 +1,6 @@
-using Characters.Player.States;
 using UnityEngine;
 
-namespace Characters.Player.Core
+namespace BBBNexus
 {
     // 上半身拦截器基类 
     // 用于管理上半身专属的状态拦截逻辑 独立于下半身的拦截器

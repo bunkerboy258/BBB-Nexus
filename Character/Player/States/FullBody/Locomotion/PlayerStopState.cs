@@ -1,8 +1,6 @@
-using Characters.Player.Data;
-using Characters.Player.Animation;
 using Animancer;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 玩家停止状态 
     // 负责根据当前运动状态和脚相位选择急停动画 播放减速制动动画 最后回到空闲状态 

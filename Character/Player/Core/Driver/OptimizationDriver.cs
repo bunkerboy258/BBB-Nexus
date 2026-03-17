@@ -1,7 +1,6 @@
 using UnityEngine;
-using Characters.Player.Data;
 
-namespace Characters.Player.Core
+namespace BBBNexus
 {
     /// <summary>
     /// 性能优化驱动器

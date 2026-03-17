@@ -1,7 +1,6 @@
-using Characters.Player.Animation;
 using UnityEngine;
 
-namespace Characters.Player.Data
+namespace BBBNexus
 {
     // 翻越系统配置模块 它负责管理越过障碍物的所有参数 包括检测 动画 IK等 
     // 翻越是复杂的多层协调动作 改这里的参数时要同时改对应的动画数据 不然会断手断脚 

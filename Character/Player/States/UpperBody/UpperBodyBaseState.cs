@@ -1,11 +1,7 @@
-using Core.StateMachine;
-using Characters.Player.Data;
-using Characters.Player.Animation;
 using Animancer;
 using UnityEngine;
-using Characters.Player.Expression;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 上半身基础状态抽象类 
     // 与PlayerBaseState地位相同 但管理上半身子状态机的独立流程 

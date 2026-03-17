@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Characters.Player.Data
+namespace BBBNexus
 {
     public enum CharacterLOD
     {

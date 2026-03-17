@@ -1,7 +1,6 @@
-using Characters.Player.Data;
 using UnityEngine;
 
-namespace Characters.Player.Processing
+namespace BBBNexus
 {
     // 基础移动意图处理器 
     public class LocomotionIntentProcessor

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Characters.Player.Core 
+namespace BBBNexus
 {
     public abstract class PlayerIKSourceBase : MonoBehaviour, IPlayerIKSource
     {

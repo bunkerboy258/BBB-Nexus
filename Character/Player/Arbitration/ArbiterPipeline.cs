@@ -1,6 +1,6 @@
-using Characters.Player.Arbitration.Arbiters;
+using BBBNexus;
 
-namespace Characters.Player.Core
+namespace BBBNexus
 {
     public class ArbiterPipeline
     {

@@ -1,7 +1,6 @@
 using UnityEngine;
-using Characters.Player.AI.Data;
 
-namespace Characters.Player.AI.Brain
+namespace BBBNexus
 {
     public interface IAITacticalBrain
     {

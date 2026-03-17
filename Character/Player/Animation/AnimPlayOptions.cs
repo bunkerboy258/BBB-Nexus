@@ -1,4 +1,4 @@
-namespace Characters.Player.Animation
+namespace BBBNexus
 {
     /// <summary>
     /// 动画播放代理选项。

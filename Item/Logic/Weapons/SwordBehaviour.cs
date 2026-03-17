@@ -1,12 +1,7 @@
 using UnityEngine;
-using Characters.Player;
-using Items.Core;
-using Items.Data;
-using Characters.Player.Animation;
 using Animancer;
-using Characters.Player.Data;
 
-namespace Items.Logic.Weapons
+namespace BBBNexus
 {
     // 剑的行为脚本 完整的装备生命周期与连击系统 
     // 负责装备动画 攻击连段 中断处理 IK 权重管理等全流程 

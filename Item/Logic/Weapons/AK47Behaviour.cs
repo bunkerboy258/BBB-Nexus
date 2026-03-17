@@ -1,9 +1,6 @@
-﻿using Characters.Player;
-using Items.Core;
-using Items.Data;
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace Items.Logic.Weapons
+namespace BBBNexus
 {
     // 步枪 AK47 的行为脚本 完整的射击逻辑与 IK 管理 
     // 负责装备 瞄准 开火 IK 延时启用 后坐力等全面流程 

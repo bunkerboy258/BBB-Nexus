@@ -1,20 +1,8 @@
 using Animancer;
-using BBBHe.Core.Combat;
-using Characters.Player.Animation;
-using Characters.Player.Core;
-using Characters.Player.Data;
-using Characters.Player.Expression;
-using Characters.Player.Input;
-using Characters.Player.Processing;
-using Characters.Player.States;
-using Characters.Player.Arbitration;
-using Core.StateMachine;
-using Items.Core;
-using Items.Data;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Characters.Player
+namespace BBBNexus
 {
     /// <summary>
     /// 【角色架构之巅：PlayerController 总管家】

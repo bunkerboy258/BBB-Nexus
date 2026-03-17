@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Items.Data;
 using UnityEngine;
 
-namespace Items.Core
+namespace BBBNexus
 {
     // 通用背包系统 管理物品的存储 堆叠 查询 
     // 支持自动堆叠 自动分割 单独操作等高级特性 

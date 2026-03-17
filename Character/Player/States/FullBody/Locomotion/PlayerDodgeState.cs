@@ -1,8 +1,6 @@
 using UnityEngine;
-using Characters.Player.Data;
-using Characters.Player.Animation;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 玩家闪避状态 
     // 负责执行闪避动画和运动变形 根据移动方向选择8方向闪避 最后回到移动或空闲状态

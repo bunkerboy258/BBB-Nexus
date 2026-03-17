@@ -1,9 +1,7 @@
 using System;
-using Characters.Player.Data;
-using Characters.Player.Arbitration;
 using UnityEngine;
 
-namespace Characters.Player.States.Override
+namespace BBBNexus
 {
     [Serializable]
     public sealed class OverrideState : PlayerBaseState

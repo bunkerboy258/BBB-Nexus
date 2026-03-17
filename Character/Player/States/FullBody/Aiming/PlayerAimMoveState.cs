@@ -1,9 +1,6 @@
-using Characters.Player.Data;
-using Characters.Player.Animation;
-using Core.StateMachine;
 using UnityEngine;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 玩家瞄准移动状态 
     // 在瞄准模式下持续移动：

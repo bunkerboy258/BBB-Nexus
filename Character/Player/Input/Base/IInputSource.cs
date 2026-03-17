@@ -1,7 +1,6 @@
 using UnityEngine;
-using Characters.Player.Data;
 
-namespace Characters.Player.Input
+namespace BBBNexus
 {
     /// <summary>
     /// 输入源接口 所有输入来源都应实现此接口

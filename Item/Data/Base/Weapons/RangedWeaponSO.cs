@@ -1,9 +1,7 @@
-using Items.Data;
-using Characters.Player.Animation;
 using Animancer;
 using UnityEngine;
 
-namespace Items.Data.Weapons
+namespace BBBNexus
 {
     [CreateAssetMenu(fileName = "New Ranged Weapon", menuName = "BBBNexus/Items/Weapons/Ranged Weapon")]
     public class RangedWeaponSO : EquippableItemSO

@@ -1,7 +1,6 @@
-using Characters.Player.States;
 using UnityEngine;
 
-namespace Characters.Player.Core
+namespace BBBNexus
 {
     // 状态拦截器基类 
     // 所有拦截器都继承自这个类 通过重写 TryIntercept 方法来实现自己的拦截逻辑

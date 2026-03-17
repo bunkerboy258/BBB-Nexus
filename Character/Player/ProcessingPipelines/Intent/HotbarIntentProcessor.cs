@@ -1,6 +1,4 @@
-using Characters.Player.Data;
-
-namespace Characters.Player.Processing
+namespace BBBNexus
 {
     // 快捷栏意图处理器 将数字按键转为装备切换意图写入黑板
     public class HotbarIntentProcessor

@@ -1,7 +1,6 @@
 using UnityEngine;
-using Characters.Player.Data;
 
-namespace Characters.Player.Core
+namespace BBBNexus
 {
     // 角色运动驱动器 负责解析黑板意图 并利用烘焙器数据执行物理位移 
     // 这是一个精简后的版本 之前由于长期打补丁和维护 已经变成了屎山

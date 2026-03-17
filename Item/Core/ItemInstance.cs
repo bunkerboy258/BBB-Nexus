@@ -1,7 +1,6 @@
-using Items.Data;
 using System;
 
-namespace Items.Core
+namespace BBBNexus
 {
     // 物品运行时逻辑实例 存储在背包和手上 记录物品逻辑状态 
     // 多个相同配置的物品可能存在 但每个实例都有独立的身份与堆叠数量 

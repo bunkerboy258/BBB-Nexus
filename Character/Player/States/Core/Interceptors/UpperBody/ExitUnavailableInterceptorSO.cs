@@ -1,9 +1,6 @@
-using Characters.Player.Core;
-using Characters.Player.Data;
-using Characters.Player.States;
 using UnityEngine;
 
-namespace Characters.Player.Core.Interceptors
+namespace BBBNexus
 {
     // 上半身退出不可用拦截器 
     // 当下半身脱离翻越 下落 翻滚等状态后 恢复上半身的控制权 回到正常状态

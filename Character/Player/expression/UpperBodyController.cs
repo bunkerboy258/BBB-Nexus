@@ -1,9 +1,5 @@
-using Core.StateMachine;
-using Characters.Player.Core;
-using Characters.Player.States;
-using Characters.Player.Processing;
 
-namespace Characters.Player.Expression
+namespace BBBNexus
 {
     // 上半身分层控制器
     // 管理上半身的独立状态机 中央点是处理装备 瞄准 与攻击等上半身行为

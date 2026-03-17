@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace BBBHe.Core.Combat
+namespace BBBNexus
 {
     public struct DamageRequest
     {

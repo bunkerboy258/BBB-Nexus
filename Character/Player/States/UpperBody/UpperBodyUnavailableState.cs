@@ -1,7 +1,4 @@
-using Core.StateMachine;
-using Items.Core;
-
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 上半身不可用状态 
     // 当玩家无法操纵上半身时进入 如掉落 受击等情况 强制解除当前装备

@@ -2,7 +2,7 @@ using System;
 using System.Reflection;
 using UnityEngine;
 
-namespace Core.CameraSystem
+namespace BBBNexus
 {
     // CinemachineBrain 时序探测器
     // 调试用 负责记录 CinemachineBrain 的 LateUpdate 执行时序

@@ -1,11 +1,8 @@
-using Core.StateMachine;
-using Characters.Player.Data;
 using Animancer;
 using System;
 using UnityEngine;
-using Characters.Player.Animation;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 玩家基础状态抽象类 
     // 封装所有玩家状态的通用引用与工具方法 

@@ -1,8 +1,6 @@
-using Characters.Player.Core;
-using Characters.Player.Data;
 using UnityEngine;
 
-namespace Characters.Player.Core
+namespace BBBNexus
 {
     // 角色数值驱动器 属于纯粹的被动监听层 
     // 它负责盯着黑板里的当前状态 默默计算体力值的扣除与恢复 

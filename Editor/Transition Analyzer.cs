@@ -1,6 +1,4 @@
-﻿// Acceleration Deviation Analyzer (v7.5 - Kinematic Triad / Persistent & Configurable)
-// 加速度偏差分析器 (v7.5 - 三维运动学匹配 / 可配置 & 持久化版)
-
+﻿
 #if UNITY_EDITOR
 using UnityEngine;
 using UnityEditor;
@@ -9,7 +7,7 @@ using UnityEngine.Animations;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace AnimeACT.EditorTools
+namespace BBBNexus
 {
     public class AccelDeviationAnalyzerWindowV7_5 : EditorWindow
     {

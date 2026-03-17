@@ -1,9 +1,7 @@
 using Animancer;
-using Characters.Player.Animation;
-using Items.Core;
 using UnityEngine;
 
-namespace Items.Data
+namespace BBBNexus
 {
     /// <summary>
     /// 可装备物品图纸基类：包含了实例化所需的外壳 Prefab 和基础通用动画。

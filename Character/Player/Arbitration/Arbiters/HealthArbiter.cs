@@ -1,9 +1,6 @@
 using UnityEngine;
-using Characters.Player.Data;
-using Characters.Player.Arbitration;
-using BBBHe.Core.Combat;
 
-namespace Characters.Player.Core
+namespace BBBNexus
 {
     /// <summary>
     /// ÉúÃüÖµÖÙ²ÃÆ÷
@@ -34,7 +31,7 @@ namespace Characters.Player.Core
             _damageQueue[_tail] = request;
             _tail = (_tail + 1) % _damageQueue.Length;
 
-            Debug.Log($"Damage enqueue amount {request.Amount} hp {_data.CurrentHealth}", _player);
+            //Debug.Log($"Damage enqueue amount {request.Amount} hp {_data.CurrentHealth}", _player);
         }
 
         /// <summary>
@@ -54,7 +51,7 @@ namespace Characters.Player.Core
                 // ½áËãÉËº¦
                 _data.CurrentHealth -= req.Amount;
 
-                Debug.Log($"Damage apply amount {req.Amount} hp {before} -> {_data.CurrentHealth}", _player);
+                //Debug.Log($"Damage apply amount {req.Amount} hp {before} -> {_data.CurrentHealth}", _player);
 
                 _head = (_head + 1) % _damageQueue.Length;
             }
@@ -74,7 +71,7 @@ namespace Characters.Player.Core
 
                 //Debug.Log("Death trigger", _player);
 
-                var death = _player.StateRegistry.GetState<Characters.Player.States.Override.PlayerDeathState>();
+                var death = _player.StateRegistry.GetState<PlayerDeathState>();
                 _player.StateMachine.ChangeState(death);
             }
         }

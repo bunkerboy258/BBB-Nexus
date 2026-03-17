@@ -1,8 +1,6 @@
-using Characters.Player.Core;
-using Characters.Player.Data;
 using UnityEngine;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 瞄准全局拦截器 
     // 负责瞄准模式的全局启用与禁用 优先级在运动状态之上 

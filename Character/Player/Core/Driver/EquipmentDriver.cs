@@ -1,8 +1,6 @@
-using Items.Core;
-using Items.Data;
 using UnityEngine;
 
-namespace Characters.Player.Core
+namespace BBBNexus
 {
     // 装备驱动器 
     // 职责是根据物品实例 在挂点上生成对应的模型
@@ -91,7 +89,7 @@ namespace Characters.Player.Core
             // 销毁肉体前必须让逻辑接口执行清理 否则 IK 或粒子音效会残留报错
             if (CurrentItemDirector != null)
             {
-                Debug.Log("执行强制下线逻辑 正在清理 IK 调度与协程任务");
+                //Debug.Log("执行强制下线逻辑 正在清理 IK 调度与协程任务");
                 CurrentItemDirector.OnForceUnequip();
             }
 

@@ -1,6 +1,4 @@
-using Characters.Player;
-
-namespace Items.Core
+namespace BBBNexus
 {
     // 可持有物品接口 定义所有装备物品必须实现的生命周期与逻辑接口 
     // 武器 道具 任何能拿在手上的东西都必须实现这个接口 

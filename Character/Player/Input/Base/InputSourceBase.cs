@@ -1,7 +1,6 @@
 using UnityEngine;
-using Characters.Player.Data;
 
-namespace Characters.Player.Input
+namespace BBBNexus
 {
     /// <summary>
     /// 输入源基类 - 所有输入源的抽象基类
@@ -21,7 +20,7 @@ namespace Characters.Player.Input
 
         protected virtual void Awake()
         {
-            var player = GetComponentInParent<Characters.Player.PlayerController>();
+            var player = GetComponentInParent<PlayerController>();
             if (player != null) _runtimeData = player.RuntimeData;
         }
 

@@ -1,7 +1,6 @@
 using UnityEngine;
-using Characters.Player.Animation;
 
-namespace Characters.Player.Data
+namespace BBBNexus
 {
     // 跳跃与落地模块 它统一管理所有竖直方向的运动 包括跳跃 二段跳 落地恢复等 
     // 这里的所有参数都会被重力系统持续查询 别乱改不然会造成怪异的物理表现 

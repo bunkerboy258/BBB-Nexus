@@ -1,8 +1,6 @@
 using UnityEngine;
-using Characters.Player.Arbitration;
-using Characters.Player.Data;
 
-namespace Characters.Player.Arbitration.Arbiters
+namespace BBBNexus
 {
     /// <summary>
     /// 动作仲裁器
@@ -55,7 +53,7 @@ namespace Characters.Player.Arbitration.Arbiters
                 _player.RuntimeData.Override.Request = _highestPriorityRequest;
                 _player.RuntimeData.Override.ReturnState = _player.StateMachine.CurrentState;
 
-                var state = _player.StateRegistry.GetState<Characters.Player.States.Override.OverrideState>();
+                var state = _player.StateRegistry.GetState<OverrideState>();
                 _player.StateMachine.ChangeState(state);
             }
 
@@ -70,12 +68,12 @@ namespace Characters.Player.Arbitration.Arbiters
         {
             var current = _player.StateMachine.CurrentState;
 
-            if (current is Characters.Player.States.Override.OverrideState s)
+            if (current is OverrideState s)
                 return s.CurrentPriority;
 
             // 翻滚时的无敌帧，极难被打断
-            if (current is Characters.Player.States.PlayerRollState) return 100;
-            if (current is Characters.Player.States.PlayerDodgeState) return 80;
+            if (current is PlayerRollState) return 100;
+            if (current is PlayerDodgeState) return 80;
 
             // 普通跑跳状态毫无抗性
             return 0;

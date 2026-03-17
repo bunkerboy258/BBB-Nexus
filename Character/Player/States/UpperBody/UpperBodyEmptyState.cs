@@ -1,6 +1,4 @@
-using Core.StateMachine;
-
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 上半身空闲状态 
     // 当玩家没有装备任何物品时进入此状态 将上身权重降至0 

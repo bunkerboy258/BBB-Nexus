@@ -1,4 +1,4 @@
-namespace Core.StateMachine
+namespace BBBNexus
 {
     public abstract class BaseState
     {

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Characters.Player.Arbitration
+namespace BBBNexus
 {
     public enum OverrideExitMode
     {

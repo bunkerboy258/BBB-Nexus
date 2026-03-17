@@ -1,7 +1,6 @@
-﻿using Items.Core;
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace Characters.Player.States
+namespace BBBNexus
 {
     // 上半身持有物品状态 
     // 只要黑板数据变了 立刻呼叫 Driver 换枪

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Characters.Player.Data
+namespace BBBNexus
 {
     /// <summary>
     /// 原始输入数据 - 纯硬件事实汇报，绝不包含任何手感处理
