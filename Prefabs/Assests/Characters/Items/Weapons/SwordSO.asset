@@ -57,7 +57,7 @@ MonoBehaviour:
       _NormalizedTimes: []
       _Callbacks: []
       _Names: []
-    _Clip: {fileID: 3094330708855449807, guid: c163a36c98396ee4488ff914e337cf3c, type: 3}
+    _Clip: {fileID: 0}
     _NormalizedStartTime: NaN
   EquipIdleAnimOptions:
     Layer: 1
@@ -68,23 +68,10 @@ MonoBehaviour:
   EquipEndTime: 0.5
   AttackCooldown: 0.5
   EnableIK: 0
-  AttackRequest1:
-    Clip: {fileID: -203655887218126122, guid: ee0054fa7cd4d5d4f90e01dcec9ec03f, type: 3}
+  AttackRequest:
+    Clip: {fileID: 8993902097722301239, guid: e3e80332c4dce714687b98cb6f039614, type: 3}
     FadeDuration: 0
-    Priority: 10
-    ExitMode: 0
-    ApplyGravity: 0
-  AttackRequest2:
-    Clip: {fileID: -203655887218126122, guid: 8a12b15995c3ede44bf88518a1001804, type: 3}
-    FadeDuration: 0
-    Priority: 10
-    ExitMode: 0
-    ApplyGravity: 0
-  AttackRequest3:
-    Clip: {fileID: -203655887218126122, guid: e33b9a1b817851d4fa9a96c22c9ee972, type: 3}
-    FadeDuration: 0
-    Priority: 10
-    ExitMode: 0
+    Priority: 20
     ApplyGravity: 0
   SwingSound: {fileID: 0}
   HitSound: {fileID: 0}

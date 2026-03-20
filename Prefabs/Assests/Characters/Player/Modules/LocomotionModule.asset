@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 26f2e2f3a705ba349befdc49a354cb49, type: 3}
-  m_Name: LocomotionAnimSet
+  m_Name: LocomotionModule
   m_EditorClassIdentifier: 
   FadeInWalkStartOptions:
     Layer: 0

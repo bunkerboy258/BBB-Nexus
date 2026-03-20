@@ -3,74 +3,22 @@ using UnityEngine;
 namespace BBBNexus
 {
     /// <summary>
-    /// 玩家运行时数据：用于在输入、物理、动画与 IK 之间共享的帧级黑板。
-    /// 仅承载状态与意图，不包含行为逻辑。
+    /// 玩家运行时数据：用于在输入、物理、动画与 IK 之间共享的帧级黑板
+    /// 仅承载状态与意图 不包含行为逻辑
+    /// 
+    /// 关键外部类型：
+    /// - OverrideContext: 覆盖上下文，储存强制状态请求
+    /// - ArbitrationFlags: 仲裁标志，控制各系统是否被阻断
+    /// - ActionArbitrationContext: 动作仲裁上下文，管理高优先级动作请求
+    /// - PlayerSfxEventQueue: 音效事件队列，存储帧级音频意图
+    /// - WarpedMotionData: 变形运动数据，根运动曲线与 IK 参数
+    /// - VaultObstacleInfo: 翻越障碍信息，IK 目标与物理参数
+    /// - ItemInstance: 物品实例，动态装备状态
+    /// - AnimPlayOptions: 动画播放选项，动画过渡参数
+    /// - LocomotionState: 下半身运动状态枚举
     /// </summary>
     public class PlayerRuntimeData
     {
-        public struct OverrideContext
-        {
-            public bool IsActive;
-            public ActionRequest Request;
-            public BaseState ReturnState;
-
-            public void Clear()
-            {
-                IsActive = false;
-                Request = default;
-                ReturnState = null;
-            }
-        }
-
-        public struct ArbitrationFlags
-        {
-            public bool BlockInput;
-            public bool BlockUpperBody;
-            public bool BlockFacial;
-            public bool BlockIK;
-            public bool BlockInventory;
-            public bool IsDead;
-
-            // 预留：Action 系统仲裁标记（未来可用于禁用/排队某些动作意图）
-            public bool BlockAction;
-
-            public void Clear()
-            {
-                BlockInput = false;
-                BlockUpperBody = false;
-                BlockFacial = false;
-                BlockIK = false;
-                BlockInventory = false;
-                IsDead = false;
-                BlockAction = false;
-            }
-        }
-
-        /// <summary>
-        /// 动作仲裁请求（帧级）：由各系统写入，ActionArbiter 只读取并应用。
-        /// 规则：同一帧内仅保留 Priority 最高的请求。
-        /// </summary>
-        public struct ActionArbitrationContext
-        {
-            public bool HasRequest;
-            public ActionRequest HighestPriorityRequest;
-
-            public void Clear()
-            {
-                HasRequest = false;
-                HighestPriorityRequest = default;
-            }
-
-            public void Submit(in ActionRequest request)
-            {
-                if (!HasRequest || request.Priority > HighestPriorityRequest.Priority)
-                {
-                    HighestPriorityRequest = request;
-                    HasRequest = true;
-                }
-            }
-        }
-
         public OverrideContext Override;
         public ArbitrationFlags Arbitration;
         public ActionArbitrationContext ActionArbitration;
@@ -83,269 +31,201 @@ namespace BBBNexus
             Override.Clear();
             Arbitration.Clear();
             ActionArbitration.Clear();
+
+            SfxQueue = new PlayerSfxEventQueue();
         }
 
-        #region 核心状态
-        public CharacterLOD CurrentLOD { get; set; } = CharacterLOD.High;
+        #region 核心生存状态
+        /// <summary>当前血量</summary>
         public float CurrentHealth;
+        /// <summary>是否已死亡</summary>
         public bool IsDead;
         #endregion
 
-        #region 输入（来自输入系统）
-
-        [Header("输入 - 玩家原始输入")]
-
-        [Tooltip("相机视角输入：X=水平 Y=竖直（-1~1）")]
+        #region 输入状态
+        /// <summary>相机视角输入 (X=水平, Y=竖直, -1~1)</summary>
         public Vector2 LookInput;
-
-        [Tooltip("移动摇杆输入：X=前后 Y=左右（-1~1）")]
+        /// <summary>移动摇杆输入 (X=前后, Y=左右, -1~1)</summary>
         public Vector2 MoveInput;
-
         #endregion
 
-        #region 视角与朝向（相机/朝向状态）
-
-        [Header("视角 - 相机与朝向状态")]
-
-        [Tooltip("视角水平角（度），对应相机 yaw")]
+        #region 视角与旋转
+        /// <summary>视角水平角(度)</summary>
         public float ViewYaw;
-
-        [Tooltip("视角俯仰角（度），对应相机 pitch")]
+        /// <summary>视角俯仰角(度)</summary>
         public float ViewPitch;
-
-        [Tooltip("权威朝向水平角（供 IK/上身使用）")]
+        /// <summary>权威朝向水平角 供IK/上身使用</summary>
         public float AuthorityYaw;
-
-        [Tooltip("权威朝向俯仰角（供瞄准使用）")]
+        /// <summary>权威朝向俯仰角 供瞄准使用</summary>
         public float AuthorityPitch;
-
-        [Tooltip("权威旋转（四元数），代表相机期望的角色朝向")]
+        /// <summary>权威旋转(四元数) 代表相机期望朝向</summary>
         public Quaternion AuthorityRotation;
-
-        [Tooltip("角色当前朝向水平角（平滑跟随）")]
+        /// <summary>角色当前朝向水平角 平滑跟随</summary>
         public float CurrentYaw;
-
-        [Tooltip("旋转速度，用于平滑转向")]
+        /// <summary>旋转速度 用于平滑转向</summary>
         public float RotationVelocity;
-
         #endregion
 
-        #region 物理与移动（物理反馈）
-
-        [Header("物理与移动 - 地面/速度/移动状态")]
-
-        [Tooltip("是否接地")]
+        #region 物理与地面状态
+        /// <summary>是否接地</summary>
         public bool IsGrounded;
-
-        [Tooltip("是否处于闪避中")]
+        /// <summary>是否处于闪避中</summary>
         public bool IsDodgeing;
-
-        [Tooltip("竖直速度，m/s")]
+        /// <summary>竖直速度(m/s)</summary>
         public float VerticalVelocity;
-
-        [Tooltip("刚着陆的瞬间标志（仅一帧）")]
+        /// <summary>刚着陆的瞬间(仅一帧)</summary>
         public bool JustLanded;
-
-        [Tooltip("刚离地的瞬间标志（仅一帧）")]
+        /// <summary>刚离地的瞬间(仅一帧)</summary>
         public bool JustLeftGround;
+        #endregion
 
-        [Tooltip("是否瞄准（影响上半身/动画树）")]
+        #region 下半身运动状态
+        /// <summary>是否瞄准 影响上身/动画树</summary>
         public bool IsAiming;
-
-        [Tooltip("上一帧下半身运动状态")]
+        /// <summary>上一帧运动状态</summary>
         public LocomotionState LastLocomotionState = LocomotionState.Idle;
-
-        [Tooltip("当前下半身运动状态（用于动画混合）")]
+        /// <summary>当前运动状态 用于动画混合</summary>
         public LocomotionState CurrentLocomotionState = LocomotionState.Idle;
-
-        [Space]
-        [Tooltip("期望移动方向（世界空间单位向量）")]
+        /// <summary>期望移动方向(世界空间单位向量)</summary>
         public Vector3 DesiredWorldMoveDir;
-
-        [Tooltip("相对于身体的期望移动角度（度）")]
+        /// <summary>期望移动角度相对于身体(度)</summary>
         public float DesiredLocalMoveAngle;
-
-        [Header("实时速度")]
-        [Tooltip("当前水平速度，m/s")]
+        /// <summary>当前水平速度(m/s)</summary>
         public float CurrentSpeed;
-
         #endregion
 
-        #region 装备（物品与指向基准）
-
-        [Header("装备 - 当前物品与指向基准")]
-
-        [Tooltip("快捷栏装备意图：-1 无意图，>=0 对应槽位")]
+        #region 装备与指向基准
+        /// <summary>快捷栏装备意图 -1无意图 >=0对应槽位</summary>
         public int WantsToEquipHotbarIndex = -1;
-
-        [Tooltip("当前装备的物品实例，为 null 表示空手")]
+        /// <summary>当前装备物品 null为空手</summary>
         public ItemInstance CurrentItem;
-
-        [Tooltip("指向基准 Transform（枪口、灯泡 或 头部）")]
+        /// <summary>指向基准Transform </summary>
         public Transform CurrentAimReference;
-
         #endregion
 
-        #region 意图（帧级意图，需每帧清理）
-
-        [Header("意图 - 帧级临时标志")]
-
-        [Tooltip("瞄准目标点（世界坐标）")]
+        #region 帧级意图标志 (每帧清理)
+        /// <summary>瞄准目标点(世界坐标)</summary>
         public Vector3 TargetAimPoint;
-
-        [Tooltip("相机朝向向量（用于上半身/动画）")]
+        /// <summary>相机朝向向量 用于上身/动画</summary>
         public Vector3 CameraLookDirection;
-
-        [Tooltip("本帧是否想跑（由意图管线判断）")]
+        
+        /// <summary>本帧是否想跑</summary>
         public bool WantToRun;
-
-        [Tooltip("本帧是否想闪避")]
+        /// <summary>本帧是否想闪避</summary>
         public bool WantsToDodge;
-
-        [Tooltip("本帧是否想翻滚")]
+        /// <summary>本帧是否想翻滚</summary>
         public bool WantsToRoll;
-
-        [Tooltip("本帧是否想跳跃")]
+        /// <summary>本帧是否想跳跃</summary>
         public bool WantsToJump;
-
-        [Tooltip("本帧是否想二段跳")]
+        /// <summary>本帧是否想二段跳</summary>
         public bool WantsDoubleJump;
-
-        [Tooltip("二段跳方向")]
+        /// <summary>二段跳方向</summary>
         public DoubleJumpDirection DoubleJumpDirection = DoubleJumpDirection.Up;
-
-        [Space]
-        [Tooltip("本帧是否想翻越")]
+        
+        /// <summary>本帧是否想翻越</summary>
         public bool WantsToVault;
-
-        [Tooltip("是否低翻越")]
+        /// <summary>是否低翻越</summary>
         public bool WantsLowVault;
-
-        [Tooltip("是否高翻越")]
+        /// <summary>是否高翻越</summary>
         public bool WantsHighVault;
-
-        [Tooltip("有效的翻越障碍物信息")]
+        /// <summary>有效的翻越障碍物信息</summary>
         public VaultObstacleInfo CurrentVaultInfo;
-
-        [Tooltip("量化的移动方向（8向）")]
+        /// <summary>量化的移动方向(8向)</summary>
         public DesiredDirection QuantizedDirection;
-
-        [Space]
-        [Header("下落与开火意图")]
-        [Tooltip("本帧是否进入下落状态")]
+        
+        /// <summary>本帧是否进入下落状态</summary>
         public bool WantsToFall;
-
-        [Tooltip("本帧是否想开火")]
+        /// <summary>本帧是否想开火</summary>
         public bool WantsToFire;
-
-        [Space]
-        [Header("表情意图")]
-        [Tooltip("表情1 ")]
+        
+        /// <summary>表情1意图</summary>
         public bool WantsExpression1;
-        [Tooltip("表情2")]
+        /// <summary>表情2意图</summary>
         public bool WantsExpression2;
-        [Tooltip("表情3")]
+        /// <summary>表情3意图</summary>
         public bool WantsExpression3;
-        [Tooltip("表情4")]
+        /// <summary>表情4意图</summary>
         public bool WantsExpression4;
-
-        [Header("动作意图")]
-        [Tooltip("本帧是否想执行 Action（原 wave 意图改名）。")]
+        /// <summary>是否想执行动作(Action)</summary>
         public bool WantsToAction;
-
         #endregion
 
-        #region 变形与翻越（根运动与翻越数据）
-
-        [Header("根运动变形与翻越")]
-
-        [Tooltip("是否处于根运动变形中")]
+        #region 根运动变形与翻越
+        /// <summary>是否处于根运动变形中</summary>
         public bool IsWarping;
-
-        [Tooltip("是否处于翻越状态")]
+        /// <summary>是否处于翻越状态</summary>
         public bool IsVaulting;
-
-        [Tooltip("当前激活的变形数据")]
+        /// <summary>当前激活的变形数据</summary>
         public WarpedMotionData ActiveWarpData;
-
-        [Tooltip("变形的归一化时间（0~1）")]
+        /// <summary>变形的归一化时间(0~1)</summary>
         public float NormalizedWarpTime;
-
-        [Header("变形期间的 IK 目标")]
-        [Tooltip("左手 IK 目标点（世界）")]
+        /// <summary>变形期间左手IK目标(世界坐标)</summary>
         public Vector3 WarpIKTarget_LeftHand;
-
-        [Tooltip("右手 IK 目标点（世界）")]
+        /// <summary>变形期间右手IK目标(世界坐标)</summary>
         public Vector3 WarpIKTarget_RightHand;
-
-        [Tooltip("手部 IK 朝向（四元数）")]
+        /// <summary>变形期间手部IK朝向(四元数)</summary>
         public Quaternion WarpIKRotation_Hand;
-
         #endregion
 
-        #region 动画参数（动画混合与过渡）
-
-        [Header("动画参数 - 混合与周期")]
-
-        [Tooltip("前后混合（-1 后退，1 前进）")]
+        #region 动画混合参数
+        /// <summary>前后混合(-1后退, 1前进)</summary>
         public float CurrentAnimBlendX;
-
-        [Tooltip("左右混合（-1 左，1 右）")]
+        /// <summary>左右混合(-1左, 1右)</summary>
         public float CurrentAnimBlendY;
-
-        [Tooltip("跑步循环时间，用于脚步判定")]
+        /// <summary>跑步循环时间 用于脚步判定</summary>
         public float CurrentRunCycleTime;
-
-        [Tooltip("预期脚相，用于选择动画过渡")]
+        /// <summary>预期脚相 用于选择动画过渡</summary>
         public FootPhase ExpectedFootPhase;
-
-        [Header("着陆等级")]
-        [Tooltip("下落高度等级（用于选取落地表现）")]
+        /// <summary>下落高度等级 用于选取落地表现</summary>
         public int FallHeightLevel;
         #endregion
 
-        #region 播放选项覆盖（下一次播放生效）
-        [Tooltip("下半身播放选项覆写，为 null 使用默认")]
+        #region 动画播放选项覆盖 (下一次生效)
+        /// <summary>下半身播放选项覆写 null使用默认</summary>
         public AnimPlayOptions? NextStatePlayOptions = null;
-
-        [Tooltip("上半身播放选项覆写，为 null 使用默认")]
+        /// <summary>上半身播放选项覆写 null使用默认</summary>
         public AnimPlayOptions? NextUpperBodyStatePlayOptions = null;
         #endregion
 
-        #region IK 驱动目标
-        [Header("IK 目标")]
-        [Tooltip("启用左手 IK")]
+        #region IK驱动目标
+        /// <summary>启用左手IK</summary>
         public bool WantsLeftHandIK;
-
-        [Tooltip("启用右手 IK")]
+        /// <summary>启用右手IK</summary>
         public bool WantsRightHandIK;
-
-        [Tooltip("启用头部 LookAt IK")]
+        /// <summary>启用头部LookAt IK</summary>
         public bool WantsLookAtIK;
-
-        [Tooltip("左手目标 Transform")]
+        /// <summary>左手目标Transform</summary>
         public Transform LeftHandGoal;
-
-        [Tooltip("右手目标 Transform")]
+        /// <summary>右手目标Transform</summary>
         public Transform RightHandGoal;
-
-        [Tooltip("头部注视点（世界坐标）")]
+        /// <summary>头部注视点(世界坐标)</summary>
         public Vector3 LookAtPosition;
         #endregion
 
-        #region 状态与追踪
-
-        [Tooltip("当前体力值")]
+        #region 体力与追踪状态
+        /// <summary>当前体力值</summary>
         public float CurrentStamina;
-
-        [Tooltip("体力枯竭标志")]
+        /// <summary>体力枯竭标志</summary>
         public bool IsStaminaDepleted;
-
-        [Tooltip("本次空中是否已使用二段跳")]
+        /// <summary>本次空中是否已使用二段跳</summary>
         public bool HasPerformedDoubleJumpInAir;
-
-        [Tooltip("玩家相机 Transform，用于计算视角与朝向")]
+        /// <summary>玩家相机Transform 用于计算视角与朝向</summary>
         public Transform CameraTransform;
+        #endregion
+
+        #region 音效队列 (帧级)
+        /// <summary>本帧待播放的角色音效事件队列</summary>
+        public PlayerSfxEventQueue SfxQueue;
+        #endregion
+
+        #region 表情意图（帧级，最后一个覆盖）
+
+        /// <summary>
+        /// 本帧请求播放的表情事件（仅状态机写入）。
+        /// 同帧多次写入：最后一个覆盖。
+        /// </summary>
+        public PlayerFacialEvent FacialEventRequest;
+
         #endregion
 
         #region 方法
@@ -356,7 +236,7 @@ namespace BBBNexus
         }
 
         /// <summary>
-        /// 清除所有一帧意图标志（仅影响帧级意图）
+        /// 清除所有帧级意图标志
         /// </summary>
         public void ResetIntetnt()
         {
@@ -376,8 +256,15 @@ namespace BBBNexus
             WantsExpression3 = false;
             WantsExpression4 = false;
 
-            // 帧级仲裁请求：每帧清理，避免持续触发。
+            // 表情事件：在 LateUpdate 清理（FacialController 在 Update 消费）
+            FacialEventRequest = PlayerFacialEvent.None;
+
+            // 每帧清理帧仲裁请求
             ActionArbitration.Clear();
+
+            // 注意 音频事件不在这里清理
+            // AudioController 在 Update 消费（而 ResetIntetnt 在 LateUpdate）
+            // 若在此清理，会导致本帧刚写入的音频事件在消费前丢失
         }
 
         #endregion

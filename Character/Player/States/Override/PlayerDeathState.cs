@@ -11,6 +11,8 @@ namespace BBBNexus
 
         public override void Enter()
         {
+            data.SfxQueue.Enqueue(PlayerSfxEvent.Death);
+
             data.IsDead = true;
             data.Arbitration.IsDead = true;
             data.Arbitration.BlockInput = true;
@@ -19,7 +21,7 @@ namespace BBBNexus
             data.Arbitration.BlockIK = true;
             data.Arbitration.BlockInventory = true;
 
-            var clip = config?.Core?.DeathAnim;
+            var clip = config.Core.DeathAnim;
             if (clip != null)
                 AnimFacade.PlayFullBodyAction(clip, 0.05f);
         }

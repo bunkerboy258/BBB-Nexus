@@ -55,26 +55,11 @@ namespace BBBNexus
                 return;
             }
 
-            // LOD 性能降级拦截
-            if (_data.CurrentLOD > CharacterLOD.High)
+            // If not blocked by arbitration, ensure IK component is enabled
+            if (!_isIKActive)
             {
-                // 如果当前 IK 是活跃状态 执行一次硬关闭 然后锁死
-                if (_isIKActive)
-                {
-                    ResetAllIKWeights();        // 内部平滑值清零 防止唤醒时的跳变
-                    _ikSource.DisableAllIK();   // 掐断底层组件Update
-                    _isIKActive = false;
-                }
-                return; 
-            }
-            else
-            {
-                // 高 LOD 状态 唤醒组件
-                if (!_isIKActive)
-                {
-                    _ikSource.EnableAllIK();    
-                    _isIKActive = true;
-                }
+                _ikSource.EnableAllIK();
+                _isIKActive = true;
             }
 
             // 翻越/攀爬WarpIK更新

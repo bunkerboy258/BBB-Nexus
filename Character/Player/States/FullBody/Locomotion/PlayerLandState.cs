@@ -34,6 +34,12 @@ namespace BBBNexus
                 return;
             }
 
+            // 写入音频意图（由 AudioController 统一消费）
+            data.SfxQueue.Enqueue(PlayerSfxEvent.Land);
+
+            // 表情意图（仅状态机触发 / 最后一个覆盖）
+            data.FacialEventRequest=PlayerFacialEvent.Land;
+
             // 根据 FallHeightLevel + LocomotionState 选择落地缓冲动画
             _currentClip = SelectLandingBufferClip(data.CurrentLocomotionState, data.FallHeightLevel);
 

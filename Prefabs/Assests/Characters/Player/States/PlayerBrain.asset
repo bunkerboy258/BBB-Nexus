@@ -21,7 +21,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: df5e8e5f27b07904995f91cae2b814d5, type: 2}
   - {fileID: 11400000, guid: e175843938ff4694eaab69abd83b16c5, type: 2}
   - {fileID: 11400000, guid: 0bca97d6c18cc4c4b89b6a1982727f9c, type: 2}
-  UpperBodyStates: 000000000100000002000000030000000400000005000000
+  UpperBodyStates: 000000000100000002000000
   UpperBodyInterceptors:
   - {fileID: 11400000, guid: a4adb4c1259b47c4d97c841fccadcace, type: 2}
   - {fileID: 11400000, guid: 3900427fb82d687439fc380fa0a8a83b, type: 2}

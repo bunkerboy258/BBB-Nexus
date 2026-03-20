@@ -23,6 +23,9 @@ namespace BBBNexus
         {
             data.WantsToRoll = false;
 
+            // 写入音频意图（由 AudioController 统一消费）
+            data.SfxQueue.Enqueue(PlayerSfxEvent.Roll);
+
             _stateDuration = 0f;
             _endTimeTriggered = false;
 

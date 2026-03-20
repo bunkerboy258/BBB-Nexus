@@ -109,9 +109,6 @@ namespace BBBNexus
         
         [Tooltip("上半身动画遮罩 决定上半身动画能控制哪些骨头(不含双腿) 用于使武器动画不影响下肢")]
         public AvatarMask UpperBodyMask;
-        
-        [Tooltip("通用攻击动画 作为默认的攻击占位符(实际动画来自武器配置)")]
-        public ClipTransition AttackAnim;
 
         [Header("面部表情 (Facial) - 可选的面部动画层")]
         

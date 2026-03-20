@@ -1,97 +1,157 @@
+using System;
 using Animancer;
 using UnityEngine;
 
 namespace BBBNexus
 {
-    public class FacialController
+    /// <summary>
+    /// Facial expression controller.
+    /// 
+    /// Notes:
+    /// - Uses <see cref="AnimationFacadeBase"/> (AnimancerFacade) to play on a dedicated layer.
+    /// - Consumes <see cref="PlayerRuntimeData.FacialEventRequest"/> (cleared in PlayerController.LateUpdate).
+    /// - Uses an unlock timeout fallback so it can always return to the base expression even if
+    ///   the clip doesn't actually animate bindings (e.g. rig mismatch warnings).
+    /// </summary>
+    public sealed class FacialController
     {
-        private readonly AnimancerLayer _layer;
+        private const int FacialLayer = 2;
+
+        private readonly PlayerController _player;
         private readonly PlayerSO _config;
         private readonly PlayerRuntimeData _data;
-        private readonly InputPipeline _inputPipeline;
 
-        private ClipTransition _currentBaseExpression;
-        private bool _isPlayingTransient;
-        private int _transientPlayToken;
+        private ClipTransition _baseExpression;
+
+        // Lock to avoid replaying transient expressions every frame.
+        private float _unlockTime;
+        private PlayerFacialEvent _lockedEvent;
+
+        private float _fallbackReturnTime;
+
+        private bool _initialized;
 
         public FacialController(PlayerController player)
         {
+            _player = player;
             _config = player.Config;
             _data = player.RuntimeData;
-            _inputPipeline = player.InputPipeline;
 
-            _layer = player.Animancer.Layers[2];
-            _layer.Mask = _config.Core.FacialMask;
-            _layer.Weight = 1f;
-
-            if (_config.Emj != null) _currentBaseExpression = _config.Emj.BaseExpression;
-
-            PlayBaseExpression();
+            _baseExpression = _config != null && _config.Emj != null ? _config.Emj.BaseExpression : null;
         }
 
         public void Update()
         {
-            if (_config.Emj == null) return;
+            if (_player == null || _player.AnimFacade == null) return;
 
-            if (_data.Arbitration.BlockFacial)
+            // Lazy init to avoid touching Animancer before everything is ready.
+            if (!_initialized)
             {
-                if (_layer.Weight > 0f) _layer.Weight = 0f;
+                _initialized = true;
+
+                if (_config != null && _config.Core != null)
+                    _player.AnimFacade.SetLayerMask(FacialLayer, _config.Core.FacialMask);
+
+                PlayBaseExpression(0f);
+            }
+
+            if (_config == null || _config.Emj == null) return;
+
+            if (_data != null && _data.Arbitration.BlockFacial)
+            {
+                _player.AnimFacade.SetLayerWeight(FacialLayer, 0f);
                 return;
             }
 
-            if (_data.CurrentLOD > CharacterLOD.High)
-            {
-                if (_layer.Weight > 0f) _layer.Weight = 0f;
-                return;
-            }
-            else
-            {
-                if (_layer.Weight < 1f) _layer.Weight = 1f;
-            }
+            _player.AnimFacade.SetLayerWeight(FacialLayer, 1f);
 
-            if (_data.WantsExpression1)
+            // Fallback: if something went wrong and we never unlocked, force base expression.
+            if (_fallbackReturnTime > 0f && Time.time >= _fallbackReturnTime)
             {
-                _inputPipeline.ConsumeExpression1Pressed();
-                PlayTransientExpression(_config.Emj.SpecialExpression1, 0.1f);
-            }
-            else if (_data.WantsExpression2)
-            {
-                _inputPipeline.ConsumeExpression2Pressed();
-                PlayTransientExpression(_config.Emj.SpecialExpression2, 0.1f);
-            }
-            else if (_data.WantsExpression3)
-            {
-                _inputPipeline.ConsumeExpression3Pressed();
-                PlayTransientExpression(_config.Emj.SpecialExpression3, 0.1f);
-            }
-            else if (_data.WantsExpression4)
-            {
-                _inputPipeline.ConsumeExpression4Pressed();
-                PlayTransientExpression(_config.Emj.SpecialExpression4, 0.1f);
-            }
-        }
-
-        public void PlayTransientExpression(ClipTransition expressionClip, float fadeDuration = 0.1f)
-        {
-            if (expressionClip == null || expressionClip.Clip == null) return;
-
-            _transientPlayToken++;
-            var token = _transientPlayToken;
-            _isPlayingTransient = true;
-
-            var state = _layer.Play(expressionClip, fadeDuration);
-            state.Events(this).OnEnd = () =>
-            {
-                if (token != _transientPlayToken) return;
-                _isPlayingTransient = false;
+                ClearLock(clearCallback: true);
                 PlayBaseExpression(0.2f);
-            };
+            }
+
+            // Still locked.
+            if (Time.time < _unlockTime)
+                return;
+
+            var evt = _data != null ? _data.FacialEventRequest : PlayerFacialEvent.None;
+            if (evt == PlayerFacialEvent.None)
+                return;
+
+            // Prevent spamming same event within the same lock window.
+            if (_lockedEvent == evt && Time.time < _unlockTime + 0.0001f)
+                return;
+
+            if (_config.Emj.TryGet(evt, out var transition))
+                PlayTransientExpression(evt, transition, 0.1f);
         }
 
-        private void PlayBaseExpression(float fadeDuration = 0.25f)
+        private void PlayTransientExpression(PlayerFacialEvent evt, ClipTransition transition, float fade)
         {
-            if (_currentBaseExpression != null && _currentBaseExpression.Clip != null)
-                _layer.Play(_currentBaseExpression, fadeDuration);
+            if (transition == null || transition.Clip == null) return;
+
+            _lockedEvent = evt;
+
+            // Estimate length for timeout. If clip can't play, Length may be 0 -> use small fallback.
+            var len = transition.Clip.length;
+            if (len <= 0f) len = 0.25f;
+
+            // Lock long enough for the transient to be noticeable.
+            _unlockTime = Time.time + Mathf.Max(0.05f, len - 0.02f);
+
+            // Absolute fallback to ensure base expression resumes.
+            _fallbackReturnTime = Time.time + len + 0.1f;
+
+            var options = new AnimPlayOptions
+            {
+                Layer = FacialLayer,
+                FadeDuration = fade,
+                Speed = -1f,
+                NormalizedTime = -1f,
+            };
+
+            _player.AnimFacade.PlayTransition(transition, options);
+
+            // Prefer real end callback when possible.
+            _player.AnimFacade.SetOnEndCallback(() =>
+            {
+                // If another transient started, ignore.
+                if (Time.time < _unlockTime - 0.01f) return;
+
+                ClearLock(clearCallback: false);
+                PlayBaseExpression(0.2f);
+            }, FacialLayer);
+        }
+
+        private void ClearLock(bool clearCallback)
+        {
+            _lockedEvent = PlayerFacialEvent.None;
+            _unlockTime = 0f;
+            _fallbackReturnTime = 0f;
+
+            if (clearCallback)
+            {
+                _player.AnimFacade.ClearOnEndCallback(FacialLayer);
+            }
+        }
+
+        private void PlayBaseExpression(float fade = 0.25f)
+        {
+            if (_player == null || _player.AnimFacade == null) return;
+            if (_baseExpression == null || _baseExpression.Clip == null) return;
+
+            var options = new AnimPlayOptions
+            {
+                Layer = FacialLayer,
+                FadeDuration = fade,
+                Speed = -1f,
+                NormalizedTime = -1f,
+            };
+
+            _player.AnimFacade.PlayTransition(_baseExpression, options);
+            _player.AnimFacade.ClearOnEndCallback(FacialLayer);
         }
     }
 }

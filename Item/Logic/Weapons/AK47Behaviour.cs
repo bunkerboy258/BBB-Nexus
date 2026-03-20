@@ -207,16 +207,46 @@ namespace BBBNexus
             {
                 AudioSource.PlayClipAtPoint(_akconfig.ShootSound, _muzzle.position);
             }
+
             if (_akconfig != null && _akconfig.MuzzleVFXPrefab != null && _muzzle != null)
             {
-                var muzzleVFX = Object.Instantiate(_akconfig.MuzzleVFXPrefab, _muzzle.position, _muzzle.rotation);
-                muzzleVFX.transform.parent = _muzzle;
+                GameObject muzzleVFX;
+                if (BBBNexus.SimpleObjectPoolSystem.Shared != null)
+                {
+                    var sp = BBBNexus.SimpleObjectPoolSystem.SpawnParams.Default;
+                    sp.Parent = _muzzle;
+                    sp.Position = _muzzle.position;
+                    sp.Rotation = _muzzle.rotation;
+                    sp.WorldPositionStays = true;
+                    muzzleVFX = BBBNexus.SimpleObjectPoolSystem.Shared.Spawn(_akconfig.MuzzleVFXPrefab, in sp);
+                }
+                else
+                {
+                    muzzleVFX = Object.Instantiate(_akconfig.MuzzleVFXPrefab, _muzzle.position, _muzzle.rotation);
+                    muzzleVFX.transform.parent = _muzzle;
+                }
             }
+
             ApplyRecoil();
+
             if (_akconfig != null && _akconfig.ProjectilePrefab != null && _muzzle != null)
             {
-                var proj = Object.Instantiate(_akconfig.ProjectilePrefab, _muzzle.position, _muzzle.rotation);
-                proj.transform.parent = null;
+                GameObject proj;
+                if (BBBNexus.SimpleObjectPoolSystem.Shared != null)
+                {
+                    var sp = BBBNexus.SimpleObjectPoolSystem.SpawnParams.Default;
+                    sp.Parent = null;
+                    sp.Position = _muzzle.position;
+                    sp.Rotation = _muzzle.rotation;
+                    sp.WorldPositionStays = true;
+                    proj = BBBNexus.SimpleObjectPoolSystem.Shared.Spawn(_akconfig.ProjectilePrefab, in sp);
+                }
+                else
+                {
+                    proj = Object.Instantiate(_akconfig.ProjectilePrefab, _muzzle.position, _muzzle.rotation);
+                    proj.transform.parent = null;
+                }
+
                 var rb = proj.GetComponent<Rigidbody>();
                 if (rb != null)
                 {

@@ -5,25 +5,26 @@ using UnityEngine;
 namespace BBBNexus
 {
     /// <summary>
-    /// 【角色架构之巅：PlayerController 总管家】
-    /// 架构定位：整个玩家系统的 Root 节点，唯一的 Monobehaviour 驱动源。
-    /// 核心指责：不包含任何具体游戏逻辑，仅负责组件整合、内存分配与严格的时序指令分发。
-    /// 【时序魔法】：采用 Update(逻辑计算) -> 引擎内部动画结算 -> LateUpdate(物理与表现应用) 的错峰管线设计，彻底消除“骨骼延迟一帧”的抽搐 Bug。
+    /// 整个BBBNexus系统的 Root 节点唯一的 Monobehaviour 驱动源 
+    /// 不包含任何具体游戏逻辑 仅负责组件整合、内存分配与严格的时序指令分发 
     /// </summary>
     [RequireComponent(typeof(CharacterController))]
     [RequireComponent(typeof(AnimancerComponent))]
     [RequireComponent(typeof(AnimancerFacade))]
     [RequireComponent(typeof(Animator))]
+    [RequireComponent(typeof(AudioSource))]
     [DefaultExecutionOrder(-300)]
     public class PlayerController : MonoBehaviour, IDamageable
     {
-        [Header("--- 输入与表现源 (Input & Presentation Sources) ---")]
+        [Header("--- 输入与表现源  ---")]
         [Tooltip("输入源 - 可拖拽赋值任何继承 IInputSourceBase 的组件")]
         public InputSourceBase InputSourceRef;
         [Tooltip("动画转接器 - 可拖拽赋值任何继承 AnimationFacadeBase 的组件")]
         public AnimationFacadeBase AnimationFacadeRef;
         [Tooltip("IK 目标源 - 可拖拽赋值任何继承 PlayerIKSourceBase 的组件")]
         public PlayerIKSourceBase IKSource;
+        [Tooltip("用于播放角色音效的 AudioSource（建议关闭 Loop）。")]
+        public AudioSource SfxSource;
 
         [Header("--- 核心配置 ---")]
         public PlayerSO Config;
@@ -40,9 +41,6 @@ namespace BBBNexus
         public EquippableItemSO DefaultEquipment3;
         public bool statedebug = false;
 
-        [Header("--- 音频 (SFX) ---")]
-        [Tooltip("用于播放角色音效的 AudioSource（建议关闭 Loop）。")]
-        public AudioSource SfxSource;
 
         // 运行时核心引用
         public StateMachine StateMachine { get; private set; }
@@ -60,6 +58,7 @@ namespace BBBNexus
         public IKController _ikController { get; private set; }
         public PlayerInventoryController InventoryController { get; private set; }
         public ActionController ActionController { get; private set; }
+        public AudioController AudioController { get; private set; }
 
         // 驱动器与外观层系统
         public AnimancerComponent Animancer { get; private set; }
@@ -155,6 +154,7 @@ namespace BBBNexus
             _facialController = new FacialController(this);
             _ikController = new IKController(this);
             ActionController = new ActionController(this);
+            AudioController = new AudioController(this);
 
             // 5. 装载状态字典 分配独立内存实例
             StateRegistry = new PlayerStateRegistry();
@@ -220,6 +220,8 @@ namespace BBBNexus
         // 逻辑与意图更新 (在动画引擎运算之前)
         private void Update()
         {
+            //Debug.Log(Animancer.Layers.Count);
+
             _lastState = StateMachine.CurrentState as PlayerBaseState;
 
             ArbiterPipeline.ProcessUpdateArbiters();
@@ -237,8 +239,12 @@ namespace BBBNexus
             UpperBodyCtrl.Update();
 
             _facialController.Update();
-            ActionController?.Update();
 
+            ActionController.Update();
+
+            AudioController.Update();
+            
+            //古法状态调试 已经被drawxxldebuger代替 打包注释掉
             if (statedebug && StateMachine.CurrentState != null && _lastState != null)
             {
                 if (StateMachine.CurrentState.GetType().Name != _lastState.GetType().Name)

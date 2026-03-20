@@ -24,6 +24,9 @@ namespace BBBNexus
             data.IsDodgeing = true;
             data.WantsToDodge = false;
 
+            // 写入音频意图（由 AudioController 统一消费）
+            data.SfxQueue.Enqueue(PlayerSfxEvent.Dodge);
+
             _stateDuration = 0f;
             _endTimeTriggered = false;
 

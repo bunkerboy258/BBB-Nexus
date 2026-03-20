@@ -208,21 +208,52 @@ namespace BBBNexus
             {
                 AudioSource.PlayClipAtPoint(_cannonConfig.ShootSound, _muzzle.position);
             }
+
             if (_cannonConfig != null && _cannonConfig.MuzzleVFXPrefab != null && _muzzle != null)
             {
-                var muzzleVFX = Object.Instantiate(_cannonConfig.MuzzleVFXPrefab, _muzzle.position, _muzzle.rotation);
-                muzzleVFX.transform.parent = _muzzle;
+                GameObject muzzleVFX;
+                if (BBBNexus.SimpleObjectPoolSystem.Shared != null)
+                {
+                    var sp = BBBNexus.SimpleObjectPoolSystem.SpawnParams.Default;
+                    sp.Parent = _muzzle;
+                    sp.Position = _muzzle.position;
+                    sp.Rotation = _muzzle.rotation;
+                    sp.WorldPositionStays = true;
+                    muzzleVFX = BBBNexus.SimpleObjectPoolSystem.Shared.Spawn(_cannonConfig.MuzzleVFXPrefab, in sp);
+                }
+                else
+                {
+                    muzzleVFX = Object.Instantiate(_cannonConfig.MuzzleVFXPrefab, _muzzle.position, _muzzle.rotation);
+                    muzzleVFX.transform.parent = _muzzle;
+                }
             }
+
             ApplyRecoil();
+
             if (_cannonConfig != null && _cannonConfig.ProjectilePrefab != null && _muzzle != null)
             {
-                var proj = Object.Instantiate(_cannonConfig.ProjectilePrefab, _muzzle.position, _muzzle.rotation);
-                proj.transform.parent = null;
+                GameObject proj;
+                if (BBBNexus.SimpleObjectPoolSystem.Shared != null)
+                {
+                    var sp = BBBNexus.SimpleObjectPoolSystem.SpawnParams.Default;
+                    sp.Parent = null;
+                    sp.Position = _muzzle.position;
+                    sp.Rotation = _muzzle.rotation;
+                    sp.WorldPositionStays = true;
+                    proj = BBBNexus.SimpleObjectPoolSystem.Shared.Spawn(_cannonConfig.ProjectilePrefab, in sp);
+                }
+                else
+                {
+                    proj = Object.Instantiate(_cannonConfig.ProjectilePrefab, _muzzle.position, _muzzle.rotation);
+                    proj.transform.parent = null;
+                }
+
                 var rb = proj.GetComponent<Rigidbody>();
                 if (rb != null)
                 {
                     rb.velocity = _muzzle.forward * _cannonConfig.ProjectileSpeed;
                 }
+
                 var simple = proj.GetComponent<SimpleProjectile>();
                 if (simple != null)
                 {

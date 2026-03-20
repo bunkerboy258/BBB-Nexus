@@ -1,3 +1,4 @@
+using Autodesk.Fbx;
 using UnityEngine;
 
 namespace BBBNexus
@@ -16,6 +17,12 @@ namespace BBBNexus
         public override void Enter()
         {
             _canCheckLand = false;
+
+            // 写入音频意图（由 AudioController 统一消费）
+            data.SfxQueue.Enqueue(PlayerSfxEvent.Jump);
+
+            // 表情意图（仅状态机触发 / 最后一个覆盖）
+            data.FacialEventRequest=PlayerFacialEvent.Jump;
 
             SelectJumpAnimation();
 

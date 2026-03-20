@@ -20,4 +20,6 @@ MonoBehaviour:
   Vaulting: {fileID: 11400000, guid: 11e423a006868f74d953886d4a99e3d1, type: 2}
   Dodging: {fileID: 11400000, guid: 74fde2360c9ffc34b9d9b9b25e0269ad, type: 2}
   Rolling: {fileID: 11400000, guid: d3b3da9307276a846b807f38df89a168, type: 2}
+  Action: {fileID: 0}
+  Audio: {fileID: 11400000, guid: fb481bff7d4f74d45b9fe3e90001b040, type: 2}
   Emj: {fileID: 11400000, guid: e72bee5782f33c94382bc98489860a4d, type: 2}

@@ -3,7 +3,7 @@ using UnityEngine;
 namespace BBBNexus
 {
     /// <summary>
-    /// 音频驱动器：运行时根据编号播放音效。
+    /// 根据audioso的事件映射表执行音频播放行为
     /// </summary>
     public sealed class AudioDriver
     {
@@ -18,16 +18,11 @@ namespace BBBNexus
             _audio = audio;
         }
 
-        /// <summary>
-        /// 按编号播放音频。
-        /// 未找到编号/未配置模块/AudioSource为空时直接忽略。
-        /// </summary>
-        public void Play(int id)
+        public void Play(PlayerSfxEvent evt)
         {
             if (_audio == null || _source == null) return;
-            if (!_audio.TryGetClip(id, out var clip) || clip == null) return;
+            if (!_audio.TryPickClip(evt, out var clip) || clip == null) return;
 
-            // 需求只说“播放音频”，这里用 PlayOneShot 避免打断循环BGM等。
             _source.PlayOneShot(clip);
         }
     }

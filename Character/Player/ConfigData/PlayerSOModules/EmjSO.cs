@@ -1,30 +1,57 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections.Generic;
+using UnityEngine;
 using Animancer;
 
 namespace BBBNexus
 {
-    // 表情系统配置模块 负责管理角色的脸部表情动画 包括基础循环与瞬时特殊表情 
-    // 表情是独立的动画层 不会干扰身体动作 可以随时打断和叠加 
+    /// <summary>
+    /// 表情系统配置模块（开源版极简框架）：
+    /// - BaseExpression：常态循环表情
+    /// - Event -> ClipTransition：瞬时表情由状态机通过 PlayerFacialEvent 触发
+    /// </summary>
     [CreateAssetMenu(fileName = "EmjSO", menuName = "BBBNexus/Player/Modules/EmjSO")]
     public class EmjSO : ScriptableObject
     {
-        [Header("基础表情 (Base Expression) - 常态表情的循环动画")]
-        
-        [Tooltip("基础表情动画 循环播放 是玩家的常态脸部表情 通常是中立表情或者柔和笑容")]
+        [Serializable]
+        public struct EventEntry
+        {
+            public PlayerFacialEvent Event;
+            public ClipTransition Transition;
+        }
+
+        [Header("基础表情 (Base Expression)")]
+        [Tooltip("基础表情动画：循环播放，作为常态表情。")]
         public ClipTransition BaseExpression;
 
-        [Header("特殊表情 (Special Expressions) - 特定事件触发的瞬时表情")]
-        
-        [Tooltip("特殊表情1")]
-        public ClipTransition SpecialExpression1;
+        [Header("事件表情 (Event Expressions)")]
+        [SerializeField] private List<EventEntry> _entries = new List<EventEntry>();
 
-        [Tooltip("特殊表情2")]
-        public ClipTransition SpecialExpression2;
+        private Dictionary<PlayerFacialEvent, ClipTransition> _cache;
 
-        [Tooltip("特殊表情3")]
-        public ClipTransition SpecialExpression3;
+        private void OnEnable() => BuildCache();
+        private void OnValidate() => BuildCache();
 
-        [Tooltip("特殊表情4")]
-        public ClipTransition SpecialExpression4;
+        private void BuildCache()
+        {
+            if (_cache == null) _cache = new Dictionary<PlayerFacialEvent, ClipTransition>();
+            else _cache.Clear();
+
+            if (_entries == null) return;
+
+            for (int i = 0; i < _entries.Count; i++)
+            {
+                var e = _entries[i];
+                if (e.Transition == null || e.Transition.Clip == null) continue;
+                _cache[e.Event] = e.Transition; // 后写覆盖前写
+            }
+        }
+
+        public bool TryGet(PlayerFacialEvent evt, out ClipTransition transition)
+        {
+            transition = null;
+            if (_cache == null) BuildCache();
+            return _cache != null && _cache.TryGetValue(evt, out transition) && transition != null && transition.Clip != null;
+        }
     }
 }

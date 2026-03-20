@@ -13,6 +13,7 @@ namespace BBBNexus
         private readonly PlayerSO _config;
 
         private float _timeSinceLastArbitration;
+        private CharacterLOD _lastEnforcedLOD = CharacterLOD.High;
 
         public LODArbiter(PlayerController player)
         {
@@ -56,9 +57,9 @@ namespace BBBNexus
                 targetLOD = CharacterLOD.Medium;
             }
 
-            if (targetLOD != _data.CurrentLOD)
+            if (targetLOD != _lastEnforcedLOD)
             {
-                _data.CurrentLOD = targetLOD;
+                _lastEnforcedLOD = targetLOD;
                 EnforceArbitration(targetLOD);
             }
         }
@@ -68,6 +69,14 @@ namespace BBBNexus
         {
             if (_player.animator == null) return;
 
+            // 更新运行时仲裁标志，其他系统根据这些标志做只读判断
+            // 原实现中：CurrentLOD > High 时会对一些系统进行降级处理
+            // 这里将相同策略以仲裁标志的形式下发：当 lod != High 时视为降级
+            bool isDegraded = (lod != CharacterLOD.High);
+            _data.Arbitration.BlockIK = isDegraded;
+            _data.Arbitration.BlockFacial = isDegraded;
+
+            // 仅在最低 LOD 时启用 Animator 的更严格裁剪
             if (lod == CharacterLOD.Low)
             {
                 _player.animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;

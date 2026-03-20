@@ -1,4 +1,4 @@
-﻿using System;
+﻿    using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Animancer;
@@ -279,11 +279,18 @@ namespace BBBNexus
             if (options.NormalizedTime >= 0) state.NormalizedTime = options.NormalizedTime;
         }
 
-        // 越界安全检查 如果层级索引乱填 就强制退回到基础层 
+        // 越界安全检查
+        // 重要!!!!!!!!!!!!!!!!：Animancer 的 Layers 是惰性创建的 直接访问 layers[index] 会自动扩容创建该层
+        // 之前的实现会在层不存在时回退到 layer0 导致对上半身/表情层的 Mask/Weight/Events误作用到 Base Layer
+        // 从而出现“所有动画都不播放/权重为0/一直马步”等现象
         private AnimancerLayer GetLayerOrFallback(int layerIndex)
         {
+            if (_animancer == null) return null;
+
             var layers = _animancer.Layers;
-            if ((uint)layerIndex < (uint)layers.Count) return layers[layerIndex];
+
+            if (layerIndex >= 0)
+                return layers[layerIndex];
 
             return layers[0];
         }
