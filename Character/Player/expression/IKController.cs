@@ -114,7 +114,7 @@ namespace BBBNexus
             // 右手 IK 处理
             float targetRightW = _data.WantsRightHandIK ? 1f : 0f;
             _rightHandWeight = Mathf.SmoothDamp(_rightHandWeight, targetRightW, ref _rightHandVelocity, 0.15f);
-
+                
             if (_rightHandWeight > 0.01f && _data.RightHandGoal != null)
                 _ikSource.SetIKTarget(IKTarget.RightHand, _data.RightHandGoal, _rightHandWeight);
             else

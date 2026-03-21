@@ -164,9 +164,24 @@ namespace BBBNexus
                     }
 
                     float halfSpread = _config.Vaulting.VaultHandSpread * 0.5f;
-                    info.LeftHandPos = ledgeEdge + rightDir * halfSpread;
-                    info.RightHandPos = ledgeEdge - rightDir * halfSpread;
-                    info.HandRot = Quaternion.LookRotation(-wallNormalFlat.normalized, Vector3.up);
+                    // 计算默认握点（不含偏移）
+                    Vector3 baseLeft = ledgeEdge - rightDir * halfSpread;
+                    Vector3 baseRight = ledgeEdge + rightDir * halfSpread;
+
+                    // 将 vaultForwardDir 与 world up 作为 ledge 局部空间基准
+                    Quaternion ledgeBasis = Quaternion.LookRotation(vaultForwardDir, Vector3.up);
+
+                    // 应用 VaultingSO 中的可配置偏移（以 ledgeBasis 变换到世界空间）
+                    Vector3 leftOffsetWorld = ledgeBasis * _config.Vaulting.LeftHandIKOffset;
+                    Vector3 rightOffsetWorld = ledgeBasis * _config.Vaulting.RightHandIKOffset;
+
+                    info.LeftHandPos = baseLeft + leftOffsetWorld;
+                    info.RightHandPos = baseRight + rightOffsetWorld;
+
+                    // 手朝向：以墙面法线为基准的朝向，再叠加可配置的欧拉偏移
+                    Quaternion baseHandRot = Quaternion.LookRotation(-wallNormalFlat.normalized, Vector3.up);
+                    Quaternion handRotOffset = Quaternion.Euler(_config.Vaulting.HandRotationOffsetEuler);
+                    info.HandRot = baseHandRot * handRotOffset;
 
                     return true;
                 }

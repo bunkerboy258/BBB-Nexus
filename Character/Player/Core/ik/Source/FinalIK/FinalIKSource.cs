@@ -61,16 +61,30 @@ namespace BBBNexus
                 case IKTarget.LeftHand:
                     if (_fbbik != null)
                     {
+                        // FinalIK 更推荐使用 effector.target（可同时驱动位置/旋转），避免只写 position 导致旋转/后处理脚本不生效。
                         _fbbik.solver.leftHandEffector.target = targetTransform;
+                        if (targetTransform != null)
+                        {
+                            _fbbik.solver.leftHandEffector.position = targetTransform.position;
+                            //_fbbik.solver.leftHandEffector.rotation = targetTransform.rotation;
+                        }
                         _fbbik.solver.leftHandEffector.positionWeight = weight;
+                       // _fbbik.solver.leftHandEffector.rotationWeight = weight;
                     }
                     break;
 
                 case IKTarget.RightHand:
                     if (_fbbik != null)
                     {
+                        // 修复：这里原本错误地写成了 leftHandEffector.position，导致右手目标更新时覆盖左手。
                         _fbbik.solver.rightHandEffector.target = targetTransform;
+                        if (targetTransform != null)
+                        {
+                            _fbbik.solver.rightHandEffector.position = targetTransform.position;
+                            //_fbbik.solver.rightHandEffector.rotation = targetTransform.rotation;
+                        }
                         _fbbik.solver.rightHandEffector.positionWeight = weight;
+                        //_fbbik.solver.rightHandEffector.rotationWeight = weight;
                     }
                     break;
 
@@ -124,16 +138,22 @@ namespace BBBNexus
                 case IKTarget.LeftHand:
                     if (_fbbik != null)
                     {
+                        _fbbik.solver.leftHandEffector.target = null;
                         _fbbik.solver.leftHandEffector.position = position;
+                        //_fbbik.solver.leftHandEffector.rotation = rotation;
                         _fbbik.solver.leftHandEffector.positionWeight = weight;
+                        //_fbbik.solver.leftHandEffector.rotationWeight = weight;
                     }
                     break;
 
                 case IKTarget.RightHand:
                     if (_fbbik != null)
                     {
+                        _fbbik.solver.rightHandEffector.target = null;
                         _fbbik.solver.rightHandEffector.position = position;
+                        //_fbbik.solver.rightHandEffector.rotation = rotation;
                         _fbbik.solver.rightHandEffector.positionWeight = weight;
+                       // _fbbik.solver.rightHandEffector.rotationWeight = weight;
                     }
                     break;
             }
@@ -148,7 +168,7 @@ namespace BBBNexus
                     if (_fbbik != null)
                     {
                         _fbbik.solver.leftHandEffector.positionWeight = weight;
-                        _fbbik.solver.leftHandEffector.rotationWeight = weight;
+                        //_fbbik.solver.leftHandEffector.rotationWeight = weight;
                     }
                     break;
 
@@ -156,7 +176,7 @@ namespace BBBNexus
                     if (_fbbik != null)
                     {
                         _fbbik.solver.rightHandEffector.positionWeight = weight;
-                        _fbbik.solver.rightHandEffector.rotationWeight = weight;
+                        //_fbbik.solver.rightHandEffector.rotationWeight = weight;
                     }
                     break;
 

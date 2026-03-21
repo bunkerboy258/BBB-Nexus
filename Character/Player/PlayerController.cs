@@ -37,6 +37,7 @@ namespace BBBNexus
 
         [Header("--- 表现与挂点 ---")]
         public Transform WeaponContainer;
+        public Transform LeftHandBone;
         public Transform RightHandBone;
         public Animator animator;
 

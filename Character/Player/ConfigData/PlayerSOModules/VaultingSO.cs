@@ -65,5 +65,15 @@ namespace BBBNexus
 
         [Tooltip("高翻越使用的带根运动的翻越动画数据 通常比低翻越要花的时间更长")]
         public WarpedMotionData highVaultAnim;
+
+        [Header("IK 偏移 (Hand IK Offsets) - 以 ledge 朝向为基准的本地偏移，可以用来微调握点位置/朝向")]
+        [Tooltip("左手 IK 目标在 ledge 局部空间下的偏移（以 ledge 朝向/竖直为基准）")]
+        public Vector3 LeftHandIKOffset = Vector3.zero;
+
+        [Tooltip("右手 IK 目标在 ledge 局部空间下的偏移（以 ledge 朝向/竖直为基准）")]
+        public Vector3 RightHandIKOffset = Vector3.zero;
+
+        [Tooltip("手部朝向的欧拉角偏移（度），将在计算 HandRot 后乘以该偏移）")]
+        public Vector3 HandRotationOffsetEuler = Vector3.zero;
     }
 }
