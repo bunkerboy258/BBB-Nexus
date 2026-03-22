@@ -24977,6 +24977,9 @@ MonoBehaviour:
       m_RotationOrder: 4
     TotalBakedLocalOffset: {x: 0.0055917054, y: 1.8329916, z: 0.66692644}
     ApplyGravity: 0
+  LeftHandIKOffset: {x: 0, y: 0.12, z: 0}
+  RightHandIKOffset: {x: 0, y: 0.12, z: 0}
+  HandRotationOffsetEuler: {x: 0, y: 0, z: 0}
   references:
     version: 2
     RefIds: []
