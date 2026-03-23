@@ -29,13 +29,13 @@ namespace BBBNexus
             if (clip != null)
                 AnimFacade.PlayFullBodyAction(clip, 0.05f);
 
-            // 记录死亡时间，3 秒后触发对象池回收（用于压测场景）
+            // 记录死亡时间 （用于压测场景）
             _deathTimeAt = Time.time + RESPAWN_DELAY;
         }
 
         protected override void UpdateStateLogic()
         {
-            // 死亡 3 秒后，触发对象池回收
+            // 死亡 3 秒后 触发对象池回收(暂时硬编码)
             if (Time.time >= _deathTimeAt)
             {
                 TryRespawnViaPool();
@@ -53,19 +53,17 @@ namespace BBBNexus
         }
 
         /// <summary>
-        /// 尝试通过对象池回收该角色实例（用于压力测试）。
+        /// 尝试通过对象池回收该角色实例（用于压力测试） 
         /// 如果不使用池则退避，由外部手动销毁。
         /// </summary>
         private void TryRespawnViaPool()
         {
             if (SimpleObjectPoolSystem.Shared != null)
             {
-                // 立刻触发 OnDespawned 回调并失活
                 SimpleObjectPoolSystem.Shared.Despawn(player.gameObject);
             }
             else
             {
-                // 兜底：如果没有对象池，用 Destroy
                 UnityEngine.Object.Destroy(player.gameObject);
             }
         }

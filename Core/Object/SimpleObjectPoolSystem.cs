@@ -5,14 +5,10 @@ using UnityEngine;
 namespace BBBNexus
 {
     /// <summary>
-    /// 简洁对象池（非兼容重构版）：
-    /// - 仅负责：预热、Spawn(激活)、Despawn(失活回收)
-    /// - 不处理：父子级、Transform、Rigidbody/Trail 等任何状态
-    /// - 状态复位由对象自身负责：实现 <see cref="IPoolable"/> 在 OnSpawned/OnDespawned 中处理
+    /// 基础对象池
     /// </summary>
     public sealed class SimpleObjectPoolSystem : MonoBehaviour
     {
-
         [Serializable]
         public struct PrewarmEntry
         {
@@ -25,14 +21,11 @@ namespace BBBNexus
         [Header("Prewarm")]
         [SerializeField] private List<PrewarmEntry> _prewarm = new List<PrewarmEntry>();
 
-        // prefab -> inactive instances
-        // 扩容风险：Dictionary/Queue 在增长时会分配新 buckets/数组。
-        // 这里给一个保守的初始容量，减少运行时扩容概率。
+        // 这里给一个保守的初始容量 减少运行时扩容概率
         private readonly Dictionary<GameObject, Queue<GameObject>> _pool = new Dictionary<GameObject, Queue<GameObject>>(16);
-        // instance id -> prefab
         private readonly Dictionary<int, GameObject> _instanceToPrefab = new Dictionary<int, GameObject>(256);
 
-        // GC FIX: GetComponentsInChildren<T>() 每次调用都会返回新数组，必然产生 GC.Alloc。
+        // 注: GetComponentsInChildren<T>() 每次调用都会返回新数组，必然产生 GC.Alloc。
         // 对象池场景下 Spawn/Despawn 属于高频路径，因此对每个实例缓存其 IPoolable[]。
         private readonly Dictionary<int, IPoolable[]> _instancePoolablesCache = new Dictionary<int, IPoolable[]>(256);
 
@@ -73,8 +66,8 @@ namespace BBBNexus
         }
 
         /// <summary>
-        /// Spawn：取出或创建一个实例，并激活。
-        /// 注意：不设置 parent，不改 transform。调用者自行定位。
+        /// Spawn：取出或创建一个实例 并激活
+        /// 注意：不设置 parent 不改 transform 调用者自行定位
         /// </summary>
         public GameObject Spawn(GameObject prefab)
         {
@@ -94,8 +87,8 @@ namespace BBBNexus
         }
 
         /// <summary>
-        /// 尝试回收：如果 instance 不是由对象池创建的实例，则不会警告，返回 false。
-        /// 适用于 VFX 这类“有时被 Instantiate，有时被池 Spawn”的资源。
+        /// 尝试回收：如果 instance 不是由对象池创建的实例 则不会警告 返回 false
+        /// 适用于 VFX 这类“有时被 Instantiate 有时被池 Spawn”的资源
         /// </summary>
         public bool TryDespawn(GameObject instance)
         {
@@ -111,7 +104,7 @@ namespace BBBNexus
         }
 
         /// <summary>
-        /// Despawn：回收一个实例。
+        /// Despawn：回收一个实例
         /// </summary>
         public void Despawn(GameObject instance)
         {
@@ -119,9 +112,8 @@ namespace BBBNexus
 
             if (!_instanceToPrefab.TryGetValue(instance.GetInstanceID(), out var prefab) || prefab == null)
             {
-#if UNITY_EDITOR
                 Debug.LogWarning($"[SimpleObjectPoolSystem] Despawn called for non-pooled instance: {instance.name}", instance);
-#endif
+
                 return;
             }
 
@@ -134,8 +126,8 @@ namespace BBBNexus
         {
             if (!_pool.TryGetValue(prefab, out var q) || q == null)
             {
-                // 扩容风险：Queue 默认容量较小，会随着 Enqueue 扩容分配。
-                // 这里尝试根据预热配置给一个更合理的初始容量。
+                // 扩容风险：Queue 默认容量较小 会随着 Enqueue 扩容分配
+                // 这里尝试根据预热配置给一个更合理的初始容量
                 int initialCapacity = 0;
                 if (_prewarm != null)
                 {
@@ -161,7 +153,7 @@ namespace BBBNexus
             int id = inst.GetInstanceID();
             _instanceToPrefab[id] = prefab;
 
-            // 预缓存 IPoolable[]，避免 Spawn/Despawn 时 GetComponentsInChildren 分配数组。
+            // 预缓存 IPoolable[] 避免 Spawn/Despawn 时 GetComponentsInChildren 分配数组
             CachePoolables(inst);
 
             return inst;
@@ -174,14 +166,11 @@ namespace BBBNexus
             int id = instance.GetInstanceID();
             if (_instancePoolablesCache.ContainsKey(id)) return;
 
-            // GC RISK NOTE: 这个 API 返回数组，会产生一次性分配。
-            // 但这发生在“创建实例时”（低频），可接受；并换取后续 Spawn/Despawn 0 GC。
+            // GC RISK NOTE: 这个 API 返回数组 会产生一次性分配
+            // 但这发生在“创建实例时”（低频） 可接受；并换取后续 Spawn/Despawn 0 GC
             var poolables = instance.GetComponentsInChildren<IPoolable>(true);
             _instancePoolablesCache[id] = poolables;
 
-#if UNITY_EDITOR
-            // Debug.Log($"[GC-RISK FIXED] Cached IPoolable[] for instance {instance.name} ({id}) to avoid per-spawn allocations.");
-#endif
         }
 
         private void InternalSpawn(GameObject instance, bool callCallbacks)

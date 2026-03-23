@@ -34,7 +34,7 @@ namespace BBBNexus
             _aimIntentProcessor = new AimIntentProcessor(_runtimeData);
             _locomotionIntentProcessor = new LocomotionIntentProcessor(_runtimeData, _config);
             _jumpOrVaultIntentProcessor = new JumpOrVaultIntentProcessor(_runtimeData, _config, player.transform);
-            _eojIntentProcessor = new EojIntentProcessor(_runtimeData);
+            _eojIntentProcessor = new EojIntentProcessor(_runtimeData, _inputPipeline);
             _hotbarIntentProcessor = new HotbarIntentProcessor(_runtimeData);
             _actionIntentProcessor = new ActionIntentProcessor(_runtimeData);
 
@@ -43,7 +43,7 @@ namespace BBBNexus
         }
 
 
-        // 高频热点 翻译机集群遍历
+        // 翻译机集群遍历
         public void UpdateIntentProcessors()
         {
             // 注:ref readonly 的语义上只读引用 让编译器强制禁止在 Processor 内部对 inputSnapshot 的任何修改行为

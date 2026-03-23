@@ -180,20 +180,20 @@ namespace BBBNexus
     /// </summary>
     public enum LocomotionState
     {
-        Idle = 0,   // 静止待机
-        Walk = 1,   // 行走 低速
-        Jog = 2,    // 慢跑 中速
-        Sprint = 3, // 冲刺 高速
+        Idle = 0, 
+        Walk = 1, 
+        Jog = 2,
+        Sprint = 3,
     }
 
     /// <summary>
-    /// 二段跳的方向分类 决定空中第二次起跳的轨迹
+    /// 二段跳的方向分类 决定空中第二次起跳的轨迹(已经废弃二段跳多态 向后兼容)
     /// </summary>
     public enum DoubleJumpDirection
     {
-        Up = 0,   // 竖直向上跳
-        Left = 1, // 向左跳
-        Right = 2, // 向右跳
+        Up = 0,  
+        Left = 1,
+        Right = 2,
     }
 
     #endregion
@@ -214,7 +214,7 @@ namespace BBBNexus
         [Tooltip("墙面法线方向 用于计算IK手部的朝向")]
         public Vector3 WallNormal;
 
-        [Tooltip("墙的高度 米 用于选择低翻越还是高翻越")]
+        [Tooltip("墙的高度  用于选择低翻越还是高翻越")]
         public float Height;
 
         [Tooltip("墙顶的着陆点 世界坐标 角色翻过去后会落在这个位置")]

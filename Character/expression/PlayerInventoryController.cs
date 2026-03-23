@@ -41,7 +41,11 @@ namespace BBBNexus
         public void Update()
         {
             if (_data == null) return;
-            if (_data.Arbitration.BlockInventory) return;
+            if (_data.Arbitration.BlockInventory)
+            {
+                Unequip();
+                return;
+            }
 
             if (_data.WantsToEquipHotbarIndex != -1)
             {

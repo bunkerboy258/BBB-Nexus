@@ -54,26 +54,26 @@ namespace BBBNexus
         // 核心调度方法 处理物品的装载与控制权移交
         private void SyncEquipmentFromBlackboard()
         {
-            // 1. 剥夺旧武器的控制权
+            // 剥夺旧武器的控制权
             _currentItem?.OnForceUnequip();
 
-            // 2. 更新缓存
+            // 更新缓存
             _cachedInstance = player.RuntimeData.CurrentItem;
 
             if (_cachedInstance != null)
             {
-                // 3. 命令装配厂干活 打印模型 注入实例数据
+                // 打印模型 注入实例数据
                 player.EquipmentDriver.EquipItem(_cachedInstance);
 
-                // 4. 拿到刚造出来的物品的最高权限
+                // 拿到刚造出来的物品的最高权限
                 _currentItem = player.EquipmentDriver.CurrentItemDirector;
 
-                // 5. 下达开工命令 武器会在这里播放拔枪动画 宣告IK主权
+                // 正式激活物品控制 初始化物品逻辑
                 _currentItem?.OnEquipEnter(player);
             }
             else
             {
-                // 玩家把枪收起来了 销毁模型
+                // 销毁模型
                 player.EquipmentDriver.UnequipCurrentItem();
                 _currentItem = null;
             }

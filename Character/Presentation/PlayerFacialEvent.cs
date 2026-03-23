@@ -13,5 +13,11 @@ namespace BBBNexus
         Land,
         Hurt,
         Death,
+
+        // 快捷表情（按键 6789）
+        QuickExpression1,
+        QuickExpression2, 
+        QuickExpression3,
+        QuickExpression4,  
     }
 }

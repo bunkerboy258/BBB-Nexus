@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   MaxHealth: 100
   DeathAnim: {fileID: 7400020, guid: fa608feaf64a07040bef63f640abf835, type: 3}
-  LODCheckInterval: 0.8
+  LODCheckInterval: 0.3
   MediumLODDistance: 30
-  LowLODDistance: 40
+  LowLODDistance: 70
   LookSensitivity: {x: 10, y: 10}
   PitchLimits: {x: -70, y: 70}
   RotationSmoothTime: 0.12
