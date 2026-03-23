@@ -2,9 +2,10 @@ using UnityEngine;
 
 namespace BBBNexus
 {
-    // 角色运动驱动器 负责解析黑板意图 并利用烘焙器数据执行物理位移 
-    // 这是一个精简后的版本 之前由于长期打补丁和维护 已经变成了屎山
-    // 如果还要加新的驱动方式 请保持模块化和清晰的逻辑分层 
+    /// <summary>
+    /// 运动驱动器：将黑板(输入/动画曲线/扭曲数据)转换为 CharacterController.Move。
+    /// 优化目标：减少 Unity 属性开销( eulerAngles/velocity/materialized quaternion )，并保证每帧重力只积分一次。
+    /// </summary>
     public class MotionDriver
     {
         #region Dependencies
@@ -15,20 +16,27 @@ namespace BBBNexus
         private readonly Transform _transform;
         #endregion
 
-        #region Isolated Contexts (状态隔离容器)
+        #region Contexts
 
-        // 输入驱动上下文
         private struct LocomotionCtx
         {
             public bool WasAiming;
+
+            // 平滑速度(标量)
             public float SmoothSpeed;
             public float SpeedVelocity;
+
+            // 用于检测瞄准形态下反向切输入，避免 SmoothDamp 造成“拖拽”
             public Vector3 LastAimMoveDir;
 
-            public void ResetSpeed() { SmoothSpeed = 0f; LastAimMoveDir = Vector3.zero; }
+            public void ResetSpeed()
+            {
+                SmoothSpeed = 0f;
+                SpeedVelocity = 0f;
+                LastAimMoveDir = Vector3.zero;
+            }
         }
 
-        // 曲线驱动上下文
         private struct CurveCtx
         {
             public float LastAngle;
@@ -36,10 +44,13 @@ namespace BBBNexus
             public MotionType? LastMotionType;
             public bool DidAlignOnMixed;
 
-            public void Reset() { LastAngle = 0f; IsInitialized = false; }
+            public void Reset()
+            {
+                LastAngle = 0f;
+                IsInitialized = false;
+            }
         }
 
-        // 运动扭曲上下文
         private struct WarpCtx
         {
             public WarpedMotionData Data;
@@ -50,12 +61,25 @@ namespace BBBNexus
             public Vector3 CompensationVel;
 
             public bool IsActive => Data != null;
-            public void Clear() { Data = null; Targets = null; CompensationVel = Vector3.zero; }
+
+            public void Clear()
+            {
+                Data = null;
+                Targets = null;
+                CompensationVel = Vector3.zero;
+                CurrentIndex = 0;
+                SegmentStartTime = 0f;
+                SegmentStartPosition = Vector3.zero;
+            }
         }
 
         private LocomotionCtx _loco;
         private CurveCtx _curve;
         private WarpCtx _warp;
+
+        // 单帧重力缓存：避免同帧多处调用重复积分 VerticalVelocity
+        private int _gravityFrame = -1;
+        private Vector3 _cachedGravity;
 
         #endregion
 
@@ -70,30 +94,30 @@ namespace BBBNexus
             _loco.WasAiming = _data.IsAiming;
         }
 
-        #region Public API: Core Motion Updates
+        #region Public API
 
         public void UpdateGravityOnly()
         {
-            Vector3 verticalVelocity = CalculateGravity();
-            _cc.Move(verticalVelocity * Time.deltaTime);
+            Vector3 vv = GetGravityThisFrame();
+            _cc.Move(vv * Time.deltaTime);
             _data.CurrentSpeed = _cc.velocity.magnitude;
         }
 
         public void UpdateMotion(MotionClipData clipData, float stateTime)
         {
-            HandleAimModeTransition();
+            HandleAimModeTransitionIfNeeded();
             AutoHandleCurveDrivenEnter(clipData, stateTime);
 
-            Vector3 velocity = clipData == null
-                ? CalculateInputDrivenVelocity()
+            Vector3 hv = clipData == null
+                ? CalculateInputDrivenVelocity(1f)
                 : CalculateClipDrivenVelocity(clipData, stateTime);
 
-            ExecuteMovement(velocity);
+            ExecuteMovement(hv);
         }
 
         public void UpdateLocomotionFromInput(float speedMult = 1f)
         {
-            HandleAimModeTransition();
+            HandleAimModeTransitionIfNeeded();
             ExecuteMovement(CalculateInputDrivenVelocity(speedMult));
         }
 
@@ -108,11 +132,12 @@ namespace BBBNexus
 
         #endregion
 
-        #region Public API: Motion Warping
+        #region Warp API
 
         public void InitializeWarpData(WarpedMotionData data, Vector3[] targets)
         {
-            if (data == null || data.WarpPoints.Count == 0 || targets == null || targets.Length != data.WarpPoints.Count)
+            if (data == null || data.WarpPoints == null || data.WarpPoints.Count == 0 ||
+                targets == null || targets.Length != data.WarpPoints.Count)
             {
                 Debug.LogError("运动扭曲数据初始化失败 参数不匹配");
                 return;
@@ -121,6 +146,7 @@ namespace BBBNexus
             _warp.Data = data;
             _warp.Targets = new Vector3[targets.Length];
 
+            // 目标偏移：按角色根空间转换到世界。
             for (int i = 0; i < targets.Length; i++)
             {
                 Vector3 worldOffset = _transform.TransformDirection(_warp.Data.WarpPoints[i].TargetPositionOffset);
@@ -150,11 +176,14 @@ namespace BBBNexus
         {
             if (!_warp.IsActive) return;
 
-            _loco.SmoothSpeed = new Vector3(_cc.velocity.x, 0f, _cc.velocity.z).magnitude;
+            // warp 期间不使用普通平滑(直接读当前水平速度只是为了保持数据一致)
+            Vector3 v = _cc.velocity;
+            _loco.SmoothSpeed = new Vector3(v.x, 0f, v.z).magnitude;
             _loco.SpeedVelocity = 0f;
 
             CheckAndAdvanceWarpSegment(normalizedTime);
 
+            // 本地速度曲线 -> 世界
             Vector3 localVel = new Vector3(
                 _warp.Data.LocalVelocityX.Evaluate(normalizedTime),
                 _warp.Data.LocalVelocityY.Evaluate(normalizedTime),
@@ -165,17 +194,19 @@ namespace BBBNexus
 
             if (_warp.Data.ApplyGravity)
             {
-                finalVelocity += CalculateGravity();
+                finalVelocity += GetGravityThisFrame();
             }
             else
             {
-                _data.IsGrounded = _cc.isGrounded; // 仅同步数据
+                _data.IsGrounded = _cc.isGrounded;
             }
 
             float rotVelY = _warp.Data.LocalRotationY.Evaluate(normalizedTime);
 
             _cc.Move(finalVelocity * Time.deltaTime);
-            _transform.Rotate(0f, rotVelY * Time.deltaTime, 0f, Space.World);
+            if (Mathf.Abs(rotVelY) > 0.0001f)
+                _transform.Rotate(0f, rotVelY * Time.deltaTime, 0f, Space.World);
+
             _data.CurrentSpeed = _cc.velocity.magnitude;
         }
 
@@ -183,12 +214,12 @@ namespace BBBNexus
 
         #endregion
 
-        #region Internal Logic: Velocity Calculation
+        #region Core Movement
 
         private void ExecuteMovement(Vector3 horizontalVelocity)
         {
-            Vector3 verticalVelocity = CalculateGravity();
-            _cc.Move((horizontalVelocity + verticalVelocity) * Time.deltaTime);
+            Vector3 vv = GetGravityThisFrame();
+            _cc.Move((horizontalVelocity + vv) * Time.deltaTime);
             _data.CurrentSpeed = _cc.velocity.magnitude;
         }
 
@@ -203,23 +234,26 @@ namespace BBBNexus
                 return CalculateCurveVelocity(clipData, stateTime);
             }
 
+            // Mixed 从曲线段切到输入段：只对齐一次
             if (clipData.Type == MotionType.Mixed && !_curve.DidAlignOnMixed)
             {
                 AlignAndResetForInputTransition();
                 _curve.DidAlignOnMixed = true;
             }
 
-            return CalculateInputDrivenVelocity();
+            return CalculateInputDrivenVelocity(1f);
         }
 
-        private Vector3 CalculateInputDrivenVelocity(float speedMult = 1f)
+        private Vector3 CalculateInputDrivenVelocity(float speedMult)
         {
-            return _data.IsAiming ? CalculateAimVelocity(speedMult) : CalculateFreeLookVelocity(speedMult);
+            return _data.IsAiming
+                ? CalculateAimVelocity(speedMult)
+                : CalculateFreeLookVelocity(speedMult);
         }
 
         #endregion
 
-        #region Internal Logic: Specific Movement Modes
+        #region Movement Modes
 
         private Vector3 CalculateFreeLookVelocity(float speedMult)
         {
@@ -227,20 +261,21 @@ namespace BBBNexus
 
             if (moveDir.sqrMagnitude < 0.0001f)
             {
-                _data.CurrentYaw = _transform.eulerAngles.y;
+                // 避免 eulerAngles 多次读取，空输入时 CurrentYaw 维持最新值即可
                 _loco.SmoothSpeed = 0f;
                 return Vector3.zero;
             }
 
             float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
-            ApplySmoothRotation(targetYaw, _config.Core.RotationSmoothTime);
+            ApplySmoothYaw(targetYaw, _config.Core.RotationSmoothTime);
 
-            return CalculateSmoothedVelocity(moveDir, false, speedMult);
+            return CalculateSmoothedVelocity(moveDir, isAiming: false, speedMult);
         }
 
-        private Vector3 CalculateAimVelocity(float speedMult = 1f)
+        private Vector3 CalculateAimVelocity(float speedMult)
         {
-            ApplySmoothRotation(_data.AuthorityYaw, _config.Aiming.AimRotationSmoothTime);
+            // 瞄准模式：朝权威 yaw 转向
+            ApplySmoothYaw(_data.AuthorityYaw, _config.Aiming.AimRotationSmoothTime);
 
             Vector2 input = _data.MoveInput;
             if (input.sqrMagnitude < 0.001f)
@@ -249,23 +284,37 @@ namespace BBBNexus
                 return Vector3.zero;
             }
 
-            // 利用四元数旋转代替繁琐的 Right/Forward 向量投射，数学等价且性能更高
-            Vector3 moveDir = (Quaternion.Euler(0, _transform.eulerAngles.y, 0) * new Vector3(input.x, 0f, input.y)).normalized;
+            // 平面 forward/right 投影：避免 Quaternion.Euler + eulerAngles
+            Vector3 f = _transform.forward;
+            f.y = 0f;
+            float fMag = f.magnitude;
+            if (fMag > 0.0001f) f /= fMag;
 
-            if (_loco.LastAimMoveDir.sqrMagnitude > 0.1f && Vector3.Dot(moveDir, _loco.LastAimMoveDir) < 0f)
+            Vector3 r = _transform.right;
+            r.y = 0f;
+            float rMag = r.magnitude;
+            if (rMag > 0.0001f) r /= rMag;
+
+            Vector3 move = (r * input.x + f * input.y);
+            if (move.sqrMagnitude > 0.0001f) move.Normalize();
+
+            // 反向切输入，直接清零 SmoothDamp 状态
+            if (_loco.LastAimMoveDir.sqrMagnitude > 0.1f && Vector3.Dot(move, _loco.LastAimMoveDir) < 0f)
             {
                 _loco.SmoothSpeed = 0f;
                 _loco.SpeedVelocity = 0f;
             }
 
-            _loco.LastAimMoveDir = moveDir;
-            return CalculateSmoothedVelocity(moveDir, true, speedMult);
+            _loco.LastAimMoveDir = move;
+            return CalculateSmoothedVelocity(move, isAiming: true, speedMult);
         }
 
         private Vector3 CalculateCurveVelocity(MotionClipData data, float time)
         {
-            float curveAngle = data.RotationCurve.Evaluate(time * data.PlaybackSpeed);
+            float t = time * data.PlaybackSpeed;
 
+            // 旋转曲线：用 deltaAngle 推进
+            float curveAngle = data.RotationCurve.Evaluate(t);
             if (!_curve.IsInitialized)
             {
                 _curve.LastAngle = curveAngle;
@@ -276,19 +325,20 @@ namespace BBBNexus
             _curve.LastAngle = curveAngle;
 
             if (Mathf.Abs(deltaAngle) > 0.0001f)
-            {
                 _transform.Rotate(0f, deltaAngle, 0f, Space.World);
-            }
 
+            // 动画驱动阶段：仍同步 CurrentYaw，供其他系统读取
             _data.CurrentYaw = _transform.eulerAngles.y;
 
-            float speed = data.SpeedCurve.Evaluate(time * data.PlaybackSpeed);
+            float speed = data.SpeedCurve.Evaluate(t);
             Vector3 localDir = data.TargetLocalDirection;
 
             if (localDir.sqrMagnitude > 0.0001f)
             {
-                // 使用基于平面的快速转换
-                Vector3 worldDir = _transform.TransformDirection(localDir.SetY(0)).normalized;
+                // 仅平面转换
+                Vector3 worldDir = _transform.TransformDirection(localDir.SetY(0f));
+                worldDir.y = 0f;
+                if (worldDir.sqrMagnitude > 0.0001f) worldDir.Normalize();
                 return worldDir * speed;
             }
 
@@ -297,13 +347,21 @@ namespace BBBNexus
 
         #endregion
 
-        #region Internal Helpers
+        #region Helpers
 
-        private void ApplySmoothRotation(float targetYaw, float smoothTime)
+        private void ApplySmoothYaw(float targetYaw, float smoothTime)
         {
-            float smoothedYaw = Mathf.SmoothDampAngle(_transform.eulerAngles.y, targetYaw, ref _data.RotationVelocity, smoothTime);
-            _transform.rotation = Quaternion.Euler(0f, smoothedYaw, 0f);
-            _data.CurrentYaw = smoothedYaw;
+            // 用 CurrentYaw 做权威 yaw，减少 eulerAngles 读取次数
+            float currentYaw = _data.CurrentYaw;
+            if (currentYaw == 0f)
+            {
+                // 首帧或外部未初始化时，兜底读一次
+                currentYaw = _transform.eulerAngles.y;
+            }
+
+            float smoothed = Mathf.SmoothDampAngle(currentYaw, targetYaw, ref _data.RotationVelocity, smoothTime);
+            _transform.rotation = Quaternion.Euler(0f, smoothed, 0f);
+            _data.CurrentYaw = smoothed;
         }
 
         private Vector3 CalculateSmoothedVelocity(Vector3 moveDir, bool isAiming, float speedMult)
@@ -311,7 +369,8 @@ namespace BBBNexus
             float baseSpeed = GetBaseSpeed(_data.CurrentLocomotionState, isAiming);
             if (!_data.IsGrounded) baseSpeed *= _config.Core.AirControl;
 
-            _loco.SmoothSpeed = Mathf.SmoothDamp(_loco.SmoothSpeed, baseSpeed * speedMult, ref _loco.SpeedVelocity, _config.Core.MoveSpeedSmoothTime);
+            float targetSpeed = baseSpeed * speedMult;
+            _loco.SmoothSpeed = Mathf.SmoothDamp(_loco.SmoothSpeed, targetSpeed, ref _loco.SpeedVelocity, _config.Core.MoveSpeedSmoothTime);
             return moveDir * _loco.SmoothSpeed;
         }
 
@@ -323,32 +382,48 @@ namespace BBBNexus
             _ => 0f
         };
 
-        private Vector3 CalculateGravity()
+        /// <summary>
+        /// 获取本帧重力(只积分一次)。
+        /// </summary>
+        private Vector3 GetGravityThisFrame()
         {
+            int frame = Time.frameCount;
+            if (_gravityFrame == frame) return _cachedGravity;
+            _gravityFrame = frame;
+
             _data.IsGrounded = _cc.isGrounded;
 
-            _data.VerticalVelocity = (_data.IsGrounded && _data.VerticalVelocity < 0)
-                ? _config.Core.ReboundForce
-                : _data.VerticalVelocity + _config.Core.Gravity * Time.deltaTime;
+            // grounded 且向下速度为负：回弹到小负值/贴地力
+            if (_data.IsGrounded && _data.VerticalVelocity < 0f)
+                _data.VerticalVelocity = _config.Core.ReboundForce;
+            else
+                _data.VerticalVelocity += _config.Core.Gravity * Time.deltaTime;
 
-            return new Vector3(0f, _data.VerticalVelocity, 0f);
+            _cachedGravity = new Vector3(0f, _data.VerticalVelocity, 0f);
+            return _cachedGravity;
         }
 
-        private void HandleAimModeTransition()
+        private void HandleAimModeTransitionIfNeeded()
         {
             if (_data.IsAiming == _loco.WasAiming) return;
 
+            // 形态切换：清理旋转与速度平滑状态
             _data.RotationVelocity = 0f;
             _loco.LastAimMoveDir = Vector3.zero;
+            _loco.SpeedVelocity = 0f;
             _loco.WasAiming = _data.IsAiming;
         }
 
         private void AutoHandleCurveDrivenEnter(MotionClipData clipData, float stateTime)
         {
             MotionType? current = clipData?.Type;
-            bool isCurvePhase = current == MotionType.CurveDriven || (current == MotionType.Mixed && stateTime < clipData?.RotationFinishedTime);
-            bool wasCurveLogic = _curve.LastMotionType == MotionType.CurveDriven || _curve.LastMotionType == MotionType.Mixed;
+            bool isCurvePhase = current == MotionType.CurveDriven ||
+                                (current == MotionType.Mixed && stateTime < clipData?.RotationFinishedTime);
 
+            bool wasCurveLogic = _curve.LastMotionType == MotionType.CurveDriven ||
+                                 _curve.LastMotionType == MotionType.Mixed;
+
+            // 进入曲线段：重置曲线内部状态
             if (isCurvePhase && (!wasCurveLogic || !_curve.IsInitialized))
             {
                 _curve.Reset();
@@ -361,6 +436,7 @@ namespace BBBNexus
 
         private void AlignAndResetForInputTransition()
         {
+            // Mixed 切换输入段：清理旋转速度，避免 SmoothDampAngle 残留
             _data.RotationVelocity = 0f;
             _data.CurrentYaw = _transform.eulerAngles.y;
             _curve.IsInitialized = false;
@@ -368,7 +444,7 @@ namespace BBBNexus
 
         #endregion
 
-        #region Motion Warping Helpers
+        #region Warp helpers
 
         private void CheckAndAdvanceWarpSegment(float normalizedTime)
         {

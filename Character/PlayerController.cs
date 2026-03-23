@@ -28,8 +28,10 @@ namespace BBBNexus
         public AnimationFacadeBase AnimationFacadeRef;
         [Tooltip("IK 目标源 - 可拖拽赋值任何继承 PlayerIKSourceBase 的组件")]
         public PlayerIKSourceBase IKSource;
-        [Tooltip("用于播放角色音效的 AudioSource（建议关闭 Loop）。")]
+        [Tooltip("用于播放角色音效的 AudioSource 建议关闭 Loop")]
         public AudioSource SfxSource;
+        [Tooltip("aniamncercomponet也记得要引用角色animator")]
+        public Animator animator;
 
         [Header("--- 核心配置 ---")]
         public PlayerSO Config;
@@ -37,9 +39,11 @@ namespace BBBNexus
 
         [Header("--- 表现与挂点 ---")]
         public Transform WeaponContainer;
-        public Transform LeftHandBone;
-        public Transform RightHandBone;
-        public Animator animator;
+        public Transform LeftHandBone { get; private set; }
+        public Transform RightHandBone { get; private set; }
+        public Transform LeftFootBone { get; private set; }
+        public Transform RightFootBone { get; private set; }
+
 
         [Header("--- 调试选项 ---")]
         public EquippableItemSO DefaultEquipment1;
@@ -93,6 +97,11 @@ namespace BBBNexus
             animator = GetComponent<Animator>();
             Animancer = GetComponent<AnimancerComponent>();
             CharController = GetComponent<CharacterController>();
+
+            LeftHandBone=animator.GetBoneTransform(HumanBodyBones.LeftHand);
+            RightHandBone=animator.GetBoneTransform(HumanBodyBones.RightHand);
+            LeftFootBone=animator.GetBoneTransform(HumanBodyBones.LeftFoot);
+            RightFootBone=animator.GetBoneTransform(HumanBodyBones.RightFoot);
 
             // 统一的面板依赖注入检查 失败直接抛出异常
             try
@@ -178,7 +187,7 @@ namespace BBBNexus
 
         private void Start()
         {
-            // 非池化使用方式：Start 会触发一次 Boot。
+            // 非池化使用触发一次Boot
             BootIfNeeded();
         }
 

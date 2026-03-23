@@ -35,8 +35,8 @@ namespace BBBNexus
                     var animator = player.animator;
                     if (animator != null)
                     {
-                        var left = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
-                        var right = animator.GetBoneTransform(HumanBodyBones.RightFoot);
+                        var left = player.LeftFootBone;
+                        var right = player.RightFootBone;
 
                         if (left != null && right != null)
                         {

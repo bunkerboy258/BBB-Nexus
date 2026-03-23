@@ -162,12 +162,7 @@ namespace BBBNexus
             // 对象池失活：Transform 仍存在但 gameObject.activeInHierarchy=false。
             Transform current = _data.CurrentAimReference;
 
-            bool isInvalid = current == null ||
-                            !current ||
-                            current.gameObject == null ||
-                            !current.gameObject.activeInHierarchy;
-
-            if (!isInvalid) return;
+            if (_data.CurrentAimReference != null) return;
 
             // 清理黑板，防止后续系统继续写入旧引用。
             _data.CurrentAimReference = null;

@@ -68,64 +68,19 @@ MonoBehaviour:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
-        time: 0.00429371
-        value: 0
-        inSlope: 0
-        outSlope: 0
+        time: 0.0014352531
+        value: -0.00031150086
+        inSlope: -0.0004815851
+        outSlope: -0.0004815851
         tangentMode: 34
         weightedMode: 0
         inWeight: 0
         outWeight: 0.33333334
       - serializedVersion: 3
-        time: 0.10307418
-        value: 0
-        inSlope: 5.453715
-        outSlope: 5.453715
-        tangentMode: 34
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 0.14048983
-        value: 0.40810862
-        inSlope: 7.271797
-        outSlope: 7.271797
-        tangentMode: 34
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 0.2441065
-        value: 0.7848759
-        inSlope: 0.58299613
-        outSlope: 0.58299613
-        tangentMode: 34
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 0.342546
-        value: 0.5417134
-        inSlope: -4.3425817
-        outSlope: -4.3425817
-        tangentMode: 34
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 0.428035
-        value: 0.010400057
-        inSlope: -3.1165195
-        outSlope: -3.1165195
-        tangentMode: 34
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 1.004267
-        value: 0
-        inSlope: -0.018048387
-        outSlope: -0.018048387
+        time: 0.99935913
+        value: -0.0007920861
+        inSlope: -0.0004815851
+        outSlope: -0.0004815851
         tangentMode: 34
         weightedMode: 0
         inWeight: 0.33333334
@@ -11385,64 +11340,19 @@ MonoBehaviour:
       serializedVersion: 2
       m_Curve:
       - serializedVersion: 3
-        time: 0.0014305115
-        value: -0.0047187805
-        inSlope: 0.114872135
-        outSlope: 0.114872135
+        time: 0
+        value: -0.00012207031
+        inSlope: 0.0010037035
+        outSlope: 0.0010037035
         tangentMode: 34
         weightedMode: 0
         inWeight: 0
         outWeight: 0.33333334
       - serializedVersion: 3
-        time: 0.15010354
-        value: 0.012359608
-        inSlope: 3.6860466
-        outSlope: 3.6860466
-        tangentMode: 34
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 0.23359583
-        value: 0.61828166
-        inSlope: 7.036287
-        outSlope: 7.036287
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 0.3211033
-        value: 0.8431845
-        inSlope: 0.014537641
-        outSlope: 0.014537641
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.75805765
-      - serializedVersion: 3
-        time: 0.43935046
-        value: 0.5794213
-        inSlope: -6.920143
-        outSlope: -6.920143
-        tangentMode: 0
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 0.510357
-        value: 0.0025119311
-        inSlope: -4.0697503
-        outSlope: -4.0697503
-        tangentMode: 34
-        weightedMode: 0
-        inWeight: 0.33333334
-        outWeight: 0.33333334
-      - serializedVersion: 3
-        time: 1
-        value: -0.0047187805
-        inSlope: -0.014767314
-        outSlope: -0.014767314
+        time: 1.0007623
+        value: 0.00088239834
+        inSlope: 0.0010037035
+        outSlope: 0.0010037035
         tangentMode: 34
         weightedMode: 0
         inWeight: 0.33333334
@@ -24977,6 +24887,9 @@ MonoBehaviour:
       m_RotationOrder: 4
     TotalBakedLocalOffset: {x: 0.0055917054, y: 1.8329916, z: 0.66692644}
     ApplyGravity: 0
+  LeftHandIKOffset: {x: 0, y: 0, z: 0}
+  RightHandIKOffset: {x: 0, y: 0, z: 0}
+  HandRotationOffsetEuler: {x: 0, y: 0, z: 0}
   references:
     version: 2
     RefIds: []
