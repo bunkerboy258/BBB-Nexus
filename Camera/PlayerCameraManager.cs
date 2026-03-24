@@ -27,13 +27,13 @@ namespace BBBNexus
         public float FreeLookZoomSmoothTime = 0.12f;
 
         [Header("鼠标控制 (运行时)")]
-        [Tooltip("进入运行模式时是否隐藏并锁定鼠标，退出时会自动恢复。发布时建议关闭。")]
+        [Tooltip("进入运行模式时是否隐藏并锁定鼠标 退出时会自动恢复")]
         public bool HideCursorOnPlay = true;
-        [Tooltip("锁定模式：Locked 会锁在窗口中心，Confined 限制在窗口内，None 不锁定")] 
+        [Tooltip("锁定模式：Locked 会锁在窗口中心 Confined 限制在窗口内 None 不锁定")] 
         public CursorLockMode CursorLock = CursorLockMode.Locked;
 
         [Header("准星 (Screen HUD)")]
-        [Tooltip("在屏幕中央显示的准星贴图，仅在运行时绘制。可为空以隐藏。")]
+        [Tooltip("在屏幕中央显示的准星贴图 仅在运行时绘制 可为空以隐藏")]
         public Texture2D CrosshairTexture;
         [Tooltip("是否显示准星（仅影响运行时显示）")]
         public bool ShowCrosshair = true;
@@ -68,7 +68,7 @@ namespace BBBNexus
         {
             if (_player == null) return;
 
-            // 检测瞄准状态切换：进入/退出瞄准时重置目标 FOV，避免瞬移
+            // 检测瞄准状态切换：进入/退出瞄准时重置目标 FOV 避免瞬移
             bool isAiming = _player.RuntimeData.IsAiming;
             if (_freeLookCam != null && isAiming != _wasAiming)
             {
@@ -77,7 +77,7 @@ namespace BBBNexus
             }
             _wasAiming = isAiming;
 
-            // 探索模式滚轮缩放：修改目标 FOV（即时），实际应用采用平滑过渡
+            // 探索模式滚轮缩放：修改目标 FOV（即时） 实际应用采用平滑过渡
             // 仅在非瞄准状态启用 避免与瞄准镜/开火视角冲突
             if (EnableFreeLookZoom && !isAiming && _freeLookCam != null)
             {
@@ -124,7 +124,7 @@ namespace BBBNexus
             GUI.DrawTexture(r, CrosshairTexture);
         }
 
-        // 确保在脚本停用或应用退出时恢复鼠标状态，避免编辑器或系统丢失光标
+        // 确保在脚本停用或应用退出时恢复鼠标状态 避免编辑器或系统丢失光标
         private void OnDisable()
         {
             if (HideCursorOnPlay)

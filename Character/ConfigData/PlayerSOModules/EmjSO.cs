@@ -33,11 +33,11 @@ namespace BBBNexus
         }
 
         [Header("基础表情 (Base Expression)")]
-        [Tooltip("基础表情动画：循环播放，作为常态表情。")]
+        [Tooltip("基础表情动画")]
         public ClipTransition BaseExpression;
 
         [Header("事件表情 (Event Expressions)")]
-        [Tooltip("配置各种表情事件对应的动画。快捷表情对应按键 6789：QuickExpression1、QuickExpression2、QuickExpression3、QuickExpression4")]
+        [Tooltip("配置各种表情事件对应的动画 快捷表情对应按键 6789：QuickExpression1、QuickExpression2、QuickExpression3、QuickExpression4")]
         [SerializeField] private List<EventEntry> _entries = new List<EventEntry>();
 
         private Dictionary<PlayerFacialEvent, ClipTransition> _cache;

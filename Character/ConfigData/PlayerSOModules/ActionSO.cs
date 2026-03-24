@@ -6,7 +6,7 @@ namespace BBBNexus
     [CreateAssetMenu(fileName = "ActionSO", menuName = "BBBNexus/Player/Modules/ActionSO")]
     public sealed class ActionSO : ScriptableObject
     {
-        [Header("8 Actions")]
+        [Header("Actions")]
         public AnimationClip Action1;
         public AnimationClip Action2;
         public AnimationClip Action3;
