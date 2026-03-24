@@ -20,3 +20,6 @@ MonoBehaviour:
     Clips:
     - {fileID: 8300000, guid: 77d421828d1de5f469b0e110b2fcbfd9, type: 3}
     - {fileID: 8300000, guid: e82a0a7cd2d3391438652bb683381702, type: 3}
+  - Event: 4
+    Clips:
+    - {fileID: 8300000, guid: f06180aee7931024a98e488384c7421a, type: 3}

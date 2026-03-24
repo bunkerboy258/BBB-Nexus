@@ -30,37 +30,7 @@ MonoBehaviour:
         _NormalizedTimes: []
         _Callbacks: []
         _Names: []
-      _Clip: {fileID: 7400000, guid: bbf193b2823179a4e816818a3fcb8f9e, type: 2}
-      _NormalizedStartTime: 0
-  - Event: 7
-    Transition:
-      _FadeDuration: 0
-      _Speed: 0
-      _Events:
-        _NormalizedTimes: []
-        _Callbacks: []
-        _Names: []
       _Clip: {fileID: 7400000, guid: cc5a99f7e7d28d748a1ebed0e07c3243, type: 2}
-      _NormalizedStartTime: 0
-  - Event: 8
-    Transition:
-      _FadeDuration: 0
-      _Speed: 0
-      _Events:
-        _NormalizedTimes: []
-        _Callbacks: []
-        _Names: []
-      _Clip: {fileID: 7400000, guid: 5787d191069005545a3beeb823a78dce, type: 2}
-      _NormalizedStartTime: 0
-  - Event: 9
-    Transition:
-      _FadeDuration: 0
-      _Speed: 0
-      _Events:
-        _NormalizedTimes: []
-        _Callbacks: []
-        _Names: []
-      _Clip: {fileID: 7400000, guid: efec564a6d50a6e41921a6abfff4bcca, type: 2}
       _NormalizedStartTime: 0
   references:
     version: 2

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0c806d9ed674334ebf82ea2c74d2e4c, type: 3}
   m_Name: AITacticalConfig_
   m_EditorClassIdentifier: 
-  EngagementRange: 50
+  EngagementRange: 15
   AttackRange: 2
   JumpCooldown: 1.5
   DoubleJumpDelay: 0.35

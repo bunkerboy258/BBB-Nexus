@@ -36,6 +36,9 @@ namespace BBBNexus
 
         private Camera _mainCamera;
 
+
+        private readonly RaycastHit[] _raycastHits = new RaycastHit[1];
+
         private void Awake()
         {
             // 缓存主摄像机 避免每帧查找导致开销
@@ -90,22 +93,15 @@ namespace BBBNexus
             Ray screenRay = _mainCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
             Vector3 finalAimPoint;
 
-            // 执行射线检测 优先使用物理命中点作为瞄准点
-            if (Physics.Raycast(screenRay, out RaycastHit hitInfo, _aimRaycastDistance, _aimCollisionMask))
+            // 执行射线检测（NonAlloc）
+            int hitCount = Physics.RaycastNonAlloc(screenRay, _raycastHits, _aimRaycastDistance, _aimCollisionMask);
+            if (hitCount > 0)
             {
-                // 命中实体：瞄准点即为击中点
-                finalAimPoint = hitInfo.point;
-
-                //if (_debugExecutionOrder)
-                //    Debug.DrawLine(screenRay.origin, hitInfo.point, Color.red);
+                finalAimPoint = _raycastHits[0].point;
             }
             else
             {
-                // 未命中实体：将射线终点作为虚拟瞄准点
                 finalAimPoint = screenRay.GetPoint(_aimRaycastDistance);
-
-                //if (_debugExecutionOrder)
-                //    Debug.DrawLine(screenRay.origin, finalAimPoint, Color.yellow);
             }
 
             // 将计算结果写回黑板 供角色逻辑/IK 使用

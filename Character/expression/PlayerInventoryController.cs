@@ -43,7 +43,7 @@ namespace BBBNexus
             if (_data == null) return;
             if (_data.Arbitration.BlockInventory)
             {
-                Unequip();
+                //Unequip();
                 return;
             }
 

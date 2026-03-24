@@ -52,8 +52,10 @@ namespace BBBNexus
 
             // ============== 持续状态采样 (Held) ==============
             rawData.JumpHeld = jumpAction != null && jumpAction.action.IsPressed();
-            rawData.DodgeHeld = dodgeAction != null && dodgeAction.action.IsPressed();
-            rawData.RollHeld = rollAction != null && rollAction.action.IsPressed();
+
+            rawData.DodgeHeld = dodgeAction != null && dodgeAction.action.WasPressedThisFrame();
+            rawData.RollHeld = rollAction != null && rollAction.action.WasPressedThisFrame();
+
             rawData.SprintHeld = sprintAction != null && sprintAction.action.IsPressed();
             rawData.WalkHeld = walkAction != null && walkAction.action.IsPressed();
             rawData.AimHeld = aimAction != null && aimAction.action.IsPressed();
@@ -66,7 +68,7 @@ namespace BBBNexus
             rawData.Number3Held = number3Action != null && number3Action.action.IsPressed();
             rawData.Number4Held = number4Action != null && number4Action.action.IsPressed();
             rawData.Number5Held = number5Action != null && number5Action.action.IsPressed();
-            rawData.ActionHeld = actionAction != null && actionAction.action.IsPressed(); 
+            rawData.ActionHeld = actionAction != null && actionAction.action.IsPressed();
             rawData.LeftMouseHeld = LeftMouseAction != null && LeftMouseAction.action.IsPressed();
 
             // ============== 瞬间硬件数据  ==============
@@ -85,7 +87,7 @@ namespace BBBNexus
             rawData.Number3JustPressed = number3Action != null && number3Action.action.WasPressedThisFrame();
             rawData.Number4JustPressed = number4Action != null && number4Action.action.WasPressedThisFrame();
             rawData.Number5JustPressed = number5Action != null && number5Action.action.WasPressedThisFrame();
-            rawData.ActionJustPressed = actionAction != null && actionAction.action.WasPressedThisFrame(); // Renamed to ActionJustPressed
+            rawData.ActionJustPressed = actionAction != null && actionAction.action.WasPressedThisFrame(); 
         }
 
         private void ToggleActions(bool enable)

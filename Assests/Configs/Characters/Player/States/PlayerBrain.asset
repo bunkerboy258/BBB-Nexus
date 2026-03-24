@@ -18,7 +18,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 3c1d63d414132e146b7aac65b023801b, type: 2}
   - {fileID: 11400000, guid: 73c010b694b53794c938c0f21087556a, type: 2}
   - {fileID: 11400000, guid: ec5d160a8ef156144bf0339784da1472, type: 2}
-  - {fileID: 11400000, guid: df5e8e5f27b07904995f91cae2b814d5, type: 2}
   - {fileID: 11400000, guid: e175843938ff4694eaab69abd83b16c5, type: 2}
   - {fileID: 11400000, guid: 0bca97d6c18cc4c4b89b6a1982727f9c, type: 2}
   UpperBodyStates: 000000000100000002000000

@@ -7,8 +7,11 @@ namespace BBBNexus
         public ActionArbiter Action { get; private set; }
         public StaminaArbiter Stamina { get; private set; }
 
+        private readonly BBBCharacterController _player;
+
         public ArbiterPipeline(BBBCharacterController player)
         {
+            _player = player;
             LOD = new LODArbiter(player);
             Health = new HealthArbiter(player);
             Action = new ActionArbiter(player);
@@ -20,7 +23,9 @@ namespace BBBNexus
             Action.Arbitrate();
             Health.Arbitrate();
             Stamina.Arbitrate();
-            LOD.Arbitrate();
+
+            if (_player == null || _player.EnableLODArbiter)
+                LOD.Arbitrate();
         }
 
         public void ProcessLateUpdateArbiters()

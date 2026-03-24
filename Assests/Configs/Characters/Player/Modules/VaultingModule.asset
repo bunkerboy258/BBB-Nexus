@@ -15,7 +15,7 @@ MonoBehaviour:
   ObstacleLayers:
     serializedVersion: 2
     m_Bits: 64
-  VaultForwardRayLength: 0.8
+  VaultForwardRayLength: 1
   VaultForwardRayHeight: 1
   VaultDownwardRayOffset: 0.1
   VaultDownwardRayLength: 2

@@ -11372,8 +11372,8 @@ MonoBehaviour:
       m_PostInfinity: 2
       m_RotationOrder: 4
     RotationFinishedTime: 0
-  DoubleJumpForceUp: 8
-  DoubleJumpEmptyHandSprintForceUp: 8
+  DoubleJumpForceUp: 10
+  DoubleJumpEmptyHandSprintForceUp: 10
   DoubleJumpUp:
     Clip:
       _FadeDuration: 0.25
@@ -11387,7 +11387,7 @@ MonoBehaviour:
       _NormalizedStartTime: NaN
     Type: 0
     TargetDuration: 0
-    EndTime: 0
+    EndTime: 0.3
     AllowBakeTargetLocalDirection: 0
     TargetLocalDirection: {x: 0, y: 0, z: 0}
     EndPhase: 1
@@ -14034,7 +14034,7 @@ MonoBehaviour:
       _NormalizedStartTime: NaN
     Type: 0
     TargetDuration: 0
-    EndTime: 0
+    EndTime: 0.3
     AllowBakeTargetLocalDirection: 0
     TargetLocalDirection: {x: 0, y: 0, z: 0}
     EndPhase: 1
@@ -16290,7 +16290,7 @@ MonoBehaviour:
       _NormalizedStartTime: NaN
     Type: 0
     TargetDuration: 0
-    EndTime: 0.1
+    EndTime: 0.2
     AllowBakeTargetLocalDirection: 0
     TargetLocalDirection: {x: 0, y: 0, z: 0}
     EndPhase: 1
@@ -21080,7 +21080,7 @@ MonoBehaviour:
       _NormalizedStartTime: NaN
     Type: 0
     TargetDuration: 0
-    EndTime: 0.2
+    EndTime: 0.1
     AllowBakeTargetLocalDirection: 0
     TargetLocalDirection: {x: 0, y: 0, z: 0}
     EndPhase: 1
@@ -28805,7 +28805,7 @@ MonoBehaviour:
       _NormalizedStartTime: NaN
     Type: 0
     TargetDuration: 0
-    EndTime: 0
+    EndTime: 0.4
     AllowBakeTargetLocalDirection: 0
     TargetLocalDirection: {x: 0, y: 0, z: 0}
     EndPhase: 0

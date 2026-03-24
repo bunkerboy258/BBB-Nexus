@@ -50,6 +50,9 @@ namespace BBBNexus
         public EquippableItemSO DefaultEquipment3;
         public bool statedebug = false;
 
+        [Header("--- 仲裁器开关 ---")]
+        [Tooltip("是否启用 LOD 仲裁器。关闭后将不会进行距离 LOD 降级（不会禁用 Animator，也不会 BlockIK/BlockFacial）。")]
+        public bool EnableLODArbiter = true;
 
         // 运行时核心引用
         public StateMachine StateMachine { get; private set; }

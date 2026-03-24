@@ -37,4 +37,4 @@ MonoBehaviour:
   UpperBodyMask: {fileID: 31900000, guid: abc60a54908d3464ba7ff1de511c05fb, type: 2}
   FacialMask: {fileID: 31900000, guid: ce85f1a061be48946845787c8df0d090, type: 2}
   FallHeightLevelThreshold: 1
-  FallVerticalVelocityThreshold: -4
+  FallVerticalVelocityThreshold: -10
