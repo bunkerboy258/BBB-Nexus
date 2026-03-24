@@ -1,0 +1,4 @@
+*.meta export-ignore
+*.unitypackage export-ignore
+.gitignore export-ignore
+.gitattributes export-ignore
