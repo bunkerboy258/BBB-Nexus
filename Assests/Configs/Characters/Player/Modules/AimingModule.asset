@@ -1,0 +1,118 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87bb221d885f2e644bcec57493e72633, type: 3}
+  m_Name: AimingModule
+  m_EditorClassIdentifier: 
+  AimSensitivity: 1
+  AimWalkSpeed: 1.5
+  AimJogSpeed: 2.5
+  AimSprintSpeed: 4
+  AimRotationSmoothTime: 0.04
+  AimXAnimBlendSmoothTime: 0.25
+  AimYAnimBlendSmoothTime: 0.25
+  AimIkChaseSmoothTime: 0.1
+  AimWalkMixer:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Animations:
+    - {fileID: 3060610079319413300, guid: 54f63a8c6b76f2d4a96eeb0a8cca1779, type: 3}
+    - {fileID: 3060610079319413300, guid: 7941be94d79768f4b96e198c6dd779a8, type: 3}
+    - {fileID: 3060610079319413300, guid: 7941be94d79768f4b96e198c6dd779a8, type: 3}
+    - {fileID: 3060610079319413300, guid: 346dc29a34a0a9b4eac5f51b4460a404, type: 3}
+    - {fileID: 3060610079319413300, guid: a4ee5079e8c35324f8b74b39c2be5019, type: 3}
+    - {fileID: 3060610079319413300, guid: 346dc29a34a0a9b4eac5f51b4460a404, type: 3}
+    - {fileID: 3060610079319413300, guid: 346dc29a34a0a9b4eac5f51b4460a404, type: 3}
+    - {fileID: 3060610079319413300, guid: 7941be94d79768f4b96e198c6dd779a8, type: 3}
+    _Speeds: []
+    _SynchronizeChildren: 
+    _Thresholds:
+    - {x: 0, y: 1}
+    - {x: -0.71, y: 0.71}
+    - {x: -1, y: 0}
+    - {x: -0.71, y: -0.71}
+    - {x: 0, y: -1}
+    - {x: 0.71, y: -0.71}
+    - {x: 1, y: 0}
+    - {x: 0.71, y: 0.71}
+    _DefaultParameter: {x: 0, y: 0}
+    _Type: 0
+    _ParameterNameX: {fileID: 0}
+    _ParameterNameY: {fileID: 0}
+  AimJogMixer:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Animations:
+    - {fileID: 3060610079319413300, guid: 911839c69a7370f479f60dc74791c29c, type: 3}
+    - {fileID: 3060610079319413300, guid: 911839c69a7370f479f60dc74791c29c, type: 3}
+    - {fileID: 3060610079319413300, guid: 911839c69a7370f479f60dc74791c29c, type: 3}
+    - {fileID: 3060610079319413300, guid: d904e0e542872cb43ae5c27d98ba5648, type: 3}
+    - {fileID: 3060610079319413300, guid: d904e0e542872cb43ae5c27d98ba5648, type: 3}
+    - {fileID: 3060610079319413300, guid: d904e0e542872cb43ae5c27d98ba5648, type: 3}
+    - {fileID: 3060610079319413300, guid: 911839c69a7370f479f60dc74791c29c, type: 3}
+    - {fileID: 3060610079319413300, guid: 911839c69a7370f479f60dc74791c29c, type: 3}
+    _Speeds: []
+    _SynchronizeChildren: 
+    _Thresholds:
+    - {x: 0, y: 1}
+    - {x: -0.71, y: 0.71}
+    - {x: -1, y: 0}
+    - {x: -0.71, y: -0.71}
+    - {x: 0, y: -1}
+    - {x: 0.71, y: -0.71}
+    - {x: 1, y: 0}
+    - {x: 0.71, y: 0.71}
+    _DefaultParameter: {x: 0, y: 0}
+    _Type: 0
+    _ParameterNameX: {fileID: 0}
+    _ParameterNameY: {fileID: 0}
+  AimSprintMixer:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Animations:
+    - {fileID: 3060610079319413300, guid: 911839c69a7370f479f60dc74791c29c, type: 3}
+    - {fileID: 3060610079319413300, guid: 911839c69a7370f479f60dc74791c29c, type: 3}
+    - {fileID: 3060610079319413300, guid: 911839c69a7370f479f60dc74791c29c, type: 3}
+    - {fileID: 3060610079319413300, guid: d904e0e542872cb43ae5c27d98ba5648, type: 3}
+    - {fileID: 3060610079319413300, guid: d904e0e542872cb43ae5c27d98ba5648, type: 3}
+    - {fileID: 3060610079319413300, guid: d904e0e542872cb43ae5c27d98ba5648, type: 3}
+    - {fileID: 3060610079319413300, guid: 911839c69a7370f479f60dc74791c29c, type: 3}
+    - {fileID: 3060610079319413300, guid: 911839c69a7370f479f60dc74791c29c, type: 3}
+    _Speeds: []
+    _SynchronizeChildren: 
+    _Thresholds:
+    - {x: 0, y: 1}
+    - {x: -0.71, y: 0.71}
+    - {x: -1, y: 0}
+    - {x: -0.71, y: -0.71}
+    - {x: 0, y: -1}
+    - {x: 0.71, y: -0.71}
+    - {x: 1, y: 0}
+    - {x: 0.71, y: 0.71}
+    _DefaultParameter: {x: 0, y: 0}
+    _Type: 0
+    _ParameterNameX: {fileID: 0}
+    _ParameterNameY: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []

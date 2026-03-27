@@ -1,0 +1,153 @@
+using UnityEngine;
+using Animancer;
+
+namespace BBBNexus
+{
+    // 玩家持续移动循环状态 
+    // 负责持续播放移动循环动画 检测运动状态变化 脚相位切换 以及各类中断条件 
+    public class PlayerMoveLoopState : PlayerBaseState
+    {
+        private LocomotionState _currentLocomotionState;
+
+        private const float LocomotionChangeFadeTime = 0.3f;
+
+        public PlayerMoveLoopState(BBBCharacterController player) : base(player) { }
+
+        // 进入状态 根据运动状态和脚相位选择循环动画
+        public override void Enter()
+        {
+            _currentLocomotionState = data.CurrentLocomotionState;
+
+            var targetClip = SelectLoopAnimationForState(data.CurrentLocomotionState, data.ExpectedFootPhase);
+
+            ChooseOptionsAndPlay(targetClip);
+        }
+
+        // 状态逻辑 检测停止 翻越 跳跃 运动状态切换等
+        protected override void UpdateStateLogic()
+        {
+            if (data.CurrentLocomotionState == LocomotionState.Idle)
+            {
+                // 在从 MoveLoop 退出到 Stop 前，根据动画骨骼判断当前哪只脚在前
+                // 优先通过 Animator 获取左右脚骨骼世界位置，与角色朝向做点乘比较
+                try
+                {
+                    var animator = player.Animator;
+                    if (animator != null)
+                    {
+                        var left = player.LeftFootBone;
+                        var right = player.RightFootBone;
+
+                        if (left != null && right != null)
+                        {
+                            Vector3 toLeft = left.position - player.transform.position;
+                            Vector3 toRight = right.position - player.transform.position;
+                            float leftDot = Vector3.Dot(toLeft, player.transform.forward);
+                            float rightDot = Vector3.Dot(toRight, player.transform.forward);
+
+                            data.ExpectedFootPhase = leftDot > rightDot ? FootPhase.LeftFootDown : FootPhase.RightFootDown;
+                        }
+                    }
+                }
+                catch
+                {
+                    Debug.Log("急停相位判断失败，检查角色的animator和骨骼设置是否正确。默认使用上次记录的脚位。");
+                }
+
+                data.NextStatePlayOptions = config.LocomotionAnims.FadeInStopWalkOptions;
+                switch (data.LastLocomotionState)
+                {
+                    case LocomotionState.Walk:
+                        data.NextStatePlayOptions = config.LocomotionAnims.FadeInStopWalkOptions;
+                        break;
+                    case LocomotionState.Jog:
+                        data.NextStatePlayOptions = config.LocomotionAnims.FadeInStopRunOptions;
+                        break;
+                    case LocomotionState.Sprint:
+                        data.NextStatePlayOptions = config.LocomotionAnims.FadeInStopSprintOptions;
+                        break;
+                    default:
+                        data.NextStatePlayOptions = AnimPlayOptions.Default;
+                        break;
+                }
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerStopState>());
+                return;
+            }
+
+            if (data.WantsToVault)
+            {
+                data.NextStatePlayOptions = config.LocomotionAnims.FadeInVaultOptions;
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerVaultState>());
+                return;
+            }
+
+            if (data.CurrentLocomotionState != _currentLocomotionState)
+            {
+                SwitchLoopAnimation(data.CurrentLocomotionState);
+            }
+
+            UpdateFootPhase();
+        }
+
+        // 物理更新 委托 MotionDriver 根据输入驱动运动
+        public override void PhysicsUpdate()
+        {
+            player.MotionDriver.UpdateLocomotionFromInput();
+        }
+
+        // 退出状态 清理回调 避免残留
+        public override void Exit()
+        {
+            AnimFacade.ClearOnEndCallback();
+        }
+
+        // 根据运动状态和脚相位 选择对应的循环动画
+        private ClipTransition SelectLoopAnimationForState(LocomotionState locomotionState, FootPhase footPhase)
+        {
+            bool isLeft = footPhase == FootPhase.LeftFootDown;
+
+            return locomotionState switch
+            {
+                LocomotionState.Walk => isLeft ? config.LocomotionAnims.WalkLoopFwd_L : config.LocomotionAnims.WalkLoopFwd_R,
+                LocomotionState.Jog => isLeft ? config.LocomotionAnims.JogLoopFwd_L : config.LocomotionAnims.JogLoopFwd_R,
+                LocomotionState.Sprint => isLeft ? config.LocomotionAnims.SprintLoopFwd_L : config.LocomotionAnims.SprintLoopFwd_R,
+                _ => isLeft ? config.LocomotionAnims.JogLoopFwd_L : config.LocomotionAnims.JogLoopFwd_R,
+            };
+        }
+
+        // 切换到新的运动状态循环动画 保持当前播放进度以实现无缝过渡
+        private void SwitchLoopAnimation(LocomotionState newState)
+        {
+            float fromNormalizedTime = AnimFacade.CurrentNormalizedTime;
+
+            _currentLocomotionState = newState;
+
+            var targetClip = SelectLoopAnimationForState(newState, data.ExpectedFootPhase);
+            if (targetClip == null)
+            {
+                Debug.LogWarning($"[MoveLoopState.SwitchLoopAnimation] 运动状态 {newState} 的循环动画未配置");
+                return;
+            }
+
+            var options = AnimPlayOptions.Default;
+            options.FadeDuration = LocomotionChangeFadeTime;
+            options.NormalizedTime = fromNormalizedTime;
+
+            AnimFacade.PlayTransition(targetClip, options);
+        }
+
+        // 根据当前播放动画的时间 计算脚步循环相位 0 1
+        private void UpdateFootPhase()
+        {
+            float normalizedTime = AnimFacade.CurrentNormalizedTime;
+            float cycleTime = normalizedTime - Mathf.Floor(normalizedTime);
+
+            if (data.ExpectedFootPhase == FootPhase.RightFootDown)
+            {
+                cycleTime = (cycleTime + 0.5f) % 1.0f;
+            }
+
+            data.CurrentRunCycleTime = cycleTime;
+        }
+    }
+}

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f0c806d9ed674334ebf82ea2c74d2e4c, type: 3}
+  m_Name: AITacticalConfig_
+  m_EditorClassIdentifier: 
+  EngagementRange: 50
+  AttackRange: 2
+  JumpCooldown: 1.5
+  DoubleJumpDelay: 0.35
+  DodgeTriggerRange: 20
+  DodgeCooldown: 1.2
+  DodgeChance: 0.6
+  DodgeMaxAttempts: 200
+  RollTriggerRange: 20
+  RollCooldown: 4
+  RollChance: 0.25
+  RollMaxAttempts: 2
+  StrafeCooldownMin: 1.5
+  StrafeCooldownMax: 3.5
