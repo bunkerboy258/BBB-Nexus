@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace BBBNexus
 {
@@ -15,10 +15,7 @@ namespace BBBNexus
         // 进入状态 强制上半身动画层权重为1 执行一次强制同步
         public override void Enter()
         {
-            // 持有武器时 强制上半身动画层权重为 1
-            player.AnimFacade.SetLayerWeight(1, 1f, 0.25f);
-
-            // 刚进入状态 执行一次强制同步
+            // 刚进入状态 先同步装备，再根据武器配置设置上半身层权重
             SyncEquipmentFromBlackboard();
         }
 
@@ -64,6 +61,11 @@ namespace BBBNexus
             {
                 // 打印模型 注入实例数据
                 player.EquipmentDriver.EquipItem(_cachedInstance);
+
+                // 根据武器配置设置上半身层权重
+                var itemData = player.EquipmentDriver.CurrentItemData;
+                float targetWeight = itemData != null ? itemData.UpperBodyLayerWeight : 1f;
+                player.AnimFacade.SetLayerWeight(1, targetWeight, 0.25f);
 
                 // 拿到刚造出来的物品的最高权限
                 _currentItem = player.EquipmentDriver.CurrentItemDirector;

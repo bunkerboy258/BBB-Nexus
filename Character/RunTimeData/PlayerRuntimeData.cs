@@ -146,8 +146,10 @@ namespace BBBNexus
         public bool WantsExpression3;
         /// <summary>表情4意图</summary>
         public bool WantsExpression4;
-        /// <summary>是否想执行动作(Action)</summary>
+        /// <summary>主要攻击意图（左键），由武器 Behaviour 读取并驱动连招/射击</summary>
         public bool WantsToAction;
+        /// <summary>情境交互意图（E键）：开门/开箱/爬梯子等，由 ActionController 读取</summary>
+        public bool WantsToInteract;
         #endregion
 
         #region 根运动变形与翻越
@@ -250,6 +252,7 @@ namespace BBBNexus
             WantsHighVault = false;
             WantsToFire = false;
             WantsToAction = false;
+            WantsToInteract = false;
 
             WantsExpression1 = false;
             WantsExpression2 = false;

@@ -3,14 +3,14 @@ using UnityEngine;
 namespace BBBNexus
 {
     /// <summary>
-    /// ÉúÃüÖµÖÙ²ÃÆ÷
+    /// ç”Ÿå‘½å€¼ä»²è£å™¨
     /// </summary>
     public class HealthArbiter
     {
         private readonly BBBCharacterController _player;
         private readonly PlayerRuntimeData _data;
 
-        // »·ĞÎ»º³åÇø (×î¶àÍ¬Ê±ÊÜ»÷ 16 ´Î)
+        // ç¯å½¢ç¼“å†²åŒº (æœ€å¤šåŒæ—¶å—å‡» 16 æ¬¡)
         private DamageRequest[] _damageQueue = new DamageRequest[16];
         private int _head = 0;
         private int _tail = 0;
@@ -22,11 +22,11 @@ namespace BBBNexus
         }
 
         /// <summary>
-        /// ÄÚ²¿µ÷ÓÃµÄÈë¶Ó½Ó¿Ú
+        /// å†…éƒ¨è°ƒç”¨çš„å…¥é˜Ÿæ¥å£
         /// </summary>
         internal void Enqueue(in DamageRequest request)
         {
-            if (_data.IsDead) return; // ·ÀÖ¹±ŞÊ¬:d
+            if (_data.IsDead) return; // é˜²æ­¢é­å°¸:d
 
             _damageQueue[_tail] = request;
             _tail = (_tail + 1) % _damageQueue.Length;
@@ -35,7 +35,7 @@ namespace BBBNexus
         }
 
         /// <summary>
-        /// Ã¿Ö¡Í³Ò»²Ã¾ö
+        /// æ¯å¸§ç»Ÿä¸€è£å†³
         /// </summary>
         public void Arbitrate()
         {
@@ -46,7 +46,7 @@ namespace BBBNexus
                 ref var req = ref _damageQueue[_head];
 
                 float before = _data.CurrentHealth;
-                // ½áËãÉËº¦
+                // ç»“ç®—ä¼¤å®³
                 _data.CurrentHealth -= req.Amount;
 
                 //Debug.Log($"Damage apply amount {req.Amount} hp {before} -> {_data.CurrentHealth}", _player);
@@ -54,7 +54,7 @@ namespace BBBNexus
                 _head = (_head + 1) % _damageQueue.Length;
             }
 
-            // ËÀÍöÅĞ¶¨
+            // æ­»äº¡åˆ¤å®š
             if (_data.CurrentHealth <= 0)
             {
                 _data.CurrentHealth = 0;

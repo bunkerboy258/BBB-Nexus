@@ -41,11 +41,8 @@ namespace BBBNexus
         public void Update()
         {
             if (_data == null) return;
-            if (_data.Arbitration.BlockInventory)
-            {
-                Unequip();
-                return;
-            }
+            // BlockInventory 只阻止切换新装备，不强制卸载当前装备
+            if (_data.Arbitration.BlockInventory) return;
 
             if (_data.WantsToEquipHotbarIndex != -1)
             {

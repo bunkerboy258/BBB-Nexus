@@ -1,0 +1,33 @@
+using Animancer;
+using UnityEngine;
+
+namespace BBBNexus
+{
+    /// <summary>
+    /// 拳头配置。UpperBodyLayerWeight 默认为 0（空手不产生独立上半身姿势）。
+    /// </summary>
+    [CreateAssetMenu(fileName = "FistsSO", menuName = "BBBNexus/Player/Items/FistsSO")]
+    public class FistsSO : EquippableItemSO
+    {
+        [Header("前摇 / 收招")]
+        [Tooltip("首次出拳前的起手式动画，播完后自动触发第一拳。留空则直接出拳")]
+        public ClipTransition EnterStanceAnim;
+
+        [Tooltip("连招结束后的收招动画，播完后回归普通状态。留空则直接结束")]
+        public ClipTransition ExitStanceAnim;
+
+        [Header("连招配置")]
+        [Tooltip("连招动画序列，按顺序播放，长度决定最大连招段数。ClipTransition 支持预览和独立淡入配置")]
+        public ClipTransition[] ComboSequence;
+
+        [Tooltip("连招甜蜜期开启时机（归一化时间 0-1），动画播放到此比例后开始接受续招输入")]
+        [Range(0f, 1f)]
+        public float ComboWindowStart = 0.5f;
+
+        [Tooltip("动画结束后仍可接受续招输入的宽限时间（秒），用于容纳滞后按键")]
+        public float ComboLateBuffer = 0.2f;
+
+        [Tooltip("连招优先级，高于普通移动但低于翻滚/闪避")]
+        public int ComboPriority = 25;
+    }
+}

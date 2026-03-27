@@ -26,7 +26,7 @@ namespace BBBNexus
             
             if (_config == null)
             {
-                Debug.LogWarning("[BBNexus] MeleeRusherBrainÅäÖÃ SO Î´¸³Öµ");
+                Debug.LogWarning("[BBNexus] MeleeRusherBrainé…ç½® SO æœªèµ‹å€¼");
             }
         }
 

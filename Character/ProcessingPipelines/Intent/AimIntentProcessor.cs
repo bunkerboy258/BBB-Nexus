@@ -16,7 +16,7 @@ namespace BBBNexus
         {
             bool isAimHeldNow = input.AimHeld;
             // 检查按住状态或瞬间按下 用于支持连续射击与精确射击
-            bool isFireHeldOrPressed = input.LeftMouseHeld || input.LeftMousePressed;
+            bool isFireHeldOrPressed = input.PrimaryAttackHeld || input.PrimaryAttackPressed;
 
             _data.IsAiming = isAimHeldNow;
             _wasAimHeld = _isAimHeld;

@@ -74,6 +74,21 @@ namespace BBBNexus
         {
             if (_player == null) return;
 
+            // ESC 切换鼠标锁定状态：按下解锁，再次点击窗口重新锁定
+            if (HideCursorOnPlay)
+            {
+                if (Input.GetKeyDown(KeyCode.Escape))
+                {
+                    Cursor.visible = true;
+                    Cursor.lockState = CursorLockMode.None;
+                }
+                else if (Input.GetMouseButtonDown(0) && Cursor.lockState == CursorLockMode.None)
+                {
+                    Cursor.visible = false;
+                    Cursor.lockState = CursorLock;
+                }
+            }
+
             // 检测瞄准状态切换：进入/退出瞄准时重置目标 FOV 避免瞬移
             bool isAiming = _player.RuntimeData.IsAiming;
 #if BBBNEXUS_HAS_CINEMACHINE
