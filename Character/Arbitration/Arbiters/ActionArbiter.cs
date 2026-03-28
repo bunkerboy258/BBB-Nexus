@@ -47,7 +47,13 @@ namespace BBBNexus
             if (request.Priority < currentResistance) return;
 
             // 若clip相同则忽略避免重复Apply
-            if (_data.Override.IsActive && _data.Override.Request.Clip == request.Clip) return;
+            if (_data.Override.IsActive &&
+                _data.Override.Request.Transition == null &&
+                request.Transition == null &&
+                _data.Override.Request.Clip == request.Clip)
+            {
+                return;
+            }
 
             _data.Override.IsActive = true;
             _data.Override.Request = request;

@@ -1,8 +1,8 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BBBNexus
 {
-    // 加农炮行为 负责装备瞄准开火IK后坐力等
+    // 加农炮行为 负责装备瞄准开火 IK 后坐力等
     public class CannonBehaviour : MonoBehaviour, IHoldableItem, IPoolable
     {
         [Header("--- 表现与挂点 ---")]
@@ -30,11 +30,14 @@ namespace BBBNexus
         private float _lastFireTime;
         // 上一帧瞄准状态
         private bool _wasAiming;
-        // IK调度
+        // IK 调度
         private bool _ikEnableScheduled;
         private float _ikEnableTimePoint;
         private bool _ikDisableScheduled;
         private float _ikDisableTimePoint;
+
+        // 武器自知识：当前装备槽位
+        public EquipmentSlot CurrentEquipSlot { get; set; }
 
         // 初始化实例和配置
         public void Initialize(ItemInstance instanceData)
@@ -45,10 +48,11 @@ namespace BBBNexus
             {
                 float interval = _cannonConfig.ShootInterval > 0f ? _cannonConfig.ShootInterval : _cannonConfig.FireRate;
                 _fireRate = Mathf.Max(0.001f, interval);
+                CurrentEquipSlot = _cannonConfig.EquipSlot;
             }
         }
 
-        // 装备并设置IK
+        // 装备并设置 IK
         public void OnEquipEnter(BBBCharacterController player)
         {
             _player = player;
@@ -67,14 +71,13 @@ namespace BBBNexus
                     _player.RuntimeData.WantsLeftHandIK = true;
                 }
             }
-            
-            // ?? 立刻设置 muzzle，不等瞄准时再设置
+
             if (_muzzle != null && _player != null && _player.RuntimeData != null)
             {
                 _player.RuntimeData.CurrentAimReference = _muzzle;
             }
-            
-            float equipAnimDuration = _cannonConfig != null ? _cannonConfig.EquipEndTime : 0.5f;
+
+            float equipAnimDuration = _cannonConfig.EquipEndTime;
             _equipEndTime = Time.time + equipAnimDuration;
             if (_cannonConfig != null && _cannonConfig.EquipAnim != null && _player != null)
             {
@@ -139,7 +142,6 @@ namespace BBBNexus
                     }
                     if (_player != null && _player.RuntimeData != null)
                     {
-                        // ?? 瞄准时只改意图
                         _player.RuntimeData.WantsLookAtIK = true;
                     }
                 }
@@ -151,30 +153,18 @@ namespace BBBNexus
                     }
                     if (_player != null && _player.RuntimeData != null)
                     {
-                        // ?? 仅改意图
                         _player.RuntimeData.WantsLookAtIK = false;
                     }
                 }
                 _wasAiming = isAiming;
             }
-            bool isFiring = _player != null && _player.RuntimeData != null && 
-                           _player.RuntimeData.CurrentItem == _instance && 
-                           _player.RuntimeData.WantsToFire;
+            bool isFiring = _player != null && _player.RuntimeData != null &&
+                           _player.RuntimeData.CurrentItem == _instance &&
+                           _player.RuntimeData.WantsToPrimaryAction;
             if (isAiming && isFiring)
             {
                 TryFire();
             }
-        }
-
-        // 清除玩家的IK引用
-        private void ClearPlayerIKIfOwned()
-        {
-            if (_player == null || _player.RuntimeData == null) return;
-
-            _player.RuntimeData.LeftHandGoal = null;
-            _player.RuntimeData.WantsLeftHandIK = false;
-            _player.RuntimeData.CurrentAimReference = null;
-            _player.RuntimeData.WantsLookAtIK = false;
         }
 
         // 强制卸载
@@ -182,9 +172,6 @@ namespace BBBNexus
         {
             _isEquipping = false;
             if (_muzzleFlash != null) _muzzleFlash.Stop();
-
-            // IK 清理职责已转移到 EquipmentDriver
-            // 不再在此调用 ClearPlayerIKIfOwned()
 
             if (_cannonConfig != null)
             {
@@ -199,22 +186,6 @@ namespace BBBNexus
                     _player.AnimFacade.PlayTransition(_cannonConfig.UnEquipAnim, _cannonConfig.UnEquipAnimPlayOptions);
                 }
             }
-        }
-
-        public void OnSpawned()
-        {
-            _isEquipping = false;
-            _wasAiming = false;
-            _ikEnableScheduled = false;
-            _ikDisableScheduled = false;
-            _lastFireTime = 0f;
-
-            if (_muzzleFlash != null) _muzzleFlash.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-        }
-
-        public void OnDespawned()
-        {
-            if (_muzzleFlash != null) _muzzleFlash.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         }
 
         // 检查冷却并开火
@@ -266,7 +237,6 @@ namespace BBBNexus
                 {
                     rb.velocity = _muzzle.forward * _cannonConfig.ProjectileSpeed;
                 }
-
                 var simple = proj.GetComponent<SimpleProjectile>();
                 if (simple != null)
                 {
@@ -291,6 +261,22 @@ namespace BBBNexus
                 _player.Config.Core.PitchLimits.x,
                 _player.Config.Core.PitchLimits.y
             );
+        }
+
+        public void OnSpawned()
+        {
+            _isEquipping = false;
+            _wasAiming = false;
+            _ikEnableScheduled = false;
+            _ikDisableScheduled = false;
+            _lastFireTime = 0f;
+
+            if (_muzzleFlash != null) _muzzleFlash.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+
+        public void OnDespawned()
+        {
+            if (_muzzleFlash != null) _muzzleFlash.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         }
     }
 }

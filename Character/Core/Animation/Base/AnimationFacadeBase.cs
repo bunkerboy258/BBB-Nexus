@@ -82,7 +82,8 @@ namespace BBBNexus
         /// <summary>
         /// 强行播放全身动画
         /// </summary>
-        public abstract void PlayFullBodyAction(AnimationClip clip, float fadeDuration = 0.2f);
+        public abstract void PlayFullBodyAction(AnimationClip clip, float fadeDuration = 0.2f, float speed = -1f);
+        public abstract void PlayFullBodyActionTransition(object transitionObj);
 
         /// <summary>
         /// 停止全身动画

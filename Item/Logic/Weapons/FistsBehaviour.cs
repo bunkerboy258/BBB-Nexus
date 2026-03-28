@@ -1,196 +1,345 @@
 using Animancer;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace BBBNexus
 {
-    /// <summary>
-    /// 拳头行为：无 Mesh，纯逻辑。
-    /// 读黑板 WantsToAction → 驱动全身覆盖层播连招动画。
-    /// </summary>
     public class FistsBehaviour : MonoBehaviour, IHoldableItem, IPoolable
     {
+        private const bool AttackTrace = true;
+
+        private sealed class FistsAttackWindowContext
+        {
+            public readonly HashSet<IDamageable> SharedHitSet = new HashSet<IDamageable>();
+            public FistsAttackHand AttackHand;
+            public int ComboIndex;
+        }
+
         private BBBCharacterController _player;
         private FistsSO _config;
         private ItemInstance _instance;
         private FistHitbox _hitbox;
 
+        public EquipmentSlot CurrentEquipSlot { get; set; }
+
+        private Action<object> _onAttackStart;
+        private Action<object> _onAttackEnd;
+        private float _ignoreAttackUntil;
+        private FistsAttackWindowContext _activeAttackContext;
+
         private int _comboIndex;
-
-        // 前摇 / 收招状态
-        private bool _isEnteringStance;      // 正在播前摇，等待结束后出第一拳
-        private bool _isExitingStance;       // 正在播收招
-        private Quaternion _rotationOnEnter; // 进入前摇时的旋转备份，用于被打断时恢复
-
-        // 攻击计时
+        private bool _isEnteringStance;
+        private bool _isExitingStance;
         private bool _isAttacking;
-        private float _comboWindowOpenTime;  // 甜蜜期开始时间
-        private float _comboWindowCloseTime; // 甜蜜期结束时间（含宽限）
-        private bool _inputBuffered;         // 甜蜜期前提前按键的缓冲
+        private float _comboWindowOpenTime;
+        private float _comboWindowCloseTime;
+        private bool _inputBuffered;
+        private bool _restartQueued;
+        private bool _stanceAttackBridged;
+        private int _queuedAttackIndex = -1;
+        private ClipTransition _currentAttackTransition;
+        private ClipTransition _currentStanceTransition;
+        private float _currentAttackStartTime;
+        private float _currentStanceStartTime;
 
-        // ── IHoldableItem ──────────────────────────────────────────
 
         public void Initialize(ItemInstance instanceData)
         {
             _instance = instanceData;
             _config = instanceData?.GetSODataAs<FistsSO>();
-            Debug.Log($"[Fists] Initialize: instance={instanceData != null}, config={_config != null}");
+
+            if (_config != null)
+            {
+                CurrentEquipSlot = _config.EquipSlot;
+            }
         }
 
         public void OnEquipEnter(BBBCharacterController player)
         {
             _player = player;
             _hitbox = GetComponentInChildren<FistHitbox>();
-            if (_hitbox != null) _hitbox.SetOwner(player);
+            if (_hitbox != null)
+            {
+                _hitbox.SetOwner(player);
+                _hitbox.Deactivate();
+
+                if (CurrentEquipSlot == EquipmentSlot.OffHand)
+                {
+                    _onAttackStart = OnRemoteAttackStart;
+                    _onAttackEnd = _ => CloseHitWindow();
+                    PostSystem.Instance.On("Fists.AttackStart", _onAttackStart);
+                    PostSystem.Instance.On("Fists.AttackEnd", _onAttackEnd);
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[Fists] OnEquipEnter: missing FistHitbox on fists prefab.");
+            }
+
+            _player?.InputPipeline?.ConsumePrimaryAttackPressed();
+            _ignoreAttackUntil = Time.time + 0.12f;
             ResetComboState();
-            Debug.Log($"[Fists] OnEquipEnter: player={player != null}, config={_config != null}, comboClips={_config?.ComboSequence?.Length ?? 0}");
         }
 
         public void OnUpdateLogic()
         {
             if (_player == null || _config == null) return;
             if (_config.ComboSequence == null || _config.ComboSequence.Length == 0) return;
-            if (_player.RuntimeData.Arbitration.BlockAction) return;
 
-            bool wantsAttack = _player.RuntimeData.WantsToAction;
+            ref readonly ProcessedInputData input = ref _player.InputPipeline.Current.currentFrameData.Processed;
+            bool wantsAttack = _player.RuntimeData.WantsToPrimaryAction;
+            bool attackInputObserved = wantsAttack || input.PrimaryAttackHeld || input.PrimaryAttackPressed;
 
-            // 前摇期间：缓冲输入，等 OnStanceEnd 再出招
+            if (_player.RuntimeData.Arbitration.BlockAction)
+            {
+                TraceAttackGate("block-action", attackInputObserved, in input);
+                return;
+            }
+
+            if (CurrentEquipSlot != EquipmentSlot.MainHand)
+            {
+                TraceAttackGate("not-main-hand", attackInputObserved, in input);
+                return;
+            }
+
+            if (Time.time < _ignoreAttackUntil)
+            {
+                TraceAttackGate("ignore-window", attackInputObserved, in input);
+                return;
+            }
+
             if (_isEnteringStance)
             {
+                TraceAttackGate("entering-stance", attackInputObserved, in input);
                 if (wantsAttack)
                 {
                     _inputBuffered = true;
                     _player.InputPipeline.ConsumePrimaryAttackPressed();
                 }
+
+                TryAdvanceStanceBridge();
                 return;
             }
 
-            // 收招期间：等 Override 结束后才允许新一轮，不接受输入
             if (_isExitingStance)
             {
+                TraceAttackGate("exiting-stance", attackInputObserved, in input);
+                if (wantsAttack)
+                {
+                    _restartQueued = true;
+                    _player.InputPipeline.ConsumePrimaryAttackPressed();
+                }
+
                 if (!_player.RuntimeData.Override.IsActive)
+                {
                     _isExitingStance = false;
+                    if (_restartQueued)
+                    {
+                        _restartQueued = false;
+                        TriggerEnterStanceOrAttack();
+                    }
+                }
                 return;
             }
 
             if (_isAttacking)
             {
+                TraceAttackGate("attacking", attackInputObserved, in input);
                 float now = Time.time;
 
-                // 甜蜜期前：提前按键就缓冲起来，消费掉避免重复
                 if (wantsAttack && now < _comboWindowOpenTime)
                 {
                     _inputBuffered = true;
                     _player.InputPipeline.ConsumePrimaryAttackPressed();
                 }
 
-                // 甜蜜期内：有输入（缓冲或实时）则续招
                 bool inWindow = now >= _comboWindowOpenTime && now <= _comboWindowCloseTime;
                 if (inWindow && (_inputBuffered || wantsAttack))
                 {
                     _inputBuffered = false;
-                    TriggerAttack();
+                    int nextComboIndex = _comboIndex < _config.ComboSequence.Length ? _comboIndex : 0;
+                    QueueAttackTransition(nextComboIndex);
+                    _player.InputPipeline.ConsumePrimaryAttackPressed();
+                }
+
+                if (TryExecuteQueuedAttack())
+                {
                     return;
                 }
 
-                // 甜蜜期结束还没续招：播收招
                 if (now > _comboWindowCloseTime)
+                {
                     TriggerExitStance();
+                }
 
                 return;
             }
 
-            // 空闲状态：接受新一轮攻击
             if (wantsAttack)
+            {
+                TraceAttackGate("trigger-enter-or-attack", true, in input);
                 TriggerEnterStanceOrAttack();
+            }
         }
 
         public void OnForceUnequip()
         {
-            // 被打断时（受击/闪避），收招没播完，手动把旋转转回去
-            if (_isEnteringStance || _isAttacking || _isExitingStance)
-                _player.transform.rotation = _rotationOnEnter;
+            if (CurrentEquipSlot == EquipmentSlot.OffHand)
+            {
+                PostSystem.Instance.Off("Fists.AttackStart", _onAttackStart);
+                PostSystem.Instance.Off("Fists.AttackEnd", _onAttackEnd);
+            }
 
             ResetComboState();
-            Debug.Log("[Fists] OnForceUnequip");
         }
-
-        // ── 私有方法 ───────────────────────────────────────────────
 
         private void TriggerEnterStanceOrAttack()
         {
-            _rotationOnEnter = _player.transform.rotation;
-
             var stance = _config.EnterStanceAnim;
             if (stance != null && stance.Clip != null)
             {
                 _isEnteringStance = true;
+                _stanceAttackBridged = false;
+                _currentStanceTransition = stance;
+                _currentStanceStartTime = Time.time;
                 _player.InputPipeline.ConsumePrimaryAttackPressed();
-                var req = new ActionRequest(stance.Clip, _config.ComboPriority, stance.FadeDuration, true);
+                var req = new ActionRequest(stance.Clip, _config.ComboPriority, applyGravity: true) { Transition = stance };
                 _player.RequestOverride(in req, flushImmediately: true);
                 _player.AnimFacade.SetOverrideOnEndCallback(OnStanceEnd);
+                return;
             }
-            else
-            {
-                TriggerAttack();
-            }
+
+            TriggerAttack();
         }
 
         private void OnStanceEnd()
         {
-            _isEnteringStance = false;
-            _inputBuffered = false;
-            TriggerAttack();
+            TryBridgeFromStance();
         }
 
         private void TriggerExitStance()
         {
-            // 连招结束，重置除 _isExitingStance 外的所有状态
             _comboIndex = 0;
             _isAttacking = false;
             _inputBuffered = false;
             _comboWindowOpenTime = 0f;
             _comboWindowCloseTime = 0f;
+            _queuedAttackIndex = -1;
+            _currentAttackTransition = null;
+            _currentStanceTransition = null;
+            _currentAttackStartTime = 0f;
+            _currentStanceStartTime = 0f;
+            CloseHitWindow();
+
+            // If the full-body override has already ended and locomotion has resumed,
+            // playing an extra exit stance here causes a delayed hitch after movement
+            // has already continued.
+            if (!_player.RuntimeData.Override.IsActive &&
+                _player.RuntimeData.CurrentLocomotionState != LocomotionState.Idle)
+            {
+                _isExitingStance = false;
+                if (_restartQueued)
+                {
+                    _restartQueued = false;
+                    TriggerEnterStanceOrAttack();
+                }
+                return;
+            }
 
             var exit = _config.ExitStanceAnim;
             if (exit != null && exit.Clip != null)
             {
                 _isExitingStance = true;
-                var req = new ActionRequest(exit.Clip, _config.ComboPriority, exit.FadeDuration, true);
+                var req = new ActionRequest(exit.Clip, _config.ComboPriority, applyGravity: true) { Transition = exit };
                 _player.RequestOverride(in req, flushImmediately: true);
-                // 不替换 OverrideState 的回调，让它自然把状态机切回移动
             }
             else
             {
                 _isExitingStance = false;
+                if (_restartQueued)
+                {
+                    _restartQueued = false;
+                    TriggerEnterStanceOrAttack();
+                }
             }
         }
 
         private void TriggerAttack()
         {
-            var transition = _comboIndex < _config.ComboSequence.Length
-                ? _config.ComboSequence[_comboIndex]
+            int currentComboIndex = _comboIndex;
+            var transition = currentComboIndex < _config.ComboSequence.Length
+                ? _config.ComboSequence[currentComboIndex]
                 : null;
 
             if (transition == null || transition.Clip == null)
             {
+                Debug.LogWarning($"[Fists] TriggerAttack: combo segment {currentComboIndex} has no clip.");
                 ResetComboState();
                 return;
             }
 
             var clip = transition.Clip;
-            Debug.Log($"[Fists] 出招第 {_comboIndex + 1} 段：{clip.name}");
+            var attackHand = _config.GetAttackHand(currentComboIndex);
+            _currentAttackTransition = transition;
+            _currentStanceTransition = null;
+            _queuedAttackIndex = -1;
+            _currentAttackStartTime = Time.time;
+            _currentStanceStartTime = 0f;
 
-            _comboIndex = (_comboIndex + 1) % _config.ComboSequence.Length;
+            float speed = transition.Speed > 0f ? transition.Speed : 1f;
+            float normStart = float.IsNaN(transition.NormalizedStartTime) ? 0f : transition.NormalizedStartTime;
+            float normEnd = transition.Events.GetRealNormalizedEndTime(speed);
+            float actualDuration = clip.length * (normEnd - normStart) / speed;
+
+            _comboIndex = currentComboIndex + 1;
             _isAttacking = true;
             _inputBuffered = false;
-            _comboWindowOpenTime = Time.time + clip.length * _config.ComboWindowStart;
-            _comboWindowCloseTime = Time.time + clip.length + _config.ComboLateBuffer;
+            _restartQueued = false;
+            _comboWindowOpenTime = Time.time + actualDuration * _config.ComboWindowStart;
+            _comboWindowCloseTime = Time.time + actualDuration + _config.ComboLateBuffer;
+
+            CloseHitWindow();
+            _activeAttackContext = new FistsAttackWindowContext
+            {
+                AttackHand = attackHand,
+                ComboIndex = currentComboIndex,
+            };
+
+            if (CurrentEquipSlot == EquipmentSlot.MainHand)
+            {
+                PostSystem.Instance.Send("Fists.AttackStart", _activeAttackContext);
+            }
+
+            if (attackHand == GetCurrentAttackHand())
+            {
+                _hitbox?.Activate(_activeAttackContext.SharedHitSet, true);
+                Debug.Log($"[Fists] Activate hit window slot={CurrentEquipSlot} combo={currentComboIndex} hand={attackHand} object={name}");
+            }
 
             _player.InputPipeline.ConsumePrimaryAttackPressed();
-            _hitbox?.Activate();
-
-            var req = new ActionRequest(clip, _config.ComboPriority, transition.FadeDuration, true);
+            var req = new ActionRequest(clip, _config.ComboPriority, applyGravity: true) { Transition = transition };
             _player.RequestOverride(in req, flushImmediately: true);
+        }
+
+        private void OnRemoteAttackStart(object data)
+        {
+            var context = data as FistsAttackWindowContext;
+            if (context == null)
+            {
+                CloseHitWindow();
+                return;
+            }
+
+            _activeAttackContext = context;
+            if (context.AttackHand != GetCurrentAttackHand())
+            {
+                CloseHitWindow();
+                return;
+            }
+
+            _hitbox?.Activate(context.SharedHitSet, true);
+            Debug.Log($"[Fists] Activate hit window slot={CurrentEquipSlot} combo={context.ComboIndex} hand={context.AttackHand} object={name}");
         }
 
         private void ResetComboState()
@@ -200,16 +349,164 @@ namespace BBBNexus
             _isEnteringStance = false;
             _isExitingStance = false;
             _inputBuffered = false;
+            _restartQueued = false;
+            _stanceAttackBridged = false;
+            _queuedAttackIndex = -1;
+            _currentAttackTransition = null;
+            _currentStanceTransition = null;
+            _currentAttackStartTime = 0f;
+            _currentStanceStartTime = 0f;
             _comboWindowOpenTime = 0f;
             _comboWindowCloseTime = 0f;
-            _hitbox?.Deactivate();
+            CloseHitWindow();
+
+            if (CurrentEquipSlot == EquipmentSlot.MainHand)
+            {
+                PostSystem.Instance.Send("Fists.AttackEnd", null);
+            }
         }
 
-        // ── IPoolable ──────────────────────────────────────────────
+        private void CloseHitWindow()
+        {
+            _hitbox?.Deactivate();
+            _activeAttackContext = null;
+            Debug.Log($"[Fists] Deactivate hit window slot={CurrentEquipSlot} object={name}");
+        }
+
+        private FistsAttackHand GetCurrentAttackHand()
+        {
+            return CurrentEquipSlot == EquipmentSlot.OffHand
+                ? FistsAttackHand.OffHand
+                : FistsAttackHand.MainHand;
+        }
+
+        private void TraceAttackGate(string reason, bool attackInputObserved, in ProcessedInputData input)
+        {
+            if (!AttackTrace || !attackInputObserved)
+            {
+                return;
+            }
+
+            string fullBodyState = _player?.StateMachine?.CurrentState?.GetType().Name ?? "null";
+            string upperBodyState = _player?.UpperBodyCtrl?.StateMachine?.CurrentState?.GetType().Name ?? "null";
+            Debug.Log(
+                $"[FistsTrace] reason={reason} slot={CurrentEquipSlot} state={fullBodyState}/{upperBodyState} " +
+                $"loco={_player.RuntimeData.CurrentLocomotionState} grounded={_player.RuntimeData.IsGrounded} " +
+                $"override={_player.RuntimeData.Override.IsActive} wantsAttack={_player.RuntimeData.WantsToPrimaryAction} " +
+                $"pressed={input.PrimaryAttackPressed} held={input.PrimaryAttackHeld} sprintHeld={input.SprintHeld} " +
+                $"jumpHeld={input.JumpHeld} entering={_isEnteringStance} exiting={_isExitingStance} attacking={_isAttacking} restartQueued={_restartQueued} " +
+                $"ignoreUntil={_ignoreAttackUntil:F3} now={Time.time:F3}");
+        }
 
         public void OnSpawned()
         {
             ResetComboState();
+            _ignoreAttackUntil = Time.time + 0.12f;
+        }
+
+        private static float GetEffectiveDuration(ClipTransition transition)
+        {
+            if (transition == null || transition.Clip == null)
+            {
+                return 0f;
+            }
+
+            float speed = transition.Speed > 0f ? transition.Speed : 1f;
+            float normStart = float.IsNaN(transition.NormalizedStartTime) ? 0f : transition.NormalizedStartTime;
+            float normEnd = transition.Events.GetRealNormalizedEndTime(speed);
+            return transition.Clip.length * Mathf.Max(0f, normEnd - normStart) / speed;
+        }
+
+        private bool TryBridgeFromStance()
+        {
+            if (!_isEnteringStance || _stanceAttackBridged)
+            {
+                return false;
+            }
+
+            _stanceAttackBridged = true;
+            _isEnteringStance = false;
+            _inputBuffered = false;
+            TriggerAttack();
+            return true;
+        }
+
+        private void QueueAttackTransition(int nextComboIndex)
+        {
+            if (_config.ComboSequence == null || nextComboIndex < 0 || nextComboIndex >= _config.ComboSequence.Length)
+            {
+                return;
+            }
+
+            if (_queuedAttackIndex == nextComboIndex)
+            {
+                return;
+            }
+
+            _queuedAttackIndex = nextComboIndex;
+        }
+
+        private bool TryAdvanceStanceBridge()
+        {
+            if (!_isEnteringStance || _stanceAttackBridged || _config.ComboSequence == null || _config.ComboSequence.Length == 0)
+            {
+                return false;
+            }
+
+            ClipTransition firstAttack = _config.ComboSequence[Mathf.Clamp(_comboIndex, 0, _config.ComboSequence.Length - 1)];
+            if (!ShouldBridgeNow(_currentStanceTransition, firstAttack, _currentStanceStartTime))
+            {
+                return false;
+            }
+
+            return TryBridgeFromStance();
+        }
+
+        private bool TryExecuteQueuedAttack()
+        {
+            if (!_isAttacking || _queuedAttackIndex < 0 || _config.ComboSequence == null || _queuedAttackIndex >= _config.ComboSequence.Length)
+            {
+                return false;
+            }
+
+            ClipTransition nextTransition = _config.ComboSequence[_queuedAttackIndex];
+            if (!ShouldBridgeNow(_currentAttackTransition, nextTransition, _currentAttackStartTime))
+            {
+                return false;
+            }
+
+            int nextComboIndex = _queuedAttackIndex;
+            _comboIndex = nextComboIndex;
+            _queuedAttackIndex = -1;
+            TriggerAttack();
+            return true;
+        }
+
+        private bool ShouldBridgeNow(ClipTransition current, ClipTransition next, float segmentStartTime)
+        {
+            if (current == null || current.Clip == null || next == null || next.Clip == null)
+            {
+                return false;
+            }
+
+            float currentSpeed = current.Speed > 0f ? current.Speed : 1f;
+            float currentNormStart = float.IsNaN(current.NormalizedStartTime) ? 0f : current.NormalizedStartTime;
+            float currentNormEnd = current.Events.GetRealNormalizedEndTime(currentSpeed);
+            float clipLength = current.Clip.length;
+            if (clipLength <= 0f)
+            {
+                return false;
+            }
+
+            float currentDuration = clipLength * (currentNormEnd - currentNormStart) / currentSpeed;
+            if (currentDuration <= 0f)
+            {
+                return false;
+            }
+
+            float nextFade = next.FadeDuration > 0f ? next.FadeDuration : 0f;
+            float bridgeTime = segmentStartTime + Mathf.Max(0f, currentDuration - nextFade);
+            return Time.time >= bridgeTime - 0.0001f;
         }
 
         public void OnDespawned() { }

@@ -25,6 +25,10 @@ namespace BBBNexus
         public bool Expression2Held;
         public bool Expression3Held;
         public bool Expression4Held;
+        public bool Expression5Held;
+        public bool Expression6Held;
+        public bool Expression7Held;
+        public bool Expression8Held;
 
         public bool Number1Held;
         public bool Number2Held;
@@ -44,6 +48,10 @@ namespace BBBNexus
         public bool Expression2JustPressed;
         public bool Expression3JustPressed;
         public bool Expression4JustPressed;
+        public bool Expression5JustPressed;
+        public bool Expression6JustPressed;
+        public bool Expression7JustPressed;
+        public bool Expression8JustPressed;
 
         public bool Number1JustPressed;
         public bool Number2JustPressed;
@@ -75,6 +83,10 @@ namespace BBBNexus
         public bool Expression2Held;
         public bool Expression3Held;
         public bool Expression4Held;
+        public bool Expression5Held;
+        public bool Expression6Held;
+        public bool Expression7Held;
+        public bool Expression8Held;
 
         public bool Number1Held;
         public bool Number2Held;
@@ -94,6 +106,10 @@ namespace BBBNexus
         public float Expression2BufferTimer;
         public float Expression3BufferTimer;
         public float Expression4BufferTimer;
+        public float Expression5BufferTimer;
+        public float Expression6BufferTimer;
+        public float Expression7BufferTimer;
+        public float Expression8BufferTimer;
 
         public float Number1BufferTimer;
         public float Number2BufferTimer;
@@ -113,6 +129,10 @@ namespace BBBNexus
         public bool Expression2Pressed => Expression2BufferTimer > 0f;
         public bool Expression3Pressed => Expression3BufferTimer > 0f;
         public bool Expression4Pressed => Expression4BufferTimer > 0f;
+        public bool Expression5Pressed => Expression5BufferTimer > 0f;
+        public bool Expression6Pressed => Expression6BufferTimer > 0f;
+        public bool Expression7Pressed => Expression7BufferTimer > 0f;
+        public bool Expression8Pressed => Expression8BufferTimer > 0f;
 
         public bool Number1Pressed => Number1BufferTimer > 0f;
         public bool Number2Pressed => Number2BufferTimer > 0f;

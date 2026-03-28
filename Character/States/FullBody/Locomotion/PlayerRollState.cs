@@ -29,6 +29,8 @@ namespace BBBNexus
             _stateDuration = 0f;
             _endTimeTriggered = false;
 
+            AlignToCameraForward();
+
             // 根据方向选择翻滚数据
             _selectedData = GetRollData();
 
@@ -91,42 +93,60 @@ namespace BBBNexus
             _selectedData = null;
         }
 
-        // 根据方向获取翻滚动画数据 8方向量化
+        private void AlignToCameraForward()
+        {
+            if (data.CameraTransform == null) return;
+            Vector3 camFwd = data.CameraTransform.forward;
+            camFwd.y = 0f;
+            if (camFwd.sqrMagnitude < 0.0001f) return;
+            float yaw = Quaternion.LookRotation(camFwd.normalized, Vector3.up).eulerAngles.y;
+            player.MotionDriver.RequestYaw(yaw, 0f);
+        }
+
+        // 根据运动方向获取翻滚动画数据
+        // 优先匹配 8 方向；斜向槽位为空时自动退回最近的正向，兼容 4 方向配置
         private WarpedMotionData GetRollData()
         {
-            float angle = data.DesiredLocalMoveAngle;
+            Vector3 worldDir = data.DesiredWorldMoveDir;
+            worldDir.y = 0f;
 
-            const float SectorAngle = 45f;
-            const float HalfSectorAngle = 22.5f;
+            float angle = 0f;
+            if (worldDir.sqrMagnitude > 0.0001f && data.CameraTransform != null)
+            {
+                Vector3 camFwd = data.CameraTransform.forward;
+                camFwd.y = 0f;
+                if (camFwd.sqrMagnitude > 0.0001f)
+                    angle = Vector3.SignedAngle(camFwd.normalized, worldDir.normalized, Vector3.up);
+            }
 
-            // 8方向判断逻辑
-            if (angle > -HalfSectorAngle && angle <= HalfSectorAngle)
-                return config.Rolling.ForwardRoll;
+            var r = config.Rolling;
 
-            if (angle > HalfSectorAngle && angle <= HalfSectorAngle + SectorAngle)
-                return config.Rolling.ForwardRightRoll;
+            if (angle > -22.5f && angle <= 22.5f)
+                return r.ForwardRoll;
 
-            if (angle > HalfSectorAngle + SectorAngle && angle <= HalfSectorAngle + SectorAngle * 2)
-                return config.Rolling.RightRoll;
+            if (angle > 22.5f && angle <= 67.5f)
+                return FallbackRoll(r.ForwardRightRoll, r.ForwardRoll, r.RightRoll);
 
-            if (angle > HalfSectorAngle + SectorAngle * 2 && angle <= 180f - HalfSectorAngle)
-                return config.Rolling.BackwardRightRoll;
+            if (angle > 67.5f && angle <= 112.5f)
+                return r.RightRoll;
 
-            if (angle > 180f - HalfSectorAngle || angle <= -180f + HalfSectorAngle)
-                return config.Rolling.BackwardRoll;
+            if (angle > 112.5f && angle <= 157.5f)
+                return FallbackRoll(r.BackwardRightRoll, r.BackwardRoll, r.RightRoll);
 
-            if (angle > -180f + HalfSectorAngle && angle <= -HalfSectorAngle - SectorAngle * 2)
-                return config.Rolling.BackwardLeftRoll;
+            if (angle > 157.5f || angle <= -157.5f)
+                return r.BackwardRoll;
 
-            if (angle > -HalfSectorAngle - SectorAngle * 2 && angle <= -HalfSectorAngle - SectorAngle)
-                return config.Rolling.LeftRoll;
+            if (angle > -157.5f && angle <= -112.5f)
+                return FallbackRoll(r.BackwardLeftRoll, r.BackwardRoll, r.LeftRoll);
 
-            if (angle > -HalfSectorAngle - SectorAngle && angle <= -HalfSectorAngle)
-                return config.Rolling.ForwardLeftRoll;
+            if (angle > -112.5f && angle <= -67.5f)
+                return r.LeftRoll;
 
-            // 兜底使用左翻滚
-            return config.Rolling.LeftRoll;
+            return FallbackRoll(r.ForwardLeftRoll, r.ForwardRoll, r.LeftRoll);
         }
+
+        private static WarpedMotionData FallbackRoll(WarpedMotionData diagonal, WarpedMotionData a, WarpedMotionData b)
+            => (diagonal != null && diagonal.Clip != null) ? diagonal : (a ?? b);
 
         // 处理翻滚结束 根据当前运动状态切回MoveLoop或Idle
         private void HandleRollEnd()

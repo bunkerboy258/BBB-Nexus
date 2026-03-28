@@ -1,0 +1,6 @@
+            AudioController.Update();
+
+            // 特殊交互消费端更新
+            CloseEyesConsumer?.Update();
+
+            //古法状态调试 已经被 drawxxldebuger 代替 打包注释掉

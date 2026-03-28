@@ -330,18 +330,33 @@ namespace BBBNexus
             return layers[0];
         }
 
-        public override void PlayFullBodyAction(AnimationClip clip, float fadeDuration = 0.2f)
+        public override void PlayFullBodyAction(AnimationClip clip, float fadeDuration = 0.2f, float speed = -1f)
         {
             if (clip == null) return;
 
             _fullBodyRootMotionEnabled = true;
             _animancer.Animator.applyRootMotion = true;
 
-            // 全身动作切换时 清理 layer0 的通用回调槽 
+            // 全身动作切换时 清理 layer0 的通用回调槽
             ClearOnEndCallback(0);
 
             SetLayerWeight(1, 0f, fadeDuration);
-            _animancer.Layers[0].Play(clip, fadeDuration);
+            var state = _animancer.Layers[0].Play(clip, fadeDuration);
+            if (speed > 0f) state.Speed = speed;
+        }
+
+        public override void PlayFullBodyActionTransition(object transitionObj)
+        {
+            var transition = transitionObj as Animancer.ITransition;
+            if (transition == null) return;
+
+            _fullBodyRootMotionEnabled = true;
+            _animancer.Animator.applyRootMotion = true;
+
+            ClearOnEndCallback(0);
+            // 用 FadeDuration 渐出上半身层，与 PlayFullBodyAction 保持一致
+            SetLayerWeight(1, 0f, transition.FadeDuration);
+            _animancer.Layers[0].Play(transition);
         }
 
         public override void StopFullBodyAction()

@@ -64,7 +64,10 @@ namespace BBBNexus
 
             var req = data.Override.Request;
 
-            AnimFacade.PlayFullBodyAction(req.Clip, req.FadeDuration);
+            if (req.Transition != null)
+                AnimFacade.PlayFullBodyActionTransition(req.Transition);
+            else
+                AnimFacade.PlayFullBodyAction(req.Clip, req.FadeDuration, req.Speed);
 
             // 关键：全身Override的结束回调注册到 -1 通道 避免与物品/其他系统抢占 layer0 的 OnEnd 槽位
             AnimFacade.SetOverrideOnEndCallback(OnClipEnd);
@@ -78,6 +81,24 @@ namespace BBBNexus
 
             if (data.Override.ReturnState != null)
             {
+                if (data.Override.ReturnState is PlayerMoveLoopState)
+                {
+                    if (data.CurrentLocomotionState != LocomotionState.Idle)
+                        player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerMoveLoopState>());
+                    else
+                        player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerIdleState>());
+                    return;
+                }
+
+                if (data.Override.ReturnState is PlayerIdleState)
+                {
+                    if (data.CurrentLocomotionState != LocomotionState.Idle)
+                        player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerMoveLoopState>());
+                    else
+                        player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerIdleState>());
+                    return;
+                }
+
                 player.StateMachine.ChangeState(data.Override.ReturnState);
                 return;
             }

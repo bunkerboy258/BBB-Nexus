@@ -37,7 +37,8 @@ namespace BBBNexus
         public Transform PlayerCamera;
 
         [Header("--- 表现与挂点 ---")]
-        public Transform WeaponContainer;
+        public Transform MainhandWeaponContainer;   // 主手（右手）武器容器
+        public Transform OffhandWeaponContainer;    // 副手（左手）武器容器
         public Transform LeftHandBone { get; private set; }
         public Transform RightHandBone { get; private set; }
         public Transform LeftFootBone { get; private set; }
@@ -68,6 +69,7 @@ namespace BBBNexus
         public PlayerInventoryController InventoryController { get; private set; }
         public ActionController ActionController { get; private set; }
         public AudioController AudioController { get; private set; }
+        public ExtraActionController ExtraActionController { get; private set; }
 
         // 驱动器与外观层系统
         public AnimancerComponent Animancer { get; private set; }
@@ -83,6 +85,9 @@ namespace BBBNexus
         //仲裁器(后期需要注册表化)
         public LODArbiter LodArbiter { get; private set; }
         public ArbiterPipeline ArbiterPipeline { get; private set; }
+
+        /// <summary>异常状态仲裁器快捷访问</summary>
+        public StatusEffectArbiter StatusEffects => ArbiterPipeline.StatusEffect;
 
         //调试用缓存
         private PlayerBaseState _lastState;
@@ -171,6 +176,10 @@ namespace BBBNexus
             ActionController = new ActionController(this);
             AudioController = new AudioController(this);
 
+            // 额外动作控制器（需要 EyesClosedSystemManager 引用）
+            var eyesClosedManager = FindObjectOfType<EyesClosedSystemManager>();
+            ExtraActionController = new ExtraActionController(RuntimeData, eyesClosedManager);
+
             // 装载状态字典 分配独立内存实例
             StateRegistry = new PlayerStateRegistry();
             if (Config != null && Config.Brain != null)
@@ -251,7 +260,6 @@ namespace BBBNexus
                 RuntimeData.CurrentItem = null;
                 RuntimeData.CurrentAimReference = null;
                 RuntimeData.WantsLookAtIK = false;
-                RuntimeData.WantsToFire = false;
                 RuntimeData.ResetIntetnt();
             }
         }
@@ -291,8 +299,10 @@ namespace BBBNexus
             ActionController.Update();
 
             AudioController.Update();
-            
-            //古法状态调试 已经被drawxxldebuger代替 打包注释掉
+
+            ExtraActionController.Update();
+
+            //古法状态调试 已经被 drawxxldebuger 代替 打包注释掉
             if (statedebug && StateMachine.CurrentState != null && _lastState != null)
             {
                 if (StateMachine.CurrentState.GetType().Name != _lastState.GetType().Name)

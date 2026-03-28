@@ -52,6 +52,12 @@ namespace BBBNexus
 
         private readonly HashSet<int> _damagedTargetIds = new HashSet<int>();
 
+        /// <summary>发射者，由武器 Behaviour 在发射时注入（用于 DamageRequest.Attacker）</summary>
+        private GameObject _shooter;
+
+        /// <summary>由武器 Behaviour 在发射时调用，注入攻击者信息</summary>
+        public void SetShooter(GameObject shooter) => _shooter = shooter;
+
         // GC FIX: Physics.OverlapSphere 会分配 Collider[]。
         // 使用 OverlapSphereNonAlloc + 复用缓冲区；容量不足时自动扩容（扩容会分配，但只在需要时发生，避免持续 GC）。
         private Collider[] _overlapBuffer = new Collider[32];
@@ -219,7 +225,7 @@ namespace BBBNexus
             _damagedTargetIds.Clear();
 
             var hitCount = 0;
-            var req = new DamageRequest(DamageAmount);
+            var req = new DamageRequest(DamageAmount, transform.position, _shooter, transform);
 
             for (int i = 0; i < count; i++)
             {

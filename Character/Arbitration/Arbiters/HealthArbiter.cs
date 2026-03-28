@@ -51,6 +51,15 @@ namespace BBBNexus
 
                 //Debug.Log($"Damage apply amount {req.Amount} hp {before} -> {_data.CurrentHealth}", _player);
 
+                PostSystem.Instance?.Send("OnDamaged", new DamageEvent
+                {
+                    Target          = _player,
+                    Amount          = req.Amount,
+                    RemainingHealth = Mathf.Max(_data.CurrentHealth, 0f),
+                    HitPoint        = req.HitPoint != Vector3.zero ? req.HitPoint : _player.transform.position + Vector3.up,
+                    IsFatal         = _data.CurrentHealth <= 0f,
+                });
+
                 _head = (_head + 1) % _damageQueue.Length;
             }
 

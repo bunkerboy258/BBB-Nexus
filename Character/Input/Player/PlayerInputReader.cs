@@ -5,6 +5,8 @@ namespace BBBNexus
 {
     public class PlayerInputReader : InputSourceBase
     {
+        private const bool InputTrace = true;
+
         #region 配置参数
         [Header("视角设置")]
         public float mouseSensitivity = 1f;
@@ -36,6 +38,10 @@ namespace BBBNexus
         public InputActionReference expression2Action;
         public InputActionReference expression3Action;
         public InputActionReference expression4Action;
+        public InputActionReference expression5Action;  // 闭眼交互（Q 键）
+        public InputActionReference expression6Action;  // 预留
+        public InputActionReference expression7Action;  // 预留
+        public InputActionReference expression8Action;  // 预留
         #endregion
 
         private void OnEnable() => ToggleActions(true);
@@ -66,6 +72,10 @@ namespace BBBNexus
             rawData.Expression2Held = expression2Action != null && expression2Action.action.IsPressed();
             rawData.Expression3Held = expression3Action != null && expression3Action.action.IsPressed();
             rawData.Expression4Held = expression4Action != null && expression4Action.action.IsPressed();
+            rawData.Expression5Held = expression5Action != null && expression5Action.action.IsPressed();
+            rawData.Expression6Held = expression6Action != null && expression6Action.action.IsPressed();
+            rawData.Expression7Held = expression7Action != null && expression7Action.action.IsPressed();
+            rawData.Expression8Held = expression8Action != null && expression8Action.action.IsPressed();
             rawData.Number1Held = number1Action != null && number1Action.action.IsPressed();
             rawData.Number2Held = number2Action != null && number2Action.action.IsPressed();
             rawData.Number3Held = number3Action != null && number3Action.action.IsPressed();
@@ -84,11 +94,23 @@ namespace BBBNexus
             rawData.Expression2JustPressed = expression2Action != null && expression2Action.action.WasPressedThisFrame();
             rawData.Expression3JustPressed = expression3Action != null && expression3Action.action.WasPressedThisFrame();
             rawData.Expression4JustPressed = expression4Action != null && expression4Action.action.WasPressedThisFrame();
+            rawData.Expression5JustPressed = expression5Action != null && expression5Action.action.WasPressedThisFrame();
+            rawData.Expression6JustPressed = expression6Action != null && expression6Action.action.WasPressedThisFrame();
+            rawData.Expression7JustPressed = expression7Action != null && expression7Action.action.WasPressedThisFrame();
+            rawData.Expression8JustPressed = expression8Action != null && expression8Action.action.WasPressedThisFrame();
             rawData.Number1JustPressed = number1Action != null && number1Action.action.WasPressedThisFrame();
             rawData.Number2JustPressed = number2Action != null && number2Action.action.WasPressedThisFrame();
             rawData.Number3JustPressed = number3Action != null && number3Action.action.WasPressedThisFrame();
             rawData.Number4JustPressed = number4Action != null && number4Action.action.WasPressedThisFrame();
             rawData.Number5JustPressed = number5Action != null && number5Action.action.WasPressedThisFrame();
+
+            if (InputTrace && (rawData.PrimaryAttackJustPressed || rawData.PrimaryAttackHeld))
+            {
+                Debug.Log(
+                    $"[InputTrace] frame={Time.frameCount} primaryJustPressed={rawData.PrimaryAttackJustPressed} " +
+                    $"primaryHeld={rawData.PrimaryAttackHeld} sprintHeld={rawData.SprintHeld} jumpHeld={rawData.JumpHeld} " +
+                    $"move={rawData.MoveAxis}");
+            }
         }
 
         private void ToggleActions(bool enable)
@@ -98,7 +120,8 @@ namespace BBBNexus
                 aimAction, dodgeAction, rollAction,
                 interactAction, primaryAttackAction, secondaryAttackAction,
                 number1Action, number2Action, number3Action, number4Action, number5Action,
-                expression1Action, expression2Action, expression3Action, expression4Action
+                expression1Action, expression2Action, expression3Action, expression4Action,
+                expression5Action, expression6Action, expression7Action, expression8Action
             };
 
             foreach (var ar in all)

@@ -1,6 +1,6 @@
 namespace BBBNexus
 {
-    // 瞄准与开火意图处理器 
+    // 瞄准与开火意图处理器
     public class AimIntentProcessor
     {
         private readonly PlayerRuntimeData _data;
@@ -14,17 +14,16 @@ namespace BBBNexus
 
         public void Update(in ProcessedInputData input)
         {
-            bool isAimHeldNow = input.AimHeld;
-            // 检查按住状态或瞬间按下 用于支持连续射击与精确射击
-            bool isFireHeldOrPressed = input.PrimaryAttackHeld || input.PrimaryAttackPressed;
-
+            // 右键按住 = 瞄准
+            bool isAimHeldNow = input.AimHeld || input.SecondaryAttackHeld;
             _data.IsAiming = isAimHeldNow;
             _wasAimHeld = _isAimHeld;
             _isAimHeld = isAimHeldNow;
 
-            if (isFireHeldOrPressed)
+            // 瞄准时左键 = 射击（使用 PrimaryAction）
+            if (input.PrimaryAttackHeld && _data.IsAiming)
             {
-                _data.WantsToFire = true;
+                _data.WantsToPrimaryAction = true;
             }
         }
     }

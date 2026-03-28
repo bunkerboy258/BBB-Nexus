@@ -7,6 +7,11 @@ namespace BBBNexus
     public interface IHoldableItem
     {
         /// <summary>
+        /// 当前装备的槽位（武器自知识）
+        /// </summary>
+        EquipmentSlot CurrentEquipSlot { get; set; }
+        
+        /// <summary>
         /// 当模型实例生成后 EquipmentDriver 立刻调用此方法注入实例数据
         /// </summary>
         void Initialize(ItemInstance instanceData);

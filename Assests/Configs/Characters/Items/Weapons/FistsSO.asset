@@ -18,6 +18,7 @@ MonoBehaviour:
   Description: 
   MaxStack: 1
   Prefab: {fileID: 7004216108275635573, guid: cc362d2da1ff42b49b850055347a6182, type: 3}
+  EquipSlot: 1
   HoldPositionOffset: {x: 0, y: 0, z: 0}
   HoldRotationOffset: {x: 0, y: 0, z: 0, w: 0}
   UpperBodyLayerWeight: 0
@@ -67,48 +68,54 @@ MonoBehaviour:
     NormalizedTime: -1
     ForcePhaseSync: 0
   EnterStanceAnim:
-    _FadeDuration: 0.25
-    _Speed: 1
+    _FadeDuration: 0.27533337
+    _Speed: 2
     _Events:
-      _NormalizedTimes: []
+      _NormalizedTimes:
+      - 1
       _Callbacks: []
       _Names: []
     _Clip: {fileID: -203655887218126122, guid: 10abf93c9e9bf034590be19868a84e04, type: 3}
-    _NormalizedStartTime: NaN
+    _NormalizedStartTime: 0
   ExitStanceAnim:
-    _FadeDuration: 0.25
-    _Speed: 1
+    _FadeDuration: 0.3255
+    _Speed: 1.6
     _Events:
-      _NormalizedTimes: []
+      _NormalizedTimes:
+      - 0.8
       _Callbacks: []
       _Names: []
     _Clip: {fileID: -203655887218126122, guid: e342dc74c59df3d40ae5a64dca105a27, type: 3}
-    _NormalizedStartTime: NaN
+    _NormalizedStartTime: -0.39
   ComboSequence:
-  - _FadeDuration: 0.25
-    _Speed: 1
+  - _FadeDuration: 0.46350005
+    _Speed: 1.06
     _Events:
-      _NormalizedTimes: []
+      _NormalizedTimes:
+      - 0.47
       _Callbacks: []
       _Names: []
     _Clip: {fileID: -203655887218126122, guid: 984866e5fa2a11c419b15b6e2e1dd73e, type: 3}
-    _NormalizedStartTime: NaN
+    _NormalizedStartTime: -0.09
   - _FadeDuration: 0.25
     _Speed: 1
     _Events:
-      _NormalizedTimes: []
+      _NormalizedTimes:
+      - 1.39
       _Callbacks: []
       _Names: []
     _Clip: {fileID: -203655887218126122, guid: 26877374390c7d142996e3466672d137, type: 3}
-    _NormalizedStartTime: NaN
+    _NormalizedStartTime: -0.31
   - _FadeDuration: 0.25
-    _Speed: 1
+    _Speed: 1.17
     _Events:
-      _NormalizedTimes: []
+      _NormalizedTimes:
+      - 1.03
       _Callbacks: []
       _Names: []
     _Clip: {fileID: -203655887218126122, guid: 27567e552f3ec1f418bb68b104190ef6, type: 3}
     _NormalizedStartTime: NaN
+  ComboAttackHands: 000000000100000000000000
   ComboWindowStart: 0.5
   ComboLateBuffer: 0.2
   ComboPriority: 25

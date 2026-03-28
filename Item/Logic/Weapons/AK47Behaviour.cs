@@ -1,8 +1,8 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BBBNexus
 {
-    // 步枪AK47行为 负责装备瞄准开火IK后坐力等
+    // 步枪 AK47 行为 负责装备瞄准开火 IK 后坐力等
     public class AK46Behaviour : MonoBehaviour, IHoldableItem, IPoolable
     {
         [Header("--- 表现与挂点 ---")]
@@ -29,11 +29,14 @@ namespace BBBNexus
         private float _lastFireTime;
         // 上一帧瞄准状态
         private bool _wasAiming;
-        // IK调度
+        // IK 调度
         private bool _ikEnableScheduled;
         private float _ikEnableTimePoint;
         private bool _ikDisableScheduled;
         private float _ikDisableTimePoint;
+
+        // 武器自知识：当前装备槽位
+        public EquipmentSlot CurrentEquipSlot { get; set; }
 
         // 初始化实例和配置
         public void Initialize(ItemInstance instanceData)
@@ -44,10 +47,11 @@ namespace BBBNexus
             {
                 float interval = _akconfig.ShootInterval > 0f ? _akconfig.ShootInterval : _akconfig.FireRate;
                 _fireRate = Mathf.Max(0.001f, interval);
+                CurrentEquipSlot = _akconfig.EquipSlot;
             }
         }
 
-        // 装备并设置IK
+        // 装备并设置 IK
         public void OnEquipEnter(BBBCharacterController player)
         {
             _player = player;
@@ -66,14 +70,14 @@ namespace BBBNexus
                     _player.RuntimeData.WantsLeftHandIK = true;
                 }
             }
-            
+
             // 🆕 立刻设置 muzzle，不等瞄准时再设置
             // 这样 FinalIK 始终有有效的引用，避免切装备时 NullRef
             if (_muzzle != null && _player != null && _player.RuntimeData != null)
             {
                 _player.RuntimeData.CurrentAimReference = _muzzle;
             }
-            
+
             float equipAnimDuration = _akconfig.EquipEndTime;
             _equipEndTime = Time.time + equipAnimDuration;
             if (_akconfig != null && _akconfig.EquipAnim != null && _player != null)
@@ -157,9 +161,9 @@ namespace BBBNexus
                 }
                 _wasAiming = isAiming;
             }
-            bool isFiring = _player != null && _player.RuntimeData != null && 
-                           _player.RuntimeData.CurrentItem == _instance && 
-                           _player.RuntimeData.WantsToFire;
+            bool isFiring = _player != null && _player.RuntimeData != null &&
+                           _player.RuntimeData.IsItemEquipped(_instance) &&
+                           _player.RuntimeData.WantsToPrimaryAction;
             if (isAiming && isFiring)
             {
                 TryFire();

@@ -30,6 +30,10 @@ namespace BBBNexus
             _stateDuration = 0f;
             _endTimeTriggered = false;
 
+            // 将角色朝向 snap 到摄像机正方向
+            // 使动画本地空间与摄像机空间对齐，保证四向动画方向正确
+            AlignToCameraForward();
+
             // 根据方向选择闪避数据
             _selectedData = GetDodgeData();
 
@@ -93,42 +97,65 @@ namespace BBBNexus
             _selectedData = null;
         }
 
-        // 根据运动方向获取闪避动画数据 8方向量化
+        // 将角色朝向 snap 到摄像机水平正方向
+        // 调用后角色本地空间与摄像机空间对齐，四向动画方向均正确
+        private void AlignToCameraForward()
+        {
+            if (data.CameraTransform == null) return;
+            Vector3 camFwd = data.CameraTransform.forward;
+            camFwd.y = 0f;
+            if (camFwd.sqrMagnitude < 0.0001f) return;
+            float yaw = Quaternion.LookRotation(camFwd.normalized, Vector3.up).eulerAngles.y;
+            player.MotionDriver.RequestYaw(yaw, 0f);
+            // override 需在本帧 LateUpdate 前生效（InitializeWarpData 依赖正确的朝向）
+            // 由 OverrideState.PhysicsUpdate → UpdateGravityOnly → ConsumeYawRequest 消费
+        }
+
+        // 根据运动方向获取闪避动画数据
+        // 优先匹配 8 方向；斜向槽位为空时自动退回最近的正向，兼容 4 方向配置
+        // AlignToCameraForward 已将角色对齐摄像机，此处用摄像机相对角选动画即可
         private WarpedMotionData GetDodgeData()
         {
-            float angle = data.DesiredLocalMoveAngle;
+            Vector3 worldDir = data.DesiredWorldMoveDir;
+            worldDir.y = 0f;
 
-            const float SectorAngle = 45f;
-            const float HalfSectorAngle = 22.5f;
+            float angle = 0f;
+            if (worldDir.sqrMagnitude > 0.0001f && data.CameraTransform != null)
+            {
+                Vector3 camFwd = data.CameraTransform.forward;
+                camFwd.y = 0f;
+                if (camFwd.sqrMagnitude > 0.0001f)
+                    angle = Vector3.SignedAngle(camFwd.normalized, worldDir.normalized, Vector3.up);
+            }
+            var d = config.Dodging;
 
-            // 8方向判断逻辑 初始化使用连续输入的8方向扇区量化
-            if (angle > -HalfSectorAngle && angle <= HalfSectorAngle)
-                return config.Dodging.ForwardDodge;
+            if (angle > -22.5f && angle <= 22.5f)
+                return d.ForwardDodge;
 
-            if (angle > HalfSectorAngle && angle <= HalfSectorAngle + SectorAngle)
-                return config.Dodging.ForwardRightDodge;
+            if (angle > 22.5f && angle <= 67.5f)
+                return FallbackDodge(d.ForwardRightDodge, d.ForwardDodge, d.RightDodge);
 
-            if (angle > HalfSectorAngle + SectorAngle && angle <= HalfSectorAngle + SectorAngle * 2)
-                return config.Dodging.RightDodge;
+            if (angle > 67.5f && angle <= 112.5f)
+                return d.RightDodge;
 
-            if (angle > HalfSectorAngle + SectorAngle * 2 && angle <= 180f - HalfSectorAngle)
-                return config.Dodging.BackwardRightDodge;
+            if (angle > 112.5f && angle <= 157.5f)
+                return FallbackDodge(d.BackwardRightDodge, d.BackwardDodge, d.RightDodge);
 
-            if (angle > 180f - HalfSectorAngle || angle <= -180f + HalfSectorAngle)
-                return config.Dodging.BackwardDodge;
+            if (angle > 157.5f || angle <= -157.5f)
+                return d.BackwardDodge;
 
-            if (angle > -180f + HalfSectorAngle && angle <= -HalfSectorAngle - SectorAngle * 2)
-                return config.Dodging.BackwardLeftDodge;
+            if (angle > -157.5f && angle <= -112.5f)
+                return FallbackDodge(d.BackwardLeftDodge, d.BackwardDodge, d.LeftDodge);
 
-            if (angle > -HalfSectorAngle - SectorAngle * 2 && angle <= -HalfSectorAngle - SectorAngle)
-                return config.Dodging.LeftDodge;
+            if (angle > -112.5f && angle <= -67.5f)
+                return d.LeftDodge;
 
-            if (angle > -HalfSectorAngle - SectorAngle && angle <= -HalfSectorAngle)
-                return config.Dodging.ForwardLeftDodge;
-
-            // 兜底使用左闪避
-            return config.Dodging.LeftDodge;
+            // [-67.5°, -22.5°]
+            return FallbackDodge(d.ForwardLeftDodge, d.ForwardDodge, d.LeftDodge);
         }
+
+        private static WarpedMotionData FallbackDodge(WarpedMotionData diagonal, WarpedMotionData a, WarpedMotionData b)
+            => (diagonal != null && diagonal.Clip != null) ? diagonal : (a ?? b);
 
         // 处理闪避结束 根据当前运动状态切回MoveLoop或Idle
         private void HandleDodgeEnd()

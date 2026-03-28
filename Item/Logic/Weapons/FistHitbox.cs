@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace BBBNexus
 {
@@ -12,21 +13,19 @@ namespace BBBNexus
         [Header("伤害配置")]
         public float Damage = 10f;
 
-        private BBBCharacterController _owner;
-
-        // 本次激活期间已命中的目标，防止同一挥拳重复伤害
-        private readonly System.Collections.Generic.HashSet<IDamageable> _hitThisSwing
-            = new System.Collections.Generic.HashSet<IDamageable>();
+        private Collider _hitCollider;
+        private MeleeHitScanner _scanner;
 
         private void Awake()
         {
-            // 默认关闭，由 FistsBehaviour 在攻击帧开启
+            _hitCollider = GetComponent<Collider>();
+            _scanner = new MeleeHitScanner(_hitCollider);
             enabled = false;
         }
 
         public void SetOwner(BBBCharacterController owner)
         {
-            _owner = owner;
+            _scanner?.SetOwner(owner);
         }
 
         /// <summary>
@@ -34,8 +33,14 @@ namespace BBBNexus
         /// </summary>
         public void Activate()
         {
-            _hitThisSwing.Clear();
+            Activate(null, true);
+        }
+
+        public void Activate(HashSet<IDamageable> sharedHitSet, bool clearHitSet)
+        {
+            _scanner?.BeginWindow(sharedHitSet, clearHitSet);
             enabled = true;
+            PerformScan();
         }
 
         /// <summary>
@@ -43,24 +48,22 @@ namespace BBBNexus
         /// </summary>
         public void Deactivate()
         {
+            _scanner?.EndWindow();
             enabled = false;
         }
 
-        private void OnTriggerEnter(Collider other)
+        private void FixedUpdate()
         {
             if (!enabled) return;
+            PerformScan();
+        }
 
-            // 不打自己
-            if (_owner != null && other.transform.IsChildOf(_owner.transform)) return;
-
-            var damageable = other.GetComponentInParent<IDamageable>();
-            if (damageable == null) return;
-            if (_hitThisSwing.Contains(damageable)) return;
-
-            _hitThisSwing.Add(damageable);
-
-            var req = new DamageRequest(Damage);
-            damageable.RequestDamage(in req);
+        private void PerformScan()
+        {
+            _scanner?.Scan(Damage, static (other, damageable, request) =>
+            {
+                Debug.Log($"[FistHitbox] 命中！目标：{other.name}, 伤害：{request.Amount}, IDamageable 类型：{damageable.GetType().Name}");
+            });
         }
     }
 }

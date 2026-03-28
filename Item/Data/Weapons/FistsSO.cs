@@ -3,6 +3,12 @@ using UnityEngine;
 
 namespace BBBNexus
 {
+    public enum FistsAttackHand
+    {
+        MainHand = 0,
+        OffHand = 1,
+    }
+
     /// <summary>
     /// 拳头配置。UpperBodyLayerWeight 默认为 0（空手不产生独立上半身姿势）。
     /// </summary>
@@ -20,6 +26,9 @@ namespace BBBNexus
         [Tooltip("连招动画序列，按顺序播放，长度决定最大连招段数。ClipTransition 支持预览和独立淡入配置")]
         public ClipTransition[] ComboSequence;
 
+        [Tooltip("Which hand deals damage for each combo segment. If empty, segments alternate Main -> Off -> Main ...")]
+        public FistsAttackHand[] ComboAttackHands;
+
         [Tooltip("连招甜蜜期开启时机（归一化时间 0-1），动画播放到此比例后开始接受续招输入")]
         [Range(0f, 1f)]
         public float ComboWindowStart = 0.5f;
@@ -29,5 +38,15 @@ namespace BBBNexus
 
         [Tooltip("连招优先级，高于普通移动但低于翻滚/闪避")]
         public int ComboPriority = 25;
+
+        public FistsAttackHand GetAttackHand(int comboIndex)
+        {
+            if (ComboAttackHands != null && comboIndex >= 0 && comboIndex < ComboAttackHands.Length)
+            {
+                return ComboAttackHands[comboIndex];
+            }
+
+            return (comboIndex & 1) == 0 ? FistsAttackHand.MainHand : FistsAttackHand.OffHand;
+        }
     }
 }

@@ -12,6 +12,9 @@ namespace BBBNexus
         private ItemInstance _instance;
         private SwordSO _config;
 
+        // 武器自知识：当前装备槽位
+        public EquipmentSlot CurrentEquipSlot { get; set; }
+
         private SwordPhase _phase = SwordPhase.None;
         private float _equipEndTime;
         private float _unequipEndTime;
@@ -28,6 +31,12 @@ namespace BBBNexus
         {
             _instance = instanceData;
             _config = _instance.BaseData as SwordSO;
+            
+            // 从配置读取装备槽位
+            if (_config != null)
+            {
+                CurrentEquipSlot = _config.EquipSlot;
+            }
         }
 
         // 装备
@@ -62,7 +71,7 @@ namespace BBBNexus
                 return;
             }
 
-            bool fire = _player.RuntimeData != null && _player.RuntimeData.WantsToFire;
+            bool fire = _player.RuntimeData != null && _player.RuntimeData.WantsToPrimaryAction;
             bool fireDown = fire && !_lastFireInput;
             _lastFireInput = fire;
 

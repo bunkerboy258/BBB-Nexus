@@ -2,41 +2,48 @@ using UnityEngine;
 
 namespace BBBNexus
 {
-    // 上半身持有物品状态 
-    // 只要黑板数据变了 立刻呼叫 Driver 换枪
-    // 枪换好后 无脑把 Update 权限下放给武器实体
+    // 上半身持有物品状态
+    // 只要黑板数据变了 立刻呼叫 Driver 换装备
+    // 装备换好后 无脑把 Update 权限下放给武器实体
+    // 支持双持：主手和副手独立同步，每帧轮询所有装备的 OnUpdateLogic()
     public class UpperBodyHoldItemState : UpperBodyBaseState
     {
-        private IHoldableItem _currentItem;
-        private ItemInstance _cachedInstance;
+        private ItemInstance _cachedMainhandInstance;
+        private ItemInstance _cachedOffhandInstance;
 
         public UpperBodyHoldItemState(BBBCharacterController p) : base(p) { }
 
-        // 进入状态 强制上半身动画层权重为1 执行一次强制同步
+        // 进入状态 强制上半身动画层权重为 1 执行一次强制同步
         public override void Enter()
         {
-            // 刚进入状态 先同步装备，再根据武器配置设置上半身层权重
-            SyncEquipmentFromBlackboard();
+            SyncMainhandFromBlackboard();
+            SyncOffhandFromBlackboard();
         }
 
-        // 退出状态 让当前武器清理后事 停特效 解绑输入等
+        // 退出状态 让所有装备清理后事 停特效 解绑输入等
         public override void Exit()
         {
-            _currentItem?.OnForceUnequip();
+            player.EquipmentDriver.MainhandItemDirector?.OnForceUnequip();
+            player.EquipmentDriver.OffhandItemDirector?.OnForceUnequip();
         }
 
         // 状态逻辑 检测黑板物品变化 否则交给武器自己更新
         protected override void UpdateStateLogic()
         {
-            // 1. 检查黑板上的物品有没有被换
-            if (_cachedInstance != player.RuntimeData.CurrentItem)
+            // 1. 检查主手装备变化
+            if (_cachedMainhandInstance != player.RuntimeData.MainhandItem)
             {
-                SyncEquipmentFromBlackboard();
-                return;
+                SyncMainhandFromBlackboard();
             }
 
-            // 2. 退出条件 如果发现黑板里没东西了 玩家收枪了 切回空手状态
-            if (player.RuntimeData.CurrentItem == null)
+            // 2. 检查副手装备变化
+            if (_cachedOffhandInstance != player.RuntimeData.OffhandItem)
+            {
+                SyncOffhandFromBlackboard();
+            }
+
+            // 3. 退出条件：两个手都没东西
+            if (player.RuntimeData.MainhandItem == null && player.RuntimeData.OffhandItem == null)
             {
                 player.UpperBodyCtrl.StateMachine.ChangeState(
                     player.UpperBodyCtrl.StateRegistry.GetState<UpperBodyEmptyState>()
@@ -44,40 +51,66 @@ namespace BBBNexus
                 return;
             }
 
-            // 3. 正常运行 让物品自己干活
-            _currentItem?.OnUpdateLogic();
+            // 4. 正常运行：轮询所有装备的 OnUpdateLogic()
+            var allItems = player.EquipmentDriver.AllEquippedItems;
+            for (int i = 0; i < allItems.Count; i++)
+            {
+                allItems[i]?.OnUpdateLogic();
+            }
         }
 
-        // 核心调度方法 处理物品的装载与控制权移交
-        private void SyncEquipmentFromBlackboard()
+        // 同步主手装备
+        private void SyncMainhandFromBlackboard()
         {
-            // 剥夺旧武器的控制权
-            _currentItem?.OnForceUnequip();
+            // 卸载旧主手武器
+            var oldItem = player.EquipmentDriver.MainhandItemDirector;
+            oldItem?.OnForceUnequip();
 
             // 更新缓存
-            _cachedInstance = player.RuntimeData.CurrentItem;
+            _cachedMainhandInstance = player.RuntimeData.MainhandItem;
 
-            if (_cachedInstance != null)
+            if (_cachedMainhandInstance != null)
             {
-                // 打印模型 注入实例数据
-                player.EquipmentDriver.EquipItem(_cachedInstance);
+                // 装备新武器到主手
+                player.EquipmentDriver.EquipItemToSlot(_cachedMainhandInstance, EquipmentSlot.MainHand);
 
-                // 根据武器配置设置上半身层权重
-                var itemData = player.EquipmentDriver.CurrentItemData;
+                // 根据武器配置设置上半身层权重（优先使用主手武器配置）
+                var itemData = player.EquipmentDriver.MainhandItemData;
                 float targetWeight = itemData != null ? itemData.UpperBodyLayerWeight : 1f;
                 player.AnimFacade.SetLayerWeight(1, targetWeight, 0.25f);
-
-                // 拿到刚造出来的物品的最高权限
-                _currentItem = player.EquipmentDriver.CurrentItemDirector;
-
-                // 正式激活物品控制 初始化物品逻辑
-                _currentItem?.OnEquipEnter(player);
             }
             else
             {
-                // 销毁模型
-                player.EquipmentDriver.UnequipCurrentItem();
-                _currentItem = null;
+                player.EquipmentDriver.UnequipMainhand();
+            }
+        }
+
+        // 同步副手装备
+        private void SyncOffhandFromBlackboard()
+        {
+            // 卸载旧副手武器
+            var oldItem = player.EquipmentDriver.OffhandItemDirector;
+            oldItem?.OnForceUnequip();
+
+            // 更新缓存
+            _cachedOffhandInstance = player.RuntimeData.OffhandItem;
+
+            if (_cachedOffhandInstance != null)
+            {
+                // 装备新武器到副手
+                player.EquipmentDriver.EquipItemToSlot(_cachedOffhandInstance, EquipmentSlot.OffHand);
+
+                // 如果主手没有武器，使用副手武器配置设置上半身层权重
+                if (player.RuntimeData.MainhandItem == null)
+                {
+                    var itemData = player.EquipmentDriver.OffhandItemData;
+                    float targetWeight = itemData != null ? itemData.UpperBodyLayerWeight : 1f;
+                    player.AnimFacade.SetLayerWeight(1, targetWeight, 0.25f);
+                }
+            }
+            else
+            {
+                player.EquipmentDriver.UnequipOffhand();
             }
         }
     }

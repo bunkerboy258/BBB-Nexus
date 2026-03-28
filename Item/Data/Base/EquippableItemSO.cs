@@ -1,8 +1,19 @@
 using Animancer;
 using UnityEngine;
+using System;
 
 namespace BBBNexus
 {
+    /// <summary>
+    /// 装备槽位枚举：定义物品可以装备到的位置
+    /// </summary>
+    public enum EquipmentSlot
+    {
+        None = 0,      // 无槽位
+        MainHand = 1,  // 主手（右手）
+        OffHand = 2,   // 副手（左手）
+    }
+
     /// <summary>
     /// 可装备物品图纸基类：包含了实例化所需的外壳 Prefab 和基础通用动画。
     /// </summary>
@@ -11,6 +22,10 @@ namespace BBBNexus
         [Header("--- 物理表现 ---")]
         [Tooltip("实例化到玩家手里的游戏对象 (必须包含实现了 IHoldableItem 的脚本)")]
         public GameObject Prefab;
+
+        [Tooltip("装备到此槽位，此字段已废弃，等待重置，装备槽位由 EquipmentDriver 根据配置决定，不要使用此字段")]
+        [Obsolete("此字段已废弃，等待重置，装备槽位由 EquipmentDriver 根据配置决定，不要使用此字段")]
+        public EquipmentSlot EquipSlot = EquipmentSlot.MainHand;
 
         public Vector3 HoldPositionOffset;
         public Quaternion HoldRotationOffset;

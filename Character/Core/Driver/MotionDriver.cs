@@ -120,8 +120,29 @@ namespace BBBNexus
 
         #region Public API
 
+        /// <summary>
+        /// 请求将角色旋转到指定 Yaw。MotionDriver 是唯一的 transform.rotation 写入者。
+        /// smoothTime = 0：本帧同步立即到位（适合需要当帧生效的场景，如 Dodge 开始前对齐朝向）。
+        /// smoothTime > 0：写入黑板，由后续 MotionDriver 更新平滑驱动（适合锁定跟随等持续旋转）。
+        /// </summary>
+        public void RequestYaw(float targetYaw, float smoothTime = 0f)
+        {
+            if (smoothTime <= 0f)
+            {
+                _transform.rotation = Quaternion.Euler(0f, targetYaw, 0f);
+                _data.CurrentYaw = targetYaw;
+                _data.RotationVelocity = 0f;
+            }
+            else
+            {
+                _data.RequestedTargetYaw = targetYaw;
+                _data.RequestedYawSmoothTime = smoothTime;
+            }
+        }
+
         public void UpdateGravityOnly()
         {
+            ConsumeYawRequest();
             Vector3 vv = GetGravityThisFrame();
             _cc.Move(vv * Time.deltaTime);
             _data.CurrentSpeed = _cc.velocity.magnitude;
@@ -285,21 +306,24 @@ namespace BBBNexus
 
             if (moveDir.sqrMagnitude < 0.0001f)
             {
-                // 避免 eulerAngles 多次读取，空输入时 CurrentYaw 维持最新值即可
+                ConsumeYawRequest();
                 _loco.SmoothSpeed = 0f;
                 return Vector3.zero;
             }
 
-            float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
-            ApplySmoothYaw(targetYaw, _config.Core.RotationSmoothTime);
+            if (!ConsumeYawRequest())
+            {
+                float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
+                ApplySmoothYaw(targetYaw, _config.Core.RotationSmoothTime);
+            }
 
             return CalculateSmoothedVelocity(moveDir, isAiming: false, speedMult);
         }
 
         private Vector3 CalculateAimVelocity(float speedMult)
         {
-            // 瞄准模式：朝权威 yaw 转向
-            ApplySmoothYaw(_data.AuthorityYaw, _config.Aiming.AimRotationSmoothTime);
+            if (!ConsumeYawRequest())
+                ApplySmoothYaw(_data.AuthorityYaw, _config.Aiming.AimRotationSmoothTime);
 
             Vector2 input = _data.MoveInput;
             if (input.sqrMagnitude < 0.001f)
@@ -372,6 +396,30 @@ namespace BBBNexus
         #endregion
 
         #region Helpers
+
+        // 消费黑板上的 RequestedTargetYaw，立即或平滑应用后清除
+        // 返回 true 表示有 override 且已处理（调用方可跳过自己的目标 yaw 计算）
+        private bool ConsumeYawRequest()
+        {
+            if (float.IsNaN(_data.RequestedTargetYaw)) return false;
+
+            float target = _data.RequestedTargetYaw;
+            float smooth = _data.RequestedYawSmoothTime;
+            _data.RequestedTargetYaw = float.NaN;
+
+            if (smooth <= 0f)
+            {
+                _transform.rotation = Quaternion.Euler(0f, target, 0f);
+                _data.CurrentYaw = target;
+                _data.RotationVelocity = 0f;
+            }
+            else
+            {
+                ApplySmoothYaw(target, smooth);
+            }
+
+            return true;
+        }
 
         private void ApplySmoothYaw(float targetYaw, float smoothTime)
         {

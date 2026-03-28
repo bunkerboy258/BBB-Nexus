@@ -22,8 +22,8 @@ namespace BBBNexus
         // 状态逻辑 检测是否装备了新物品
         protected override void UpdateStateLogic()
         {
-            // 检测到装备物品就切换到持握状态
-            if (data.CurrentItem != null)
+            // 检测到主手或副手有物品就切换到持握状态
+            if (data.MainhandItem != null || data.OffhandItem != null)
             {
                 player.UpperBodyCtrl.StateMachine.ChangeState(
                     player.UpperBodyCtrl.StateRegistry.GetState<UpperBodyHoldItemState>()

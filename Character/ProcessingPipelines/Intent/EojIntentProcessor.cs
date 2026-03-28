@@ -2,7 +2,7 @@ namespace BBBNexus
 {
     /// <summary>
     /// 表情意图处理器 - 监听按键输入并将表情请求写入黑板
-    /// 支持四个快捷表情按键（6789）
+    /// 支持八个快捷表情按键（6789 和 0 或自定义绑定）
     /// </summary>
     public class EojIntentProcessor
     {
@@ -20,7 +20,7 @@ namespace BBBNexus
         /// </summary>
         public void Update(in ProcessedInputData input)
         {
-            // 检测快捷表情按键 6789
+            // 检测快捷表情按键 6789 和 0（或自定义绑定）
             // 优先级：最后一个按下的表情会覆盖前面的
             if (input.Expression1Pressed)
             {
@@ -48,6 +48,34 @@ namespace BBBNexus
                 _data.FacialEventRequest = PlayerFacialEvent.QuickExpression4;
                 _data.WantsExpression4 = true;
                 _input?.ConsumeExpression4Pressed();
+            }
+
+            if (input.Expression5Pressed)
+            {
+                _data.FacialEventRequest = PlayerFacialEvent.QuickExpression5;
+                _data.WantsExpression5 = true;
+                _input?.ConsumeExpression5Pressed();
+            }
+
+            if (input.Expression6Pressed)
+            {
+                _data.FacialEventRequest = PlayerFacialEvent.QuickExpression6;
+                _data.WantsExpression6 = true;
+                _input?.ConsumeExpression6Pressed();
+            }
+
+            if (input.Expression7Pressed)
+            {
+                _data.FacialEventRequest = PlayerFacialEvent.QuickExpression7;
+                _data.WantsExpression7 = true;
+                _input?.ConsumeExpression7Pressed();
+            }
+
+            if (input.Expression8Pressed)
+            {
+                _data.FacialEventRequest = PlayerFacialEvent.QuickExpression8;
+                _data.WantsExpression8 = true;
+                _input?.ConsumeExpression8Pressed();
             }
         }
     }

@@ -125,6 +125,10 @@ namespace BBBNexus
             currentFrame.Processed.Expression2Held = _rawData.Expression2Held;
             currentFrame.Processed.Expression3Held = _rawData.Expression3Held;
             currentFrame.Processed.Expression4Held = _rawData.Expression4Held;
+            currentFrame.Processed.Expression5Held = _rawData.Expression5Held;
+            currentFrame.Processed.Expression6Held = _rawData.Expression6Held;
+            currentFrame.Processed.Expression7Held = _rawData.Expression7Held;
+            currentFrame.Processed.Expression8Held = _rawData.Expression8Held;
 
             currentFrame.Processed.Number1Held = _rawData.Number1Held;
             currentFrame.Processed.Number2Held = _rawData.Number2Held;
@@ -156,6 +160,10 @@ namespace BBBNexus
             currentFrame.Processed.Expression2BufferTimer = UpdateBuffer(lastProc.Expression2BufferTimer, _rawData.Expression2JustPressed);
             currentFrame.Processed.Expression3BufferTimer = UpdateBuffer(lastProc.Expression3BufferTimer, _rawData.Expression3JustPressed);
             currentFrame.Processed.Expression4BufferTimer = UpdateBuffer(lastProc.Expression4BufferTimer, _rawData.Expression4JustPressed);
+            currentFrame.Processed.Expression5BufferTimer = UpdateBuffer(lastProc.Expression5BufferTimer, _rawData.Expression5JustPressed);
+            currentFrame.Processed.Expression6BufferTimer = UpdateBuffer(lastProc.Expression6BufferTimer, _rawData.Expression6JustPressed);
+            currentFrame.Processed.Expression7BufferTimer = UpdateBuffer(lastProc.Expression7BufferTimer, _rawData.Expression7JustPressed);
+            currentFrame.Processed.Expression8BufferTimer = UpdateBuffer(lastProc.Expression8BufferTimer, _rawData.Expression8JustPressed);
 
             currentFrame.Processed.Number1BufferTimer = UpdateBuffer(lastProc.Number1BufferTimer, _rawData.Number1JustPressed);
             currentFrame.Processed.Number2BufferTimer = UpdateBuffer(lastProc.Number2BufferTimer, _rawData.Number2JustPressed);
@@ -181,6 +189,10 @@ namespace BBBNexus
         public void ConsumeExpression2Pressed() { var f = _inputData.currentFrameData; f.Processed.Expression2BufferTimer = 0f; _inputData.currentFrameData = f; }
         public void ConsumeExpression3Pressed() { var f = _inputData.currentFrameData; f.Processed.Expression3BufferTimer = 0f; _inputData.currentFrameData = f; }
         public void ConsumeExpression4Pressed() { var f = _inputData.currentFrameData; f.Processed.Expression4BufferTimer = 0f; _inputData.currentFrameData = f; }
+        public void ConsumeExpression5Pressed() { var f = _inputData.currentFrameData; f.Processed.Expression5BufferTimer = 0f; _inputData.currentFrameData = f; }
+        public void ConsumeExpression6Pressed() { var f = _inputData.currentFrameData; f.Processed.Expression6BufferTimer = 0f; _inputData.currentFrameData = f; }
+        public void ConsumeExpression7Pressed() { var f = _inputData.currentFrameData; f.Processed.Expression7BufferTimer = 0f; _inputData.currentFrameData = f; }
+        public void ConsumeExpression8Pressed() { var f = _inputData.currentFrameData; f.Processed.Expression8BufferTimer = 0f; _inputData.currentFrameData = f; }
         public void ConsumeNumber1Pressed() { var f = _inputData.currentFrameData; f.Processed.Number1BufferTimer = 0f; _inputData.currentFrameData = f; }
         public void ConsumeNumber2Pressed() { var f = _inputData.currentFrameData; f.Processed.Number2BufferTimer = 0f; _inputData.currentFrameData = f; }
         public void ConsumeNumber3Pressed() { var f = _inputData.currentFrameData; f.Processed.Number3BufferTimer = 0f; _inputData.currentFrameData = f; }
