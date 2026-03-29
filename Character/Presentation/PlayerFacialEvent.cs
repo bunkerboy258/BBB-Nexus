@@ -1,4 +1,4 @@
-namespace BBBNexus
+﻿namespace BBBNexus
 {
     /// <summary>
     /// 角色表情/面部反馈事件表

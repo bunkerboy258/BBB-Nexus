@@ -19,6 +19,7 @@ namespace BBBNexus
         AimIdle,
         AimMove,
         Override,
-        Death
+        Death,
+        StatusEffect
     }
 }

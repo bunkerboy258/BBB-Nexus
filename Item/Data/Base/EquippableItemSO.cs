@@ -1,9 +1,22 @@
-using Animancer;
+﻿using Animancer;
 using UnityEngine;
 using System;
 
 namespace BBBNexus
 {
+    [Serializable]
+    public struct VirtualOtherSlotLink
+    {
+        [Tooltip("是否启用主武器对 otherslot 的联动托管。")]
+        public bool Enabled;
+
+        [Tooltip("主武器切换时要接管的 otherslot。")]
+        public EquipmentSlot TargetSlot;
+
+        [Tooltip("virtualpack 中不存在托管文件时，默认创建/装入的另一半装备 id。")]
+        public string ItemId;
+    }
+
     /// <summary>
     /// 装备槽位枚举：定义物品可以装备到的位置
     /// </summary>
@@ -46,6 +59,14 @@ namespace BBBNexus
         [Tooltip("持有时默认的待机动画")]
         public ClipTransition EquipIdleAnim;
         public AnimPlayOptions EquipIdleAnimOptions= AnimPlayOptions.UpperBodyDefault;
+
+        [Header("--- 相机表现力 ---")]
+        [Tooltip("装备此物品时的相机预设。null = 沿用当前相机默认配置，不做任何覆写。")]
+        public CameraPresetSO CameraPreset;
+
+        [Header("--- otherslot 联动 ---")]
+        [Tooltip("主武器可声明一个 virtualpack 联动槽。装备主手时，系统会把 virtualpack 的另一半搬到对应 otherslot；切走主手时再搬回。")]
+        public VirtualOtherSlotLink VirtualOtherSlot;
 
     }
 }

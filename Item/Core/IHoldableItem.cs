@@ -1,4 +1,4 @@
-namespace BBBNexus
+﻿namespace BBBNexus
 {
     /// <summary>
     /// 定义所有装备物品必须实现的生命周期与逻辑接口

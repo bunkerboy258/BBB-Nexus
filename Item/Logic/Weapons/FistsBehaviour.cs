@@ -1,4 +1,4 @@
-using Animancer;
+﻿using Animancer;
 using System;
 using System.Collections.Generic;
 using UnityEngine;

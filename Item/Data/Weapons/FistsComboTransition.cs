@@ -1,4 +1,4 @@
-using Animancer;
+﻿using Animancer;
 
 namespace BBBNexus
 {

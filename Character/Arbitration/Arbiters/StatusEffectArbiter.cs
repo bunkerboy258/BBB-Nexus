@@ -3,14 +3,13 @@ using UnityEngine;
 namespace BBBNexus
 {
     /// <summary>
-    /// ¹ÜÀí½ÇÉ«ÉíÉÏµÄ±»¶¯×´Ì¬Ğ§¹û¡£
-    /// ±»¶¯×´Ì¬ÓëÖ÷¶¯¶¯×÷ Override ·ÖÀë£¬±ÜÃâÎÛÈ¾¹¥»÷×´Ì¬»ú¡£
+    /// ç®¡ç†è§’è‰²èº«ä¸Šçš„è¢«åŠ¨çŠ¶æ€æ•ˆæœã€‚
+    /// è¢«åŠ¨çŠ¶æ€ä¸ä¸»åŠ¨åŠ¨ä½œ Override åˆ†ç¦»ï¼Œé¿å…æ±¡æŸ“æ”»å‡»çŠ¶æ€æœºã€‚
     /// </summary>
     public class StatusEffectArbiter
     {
         private readonly BBBCharacterController _player;
         private readonly PlayerRuntimeData _data;
-        private readonly StatusEffectState _state;
 
         private StatusEffectSO _current;
         private float _remainingTime;
@@ -22,7 +21,6 @@ namespace BBBNexus
         {
             _player = player;
             _data = player.RuntimeData;
-            _state = new StatusEffectState(player);
         }
 
         public void Apply(StatusEffectSO effect, float hitAngle = float.NaN)
@@ -34,6 +32,10 @@ namespace BBBNexus
                 return;
 
             bool alreadyInState = _player.StateMachine.CurrentState is StatusEffectState;
+            var state = _player.StateRegistry?.GetState<StatusEffectState>();
+            if (state == null)
+                return;
+
             if (_current == effect)
             {
                 if (!effect.CanBeRefreshed)
@@ -42,7 +44,7 @@ namespace BBBNexus
                 _remainingTime = effect.Duration;
                 _data.StatusEffect.HitAngle = hitAngle;
                 if (alreadyInState)
-                    _state.ForceReapply();
+                    state.ForceReapply();
                 return;
             }
 
@@ -53,15 +55,37 @@ namespace BBBNexus
             _data.StatusEffect.Effect = effect;
             _data.StatusEffect.HitAngle = hitAngle;
             if (!alreadyInState)
-                _data.StatusEffect.ReturnState = _player.StateMachine.CurrentState;
+                _data.StatusEffect.ReturnState = ResolveSafeReturnState();
 
             if (alreadyInState)
             {
-                _state.ForceReapply();
+                state.ForceReapply();
                 return;
             }
 
-            _player.StateMachine.ChangeState(_state);
+            _player.StateMachine.ChangeState(state);
+        }
+
+        private BaseState ResolveSafeReturnState()
+        {
+            var currentState = _player.StateMachine.CurrentState;
+            if (currentState is OverrideState)
+            {
+                // StatusEffect ä¼šè§¦å‘ OverrideState.Exitï¼Œè€Œ Exit ä¼šæ¸…æ‰ Override ä¸Šä¸‹æ–‡ã€‚
+                // å—å‡»ç»“æŸåå†è¿”å›åŒä¸€ä¸ª OverrideState ä¼šè¿›å…¥ä¸€ä¸ªæ²¡æœ‰è¯·æ±‚å¯å›æ”¾çš„ç©ºå£³çŠ¶æ€ã€‚
+                if (_data.Override.ReturnState != null &&
+                    _data.Override.ReturnState is not OverrideState &&
+                    _data.Override.ReturnState is not StatusEffectState)
+                {
+                    return _data.Override.ReturnState;
+                }
+
+                return _data.CurrentLocomotionState != LocomotionState.Idle
+                    ? _player.StateRegistry.GetState<PlayerMoveLoopState>()
+                    : _player.StateRegistry.GetState<PlayerIdleState>();
+            }
+
+            return currentState;
         }
 
         public void Clear()
@@ -86,7 +110,10 @@ namespace BBBNexus
                     {
                         _data.StatusEffect.IsActive = false;
                         if (_player.StateMachine.CurrentState is StatusEffectState)
-                            _state.ReturnToPreviousState();
+                        {
+                            var state = _player.StateRegistry?.GetState<StatusEffectState>();
+                            state?.ReturnToPreviousState();
+                        }
                     }
 
                     return;

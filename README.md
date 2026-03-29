@@ -1,4 +1,4 @@
-# BBBNexus Action Controller Framework
+﻿# BBBNexus Action Controller Framework
 
 ![Unity Version](https://img.shields.io/badge/Unity-2022.3%2B-blue)
 ![Architecture](https://img.shields.io/badge/Architecture-Data_Driven-orange)

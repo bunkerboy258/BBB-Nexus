@@ -44,6 +44,7 @@ namespace BBBNexus
                     PlayerStateType.AimMove => new PlayerAimMoveState(player),
                     PlayerStateType.Override=> new OverrideState(player),
                     PlayerStateType.Death => new PlayerDeathState(player),
+                    PlayerStateType.StatusEffect => new StatusEffectState(player),
                     _ => null
                 };
 

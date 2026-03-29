@@ -1,1 +1,1 @@
-// Reserved for future Zombie-specific AI data helpers.
+﻿// Reserved for future Zombie-specific AI data helpers.

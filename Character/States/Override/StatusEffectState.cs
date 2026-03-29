@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace BBBNexus
 {
@@ -74,6 +74,13 @@ namespace BBBNexus
 
         private PlayerBaseState ResolveReturnState(BaseState returnState)
         {
+            if (returnState is OverrideState || returnState is StatusEffectState || returnState == null)
+            {
+                return data.CurrentLocomotionState != LocomotionState.Idle
+                    ? player.StateRegistry.GetState<PlayerMoveLoopState>()
+                    : player.StateRegistry.GetState<PlayerIdleState>();
+            }
+
             if (returnState is PlayerMoveLoopState || returnState is PlayerIdleState)
             {
                 return data.CurrentLocomotionState != LocomotionState.Idle

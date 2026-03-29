@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using UnityEngine;
 
@@ -44,11 +44,11 @@ namespace BBBNexus
             // BlockInventory 只阻止切换新装备，不强制卸载当前装备
             if (_data.Arbitration.BlockInventory) return;
 
-            if (_data.WantsToEquipHotbarIndex != -1)
+            if (_data.WantToEquipSlotIndex != -1)
             {
-                TryEquipSlot(_data.WantsToEquipHotbarIndex);
+                TryEquipSlot(_data.WantToEquipSlotIndex);
 
-                _data.WantsToEquipHotbarIndex = -1;
+                _data.WantToEquipSlotIndex = -1;
             }
         }
 
@@ -95,7 +95,9 @@ namespace BBBNexus
             return true;
         }
 
-        // 尝试装备指定快捷栏槽位的物品
+        // 尝试切换指定数字槽位对应的主手装备。
+        // 数字槽位语义默认只作用于 MainHand；
+        // OffHand 以及更细粒度槽位应由背包/装备界面显式处理。
         private void TryEquipSlot(int slotIndex)
         {
             if (_player == null) return;
@@ -110,30 +112,26 @@ namespace BBBNexus
                 return;
             }
 
-            var targetInstance = HotbarInventory.GetAt(slotIndex);
-            if (targetInstance == null)
+            if (EquipmentPackVfs.SwapMainHandWithMainSlot(slotIndex + 1, _player))
             {
-                //Debug.Log($"[Inventory] 槽位 {slotIndex + 1} 为空 -> 卸载");
-                Unequip();
+                if (!EquipmentPackVfs.TryGetOtherSlotItemId(EquipmentSlot.MainHand, out var mainhandItemId, _player))
+                {
+                    ConsumeHotbarKey(slotIndex);
+                    return;
+                }
+
+                var instance = EquipmentManager.EquipById(_player, mainhandItemId, EquipmentSlot.MainHand);
+                if (instance != null)
+                {
+                    _player.RuntimeData.CurrentItem = instance;
+                    _currentSlotIndex = slotIndex;
+                }
+
                 ConsumeHotbarKey(slotIndex);
                 return;
             }
 
-            if (targetInstance.BaseData is EquippableItemSO)
-            {
-                //Debug.Log($"[Inventory] 意图切换 -> {targetInstance.BaseData.DisplayName}");
-                _player.RuntimeData.CurrentItem = targetInstance;
-
-                // 成功尝试装备后 消费对应的数字键输入
-                ConsumeHotbarKey(slotIndex);
-            }
-            else
-            {
-                Debug.Log($"[Inventory] 槽位 {slotIndex + 1} 非可装备物品 -> 忽略");
-
-                // 即便忽略 也消费输入 防止重复触发
-                ConsumeHotbarKey(slotIndex);
-            }
+            ConsumeHotbarKey(slotIndex);
         }
 
         private void ConsumeHotbarKey(int slotIndex)
@@ -153,7 +151,10 @@ namespace BBBNexus
         {
             if (_player == null) return;
             //Debug.Log("[Inventory] 意图卸载");
+            EquipmentPackVfs.ReturnMainHandToOccupiedMainSlot(_player);
+            EquipmentManager.Unequip(_player, EquipmentSlot.MainHand);
             _player.RuntimeData.CurrentItem = null;
+            _currentSlotIndex = -1;
         }
 
         private void OnEquipmentChanged()
@@ -167,14 +168,10 @@ namespace BBBNexus
                 return;
             }
 
-            for (int i = 0; i < 5; i++)
+            if (EquipmentPackVfs.TryGetOccupiedMainSlotIndex(out var occupiedIndex, _player))
             {
-                var hotbarSlot = HotbarInventory.GetAt(i);
-                if (hotbarSlot != null && hotbarSlot.InstanceID == current.InstanceID)
-                {
-                    _currentSlotIndex = i;
-                    return;
-                }
+                _currentSlotIndex = occupiedIndex - 1;
+                return;
             }
             _currentSlotIndex = -1;
         }

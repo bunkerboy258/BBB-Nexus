@@ -1,4 +1,4 @@
-using Animancer;
+﻿using Animancer;
 using UnityEngine;
 
 namespace BBBNexus
@@ -7,6 +7,9 @@ namespace BBBNexus
     public class RangedWeaponSO : EquippableItemSO
     {
         [Header("--- 枪械独有配置 (Ranged Stats) ---")]
+        [Tooltip("右键/瞄准输入是否会把角色带入 Aim 全身状态。开启后，下半身会使用 PlayerSO.Aiming 的持枪移动配置。")]
+        public bool EnablesAimState = true;
+
         [Tooltip("瞄准动画")]
         public ClipTransition AimAnim;
         public AnimPlayOptions AnimPlayOptions=AnimPlayOptions.UpperBodyDefault;

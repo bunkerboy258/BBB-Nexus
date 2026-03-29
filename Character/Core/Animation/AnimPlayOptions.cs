@@ -1,4 +1,4 @@
-namespace BBBNexus
+﻿namespace BBBNexus
 {
     /// <summary>
     /// 动画播放代理选项

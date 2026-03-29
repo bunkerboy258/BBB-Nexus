@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BBBNexus
 {
@@ -101,8 +101,12 @@ namespace BBBNexus
         #endregion
 
         #region 装备与指向基准
-        /// <summary>快捷栏装备意图 -1 无意图 >=0 对应槽位</summary>
-        public int WantsToEquipHotbarIndex = -1;
+        /// <summary>
+        /// 数字槽位切换主手装备的意图。
+        /// -1 表示无意图，>=0 表示请求切换到对应数字槽位索引。
+        /// 此意图默认只驱动 MainHand，不参与 OffHand 的细粒度装备管理。
+        /// </summary>
+        public int WantToEquipSlotIndex = -1;
         /// <summary>主手装备物品 null 为空手</summary>
         public ItemInstance MainhandItem;
         /// <summary>副手装备物品 null 为空手</summary>
@@ -242,6 +246,13 @@ namespace BBBNexus
         public Vector3 LookAtPosition;
         #endregion
 
+        #region 相机表现力（帧级，武器写入）
+        /// <summary>
+        /// 武器 Behaviour 每帧写入的相机表现力请求，CameraExpressionApplicator 消费，ResetIntent 末尾清零。
+        /// </summary>
+        public CameraExpression CameraExpression;
+        #endregion
+
         #region 体力与追踪状态
         /// <summary>当前体力值</summary>
         public float CurrentStamina;
@@ -311,6 +322,9 @@ namespace BBBNexus
 
             // 每帧清理帧仲裁请求
             ActionArbitration.Clear();
+
+            // 武器相机表现力请求：每帧清零，武器在 Update 阶段重新写入
+            CameraExpression.Clear();
 
             // 注意 音频事件不在这里清理
             // AudioController 在 Update 消费（而 ResetIntetnt 在 LateUpdate）

@@ -67,6 +67,10 @@ MonoBehaviour:
     Speed: -1
     NormalizedTime: -1
     ForcePhaseSync: 0
+  VirtualOtherSlot:
+    Enabled: 1
+    TargetSlot: 2
+    ItemId: ZombieFistsSO
   EnterStanceAnim:
     _FadeDuration: 0.25
     _Speed: 1
@@ -94,7 +98,7 @@ MonoBehaviour:
       _Names: []
     _Clip: {fileID: 3060610079319413300, guid: 5c7a7377bba00494ba87345917b06ecf, type: 3}
     _NormalizedStartTime: 0.12
-    _StableKey: 
+    _StableKey: 017d5d25697e9884d9ad319684b0d0af
   - _FadeDuration: 0.1
     _Speed: 1
     _Events:
@@ -104,7 +108,7 @@ MonoBehaviour:
       _Names: []
     _Clip: {fileID: 3060610079319413300, guid: 31422118f4940344b8cac9c8fb916165, type: 3}
     _NormalizedStartTime: 0
-    _StableKey: 
+    _StableKey: 5cbdf4d5a0e05d34f9e7e71c5c9a879d
   - _FadeDuration: 0.1
     _Speed: 1
     _Events:
@@ -113,8 +117,8 @@ MonoBehaviour:
       _Names: []
     _Clip: {fileID: 3060610079319413300, guid: c8a97fa5c64172949b7ddd8770e8ffc8, type: 3}
     _NormalizedStartTime: 0
-    _StableKey: 
-  ComboAttackHands: 020000000100000002000000
+    _StableKey: 4d879e80921061845bab2d4f6d962653
+  ComboAttackHands: 020000000000000002000000
   ComboDamageWindows:
   - Enabled: 1
     StartNormalized: 0.3

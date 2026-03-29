@@ -1,4 +1,4 @@
-namespace BBBNexus
+﻿namespace BBBNexus
 {
     // 上半身分层控制器
     // 管理上半身的独立状态机 中央点是处理装备 瞄准 与攻击等上半身行为

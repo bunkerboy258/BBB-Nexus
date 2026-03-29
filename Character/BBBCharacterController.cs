@@ -1,6 +1,7 @@
-using Animancer;
+﻿using Animancer;
 using System.Collections.Generic;
 using UnityEngine;
+using NekoGraph;
 
 namespace BBBNexus
 {
@@ -46,16 +47,21 @@ namespace BBBNexus
 
 
         [Header("--- 调试选项 ---")]
-        public EquippableItemSO DebugMainhandEquipment;
+        public EquippableItemSO DebugMainhandEquipment1;
+        public EquippableItemSO DebugMainhandEquipment2;
+        public EquippableItemSO DebugMainhandEquipment3;
+        public EquippableItemSO DebugMainhandEquipment4;
+        public EquippableItemSO DebugMainhandEquipment5;
         public EquippableItemSO DebugOffhandEquipment;
+        public bool UseLocalEquipmentBackend = false;
         [HideInInspector]
-        [System.Obsolete("Use DebugMainhandEquipment/DebugOffhandEquipment instead.")]
+        [System.Obsolete("Use DebugMainhandEquipment1~5/DebugOffhandEquipment instead.")]
         public EquippableItemSO DefaultEquipment1;
         [HideInInspector]
-        [System.Obsolete("Use DebugMainhandEquipment/DebugOffhandEquipment instead.")]
+        [System.Obsolete("Use DebugMainhandEquipment1~5/DebugOffhandEquipment instead.")]
         public EquippableItemSO DefaultEquipment2;
         [HideInInspector]
-        [System.Obsolete("Use DebugMainhandEquipment/DebugOffhandEquipment instead.")]
+        [System.Obsolete("Use DebugMainhandEquipment1~5/DebugOffhandEquipment instead.")]
         public EquippableItemSO DefaultEquipment3;
         public bool statedebug = false;
 
@@ -86,6 +92,8 @@ namespace BBBNexus
         public EquipmentDriver EquipmentDriver { get; private set; }
         public AnimationFacadeBase AnimFacade { get; private set; }
         public AudioDriver AudioDriver { get; private set; }
+        public LocalGraphHub LocalGraphHub { get; private set; }
+        public Dictionary<string, BasePackData> LocalPackDataDict { get; private set; }
 
         // 状态注册表
         public PlayerStateRegistry StateRegistry { get; private set; }
@@ -168,6 +176,10 @@ namespace BBBNexus
 
             // 音频驱动器：如果没配 AudioSource 或模块，则 driver 仍可存在但会静默忽略播放请求。
             AudioDriver = new AudioDriver(transform, SfxSource, Config != null ? Config.Audio : null);
+
+            LocalGraphHub = new LocalGraphHub(GraphInstanceSlot.System);
+            LocalPackDataDict = new Dictionary<string, BasePackData>();
+            LocalGraphHub.SetPackDataDict(LocalPackDataDict);
 
             // 实例化仲裁管线
             ArbiterPipeline = new ArbiterPipeline(this);
@@ -298,6 +310,8 @@ namespace BBBNexus
 
             MainProcessorPipeline.UpdateIntentProcessors();
 
+            LocalGraphHub?.Tick();
+
             InventoryController.Update();
 
             MainProcessorPipeline.UpdateParameterProcessors();
@@ -377,34 +391,126 @@ namespace BBBNexus
         private void InitializeEquipments()
         {
             InventoryController.Initialize();
-            var mainhandInstance = CreateDebugEquipmentInstance(DebugMainhandEquipment);
-            var offhandInstance = CreateDebugEquipmentInstance(DebugOffhandEquipment);
+            InitializeEquipmentPackDefaults();
+            RestoreEquippedItemsFromPack();
+        }
 
-            if (mainhandInstance != null)
+        private void InitializeEquipmentPackDefaults()
+        {
+            EquipmentPackVfs.EnsureLayout(this);
+            SeedDebugMainSlotIfMissing(DebugMainhandEquipment1, 1);
+            SeedDebugMainSlotIfMissing(DebugMainhandEquipment2, 2);
+            SeedDebugMainSlotIfMissing(DebugMainhandEquipment3, 3);
+            SeedDebugMainSlotIfMissing(DebugMainhandEquipment4, 4);
+            SeedDebugMainSlotIfMissing(DebugMainhandEquipment5, 5);
+            SeedDebugEquipmentIfMissing(DebugOffhandEquipment, EquipmentSlot.OffHand);
+        }
+
+        private void SeedDebugMainSlotIfMissing(EquippableItemSO equipment, int mainSlotIndex)
+        {
+            if (equipment == null)
             {
-                EquipmentDriver.EquipItemToSlot(mainhandInstance, EquipmentSlot.MainHand);
-                RuntimeData.CurrentItem = mainhandInstance;
+                return;
             }
 
-            if (offhandInstance != null)
+            if (EquipmentPackVfs.TryGetMainSlotItemId(mainSlotIndex, out _, this))
             {
-                EquipmentDriver.EquipItemToSlot(offhandInstance, EquipmentSlot.OffHand);
-                if (mainhandInstance == null)
+                return;
+            }
+
+            EquipmentPackVfs.SetMainSlotItem(mainSlotIndex, equipment.name, this);
+        }
+
+        private void SeedDebugEquipmentIfMissing(EquippableItemSO equipment, EquipmentSlot slot)
+        {
+            if (equipment == null)
+            {
+                return;
+            }
+
+            if (EquipmentPackVfs.TryGetOtherSlotItemId(slot, out _, this))
+            {
+                return;
+            }
+
+            string itemId = equipment.name;
+            EquipmentPackVfs.SetOtherSlot(slot, itemId, this);
+        }
+
+        private void RestoreEquippedItemsFromPack()
+        {
+            if (!EquipmentPackVfs.TryGetOtherSlotItemId(EquipmentSlot.MainHand, out var mainhandItemId, this))
+            {
+                if (TryGetFirstAvailableMainSlotIndex(out var defaultMainSlotIndex) &&
+                    EquipmentPackVfs.SwapMainHandWithMainSlot(defaultMainSlotIndex, this) &&
+                    EquipmentPackVfs.TryGetOtherSlotItemId(EquipmentSlot.MainHand, out var swappedMainhandItemId, this))
                 {
-                    RuntimeData.OffhandItem = offhandInstance;
+                    mainhandItemId = swappedMainhandItemId;
                 }
+            }
+
+            if (!string.IsNullOrWhiteSpace(mainhandItemId))
+            {
+                EquipmentManager.EquipById(this, mainhandItemId, EquipmentSlot.MainHand);
+            }
+
+            if (EquipmentPackVfs.TryGetOtherSlotItemId(EquipmentSlot.OffHand, out var offhandItemId, this))
+            {
+                EquipmentManager.EquipById(this, offhandItemId, EquipmentSlot.OffHand);
             }
         }
 
-        private static ItemInstance CreateDebugEquipmentInstance(EquippableItemSO equipment)
+        private bool TryGetFirstAvailableMainSlotIndex(out int index)
         {
-            return equipment != null ? new ItemInstance(equipment, 1) : null;
+            index = -1;
+            for (int i = 1; i <= 5; i++)
+            {
+                if (EquipmentPackVfs.TryGetMainSlotItemId(i, out var itemId, this) &&
+                    !string.IsNullOrWhiteSpace(itemId) &&
+                    !string.Equals(itemId, EquipmentPackVfs.MainSlotOccupierId, System.StringComparison.Ordinal))
+                {
+                    index = i;
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void BootUpStateMachines()
         {
             if (StateRegistry.InitialState != null) StateMachine.Initialize(StateRegistry.InitialState);
             if (UpperBodyCtrl.StateRegistry.InitialState != null) UpperBodyCtrl.StateMachine.Initialize(UpperBodyCtrl.StateRegistry.InitialState);
+        }
+
+        public void EnsureLocalEquipmentPackReady()
+        {
+            if (!UseLocalEquipmentBackend)
+            {
+                return;
+            }
+
+            LocalGraphHub ??= new LocalGraphHub(GraphInstanceSlot.System);
+            LocalPackDataDict ??= new Dictionary<string, BasePackData>();
+            LocalGraphHub.SetPackDataDict(LocalPackDataDict);
+
+            foreach (var pair in LocalPackDataDict)
+            {
+                if (pair.Value != null && pair.Value.PackID == EquipmentPackVfs.EquipmentPackId)
+                {
+                    return;
+                }
+            }
+
+            var pack = MetaLib.GetPack<BasePackData>(EquipmentPackVfs.EquipmentPackId);
+            if (pack == null)
+            {
+                throw new System.InvalidOperationException($"Failed to create local pack '{EquipmentPackVfs.EquipmentPackId}'.");
+            }
+
+            LocalGraphHub.Analyser.LoadVFSFromPack(pack);
+            LocalGraphHub.Analyser.RebuildIndex();
+            LocalGraphHub.Runner.OnPackDataDictLoaded(LocalPackDataDict);
         }
 
         #region IDamageable 接口实现

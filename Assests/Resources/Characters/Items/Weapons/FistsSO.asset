@@ -67,6 +67,10 @@ MonoBehaviour:
     Speed: -1
     NormalizedTime: -1
     ForcePhaseSync: 0
+  VirtualOtherSlot:
+    Enabled: 1
+    TargetSlot: 2
+    ItemId: FistsSO
   EnterStanceAnim:
     _FadeDuration: 0.27533337
     _Speed: 2

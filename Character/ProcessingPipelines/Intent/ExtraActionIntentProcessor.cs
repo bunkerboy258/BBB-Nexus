@@ -1,4 +1,4 @@
-namespace BBBNexus
+﻿namespace BBBNexus
 {
     /// <summary>
     /// 额外动作意图处理器 - 监听 ExtraAction 输入并将意图写入黑板

@@ -1,4 +1,4 @@
-namespace BBBNexus
+﻿namespace BBBNexus
 {
     /// <summary>
     /// 角色自身 SFX 事件表

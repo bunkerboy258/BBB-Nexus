@@ -1,4 +1,4 @@
-namespace BBBNexus
+﻿namespace BBBNexus
 {
     // 玩家瞄准空闲状态 
     // 在瞄准模式下保持站立 对应FreeLook的IdleState 

@@ -1,4 +1,4 @@
-namespace BBBNexus
+﻿namespace BBBNexus
 {
     /// <summary>
     /// 表情意图处理器 - 监听按键输入并将表情请求写入黑板

@@ -1,0 +1,106 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7de8af0badb9224c975457117fbfca2, type: 3}
+  m_Name: PistolSO
+  m_EditorClassIdentifier: 
+  ItemID: b82efd64-fd53-46c1-ad66-49d084454188
+  DisplayName: Pistol
+  Icon: {fileID: 0}
+  Description: One-handed pistol. Enters aim state on right click and keeps an upper-body
+    gun pose while equipped.
+  MaxStack: 1
+  Prefab: {fileID: 8268913222844310316, guid: 5bdc84a3ea5f8e04b9ea94835d561533, type: 3}
+  EquipSlot: 1
+  HoldPositionOffset: {x: 0, y: 0, z: 0}
+  HoldRotationOffset: {x: 0, y: 0, z: 0, w: 0}
+  UpperBodyLayerWeight: 1
+  EquipAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 3060610079319413300, guid: cb616a03630e6eb49ab02cea946ca3b4, type: 3}
+    _NormalizedStartTime: NaN
+  EquipAnimPlayOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  UnEquipAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 3060610079319413300, guid: bf58c744cd53e854ea030f677ffd49e7, type: 3}
+    _NormalizedStartTime: NaN
+  UnEquipAnimPlayOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  EquipIdleAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 3060610079319413300, guid: d8b00afa769e87b40b8a1638afd8c6d7, type: 3}
+    _NormalizedStartTime: NaN
+  EquipIdleAnimOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  VirtualOtherSlot:
+    Enabled: 0
+    TargetSlot: 0
+    ItemId: 
+  EnablesAimState: 1
+  AimAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 3060610079319413300, guid: d8b00afa769e87b40b8a1638afd8c6d7, type: 3}
+    _NormalizedStartTime: NaN
+  AnimPlayOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  MaxAmmo: 12
+  FireRate: 0.1
+  EquipEndTime: 0.35
+  ProjectilePrefab: {fileID: 0}
+  ProjectileSpeed: 24
+  ShootInterval: 0.18
+  ShootSound: {fileID: 0}
+  ProjectileHitSound: {fileID: 0}
+  MuzzleVFXPrefab: {fileID: 0}
+  RecoilPitchAngle: 1.4
+  RecoilYawAngle: 0.8
+  RecoilPitchRandomRange: 0.35
+  RecoilYawRandomRange: 0.35
+  references:
+    version: 2
+    RefIds: []

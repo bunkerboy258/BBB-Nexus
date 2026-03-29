@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BBBNexus
 {
@@ -32,7 +32,7 @@ namespace BBBNexus
             _runtimeData = player.RuntimeData;
             _config = player.Config;
 
-            _aimIntentProcessor = new AimIntentProcessor(_runtimeData, _inputPipeline);
+            _aimIntentProcessor = new AimIntentProcessor(_runtimeData, _inputPipeline, player);
             _locomotionIntentProcessor = new LocomotionIntentProcessor(_runtimeData, _config);
             _jumpOrVaultIntentProcessor = new JumpOrVaultIntentProcessor(_runtimeData, _config, player.transform);
             _eojIntentProcessor = new EojIntentProcessor(_runtimeData, _inputPipeline);

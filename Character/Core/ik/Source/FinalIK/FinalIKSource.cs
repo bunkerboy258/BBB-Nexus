@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 #if BBBNEXUS_HAS_FINALIK
 using RootMotion.FinalIK;
