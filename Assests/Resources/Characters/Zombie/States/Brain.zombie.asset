@@ -1,0 +1,27 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5dac5f67b234d6489c88ba77c8546fa, type: 3}
+  m_Name: Brain.zombie
+  m_EditorClassIdentifier: 
+  AvailableStates: 000000000100000002000000030000000400000005000000060000000700000008000000090000000a0000000b0000000c0000000d0000000e000000
+  GlobalInterceptors:
+  - {fileID: 11400000, guid: ad24bfc977b5fba4baaf9f3b2f8457ef, type: 2}
+  - {fileID: 11400000, guid: abe53fd29b85acc438778bfc876589be, type: 2}
+  - {fileID: 11400000, guid: 23e63a187dc3add469f35c92132aab6c, type: 2}
+  - {fileID: 11400000, guid: d88b859b00f81fa4a851c3cccb90c054, type: 2}
+  - {fileID: 11400000, guid: dcd4faf662970f04dbb5bd0f7244cab1, type: 2}
+  - {fileID: 11400000, guid: d2d60af0e01321c4a88dbc3ee48925c8, type: 2}
+  - {fileID: 11400000, guid: 245d3c17026848e4fb6f474c2669a4b8, type: 2}
+  UpperBodyStates: 000000000100000002000000
+  UpperBodyInterceptors:
+  - {fileID: 11400000, guid: fb392c05eb64bbc4098bcd7dff45b11c, type: 2}
+  - {fileID: 11400000, guid: 55f2a7b76db34e74bb02bc0b66899e9e, type: 2}

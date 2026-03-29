@@ -53,6 +53,11 @@ namespace BBBNexus
         public bool Expression7JustPressed;
         public bool Expression8JustPressed;
 
+        public bool ExtraAction1JustPressed;
+        public bool ExtraAction2JustPressed;
+        public bool ExtraAction3JustPressed;
+        public bool ExtraAction4JustPressed;
+
         public bool Number1JustPressed;
         public bool Number2JustPressed;
         public bool Number3JustPressed;
@@ -88,6 +93,11 @@ namespace BBBNexus
         public bool Expression7Held;
         public bool Expression8Held;
 
+        public bool ExtraAction1Held;
+        public bool ExtraAction2Held;
+        public bool ExtraAction3Held;
+        public bool ExtraAction4Held;
+
         public bool Number1Held;
         public bool Number2Held;
         public bool Number3Held;
@@ -111,6 +121,11 @@ namespace BBBNexus
         public float Expression7BufferTimer;
         public float Expression8BufferTimer;
 
+        public float ExtraAction1BufferTimer;
+        public float ExtraAction2BufferTimer;
+        public float ExtraAction3BufferTimer;
+        public float ExtraAction4BufferTimer;
+
         public float Number1BufferTimer;
         public float Number2BufferTimer;
         public float Number3BufferTimer;
@@ -133,6 +148,11 @@ namespace BBBNexus
         public bool Expression6Pressed => Expression6BufferTimer > 0f;
         public bool Expression7Pressed => Expression7BufferTimer > 0f;
         public bool Expression8Pressed => Expression8BufferTimer > 0f;
+
+        public bool ExtraAction1Pressed => ExtraAction1BufferTimer > 0f;
+        public bool ExtraAction2Pressed => ExtraAction2BufferTimer > 0f;
+        public bool ExtraAction3Pressed => ExtraAction3BufferTimer > 0f;
+        public bool ExtraAction4Pressed => ExtraAction4BufferTimer > 0f;
 
         public bool Number1Pressed => Number1BufferTimer > 0f;
         public bool Number2Pressed => Number2BufferTimer > 0f;

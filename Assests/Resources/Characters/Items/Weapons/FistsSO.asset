@@ -1,0 +1,137 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbdde6f2413620344a353ed65943708e, type: 3}
+  m_Name: FistsSO
+  m_EditorClassIdentifier: 
+  ItemID: 55cb4ecb-b3e7-45fa-8895-d23e3f80dba3
+  DisplayName: 
+  Icon: {fileID: 0}
+  Description: 
+  MaxStack: 1
+  Prefab: {fileID: 7004216108275635573, guid: cc362d2da1ff42b49b850055347a6182, type: 3}
+  EquipSlot: 1
+  HoldPositionOffset: {x: 0, y: 0, z: 0}
+  HoldRotationOffset: {x: 0, y: 0, z: 0, w: 0}
+  UpperBodyLayerWeight: 0
+  EquipAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 0}
+    _NormalizedStartTime: NaN
+  EquipAnimPlayOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  UnEquipAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 0}
+    _NormalizedStartTime: NaN
+  UnEquipAnimPlayOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  EquipIdleAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 0}
+    _NormalizedStartTime: NaN
+  EquipIdleAnimOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  EnterStanceAnim:
+    _FadeDuration: 0.27533337
+    _Speed: 2
+    _Events:
+      _NormalizedTimes:
+      - 1
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: 10abf93c9e9bf034590be19868a84e04, type: 3}
+    _NormalizedStartTime: 0
+  ExitStanceAnim:
+    _FadeDuration: 0.3255
+    _Speed: 1.6
+    _Events:
+      _NormalizedTimes:
+      - 0.8
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: e342dc74c59df3d40ae5a64dca105a27, type: 3}
+    _NormalizedStartTime: -0.39
+  ComboSequence:
+  - _FadeDuration: 0.46350005
+    _Speed: 1.06
+    _Events:
+      _NormalizedTimes:
+      - 0.47
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: 984866e5fa2a11c419b15b6e2e1dd73e, type: 3}
+    _NormalizedStartTime: -0.09
+    _StableKey: 4f989988d3a16ad4aa95d91ceabfb13d
+  - _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes:
+      - 1.39
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: 26877374390c7d142996e3466672d137, type: 3}
+    _NormalizedStartTime: -0.31
+    _StableKey: 70042576f4432f9468b1014e399f161b
+  - _FadeDuration: 0.25
+    _Speed: 1.17
+    _Events:
+      _NormalizedTimes:
+      - 1.03
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: 27567e552f3ec1f418bb68b104190ef6, type: 3}
+    _NormalizedStartTime: NaN
+    _StableKey: f681e78fb6444094ba11659270fb3ee9
+  ComboAttackHands: 000000000100000000000000
+  ComboDamageWindows:
+  - Enabled: 1
+    StartNormalized: 0.2990456
+    EndNormalized: 0.65817624
+  - Enabled: 1
+    StartNormalized: 0.33085892
+    EndNormalized: 0.5811238
+  - Enabled: 1
+    StartNormalized: 0.32237545
+    EndNormalized: 0.59809136
+  ComboWindowStart: 0.5
+  ComboLateBuffer: 0.2
+  ComboPriority: 25
+  references:
+    version: 2
+    RefIds: []

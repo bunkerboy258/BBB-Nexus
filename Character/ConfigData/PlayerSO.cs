@@ -26,6 +26,10 @@ namespace BBBNexus
         [Tooltip("瞄准系统参数")]
         public AimingSO Aiming;
 
+        [Header("被动反应")]
+        [Tooltip("受击僵直状态 SO（HealthArbiter 在结算伤害时自动施加）")]
+        public StatusEffectSO HitReaction;
+
         [Header("高级模块 ")]
         public VaultingSO Vaulting;
         public DodgingSO Dodging;

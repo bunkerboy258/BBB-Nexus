@@ -88,6 +88,12 @@ namespace BBBNexus
         // 每帧更新逻辑
         public void OnUpdateLogic()
         {
+            if (_player != null &&
+                (_player.StateMachine.CurrentState is StatusEffectState || _player.RuntimeData.Arbitration.BlockAction))
+            {
+                return;
+            }
+
             if (_ikEnableScheduled && Time.time >= _ikEnableTimePoint)
             {
                 if (_isEquipping)

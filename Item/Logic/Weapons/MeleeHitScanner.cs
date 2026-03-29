@@ -89,5 +89,22 @@ namespace BBBNexus
             hitSet.Add(damageable);
             damageable.RequestDamage(in request);
         }
+
+        public bool TryGetQueryBox(out Vector3 center, out Vector3 halfExtents, out Quaternion rotation)
+        {
+            if (_sourceCollider == null)
+            {
+                center = default;
+                halfExtents = default;
+                rotation = Quaternion.identity;
+                return false;
+            }
+
+            Bounds bounds = _sourceCollider.bounds;
+            center = bounds.center;
+            halfExtents = bounds.extents;
+            rotation = _sourceCollider.transform.rotation;
+            return true;
+        }
     }
 }

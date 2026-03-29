@@ -6,6 +6,7 @@ using System.Linq;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using Animancer;
 using UnityEditor;
 using UnityEngine;
 
@@ -60,9 +61,21 @@ namespace BBBNexus
                 throw new InvalidOperationException($"Field not found: {fieldPath}");
             }
 
+            if (IsAnimationSpeedPath(fieldPath) && IsZeroFloatLiteral(rawValue))
+            {
+                throw new InvalidOperationException($"Animation speed cannot be 0: {fieldPath}. Use 1 for normal playback.");
+            }
+
+            var previousArraySize = property.propertyType == SerializedPropertyType.ArraySize ? property.intValue : -1;
+
             if (!TryAssignScalar(property, rawValue, out var assignedValue))
             {
                 throw new InvalidOperationException($"Unsupported or invalid scalar assignment for {fieldPath} ({property.propertyType})");
+            }
+
+            if (property.propertyType == SerializedPropertyType.ArraySize && previousArraySize >= 0)
+            {
+                InitializeNewArrayElements(serializedObject, fieldPath, previousArraySize, property.intValue);
             }
 
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
@@ -251,6 +264,359 @@ namespace BBBNexus
             };
         }
 
+        public static RenameAssetResponse RenameAsset(string rawPath, string newName)
+        {
+            var assetPath = NormalizeAssetPath(rawPath);
+            var trimmedName = (newName ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(trimmedName))
+            {
+                throw new InvalidOperationException("New asset name cannot be empty.");
+            }
+
+            trimmedName = Path.GetFileNameWithoutExtension(trimmedName);
+            if (string.IsNullOrWhiteSpace(trimmedName))
+            {
+                throw new InvalidOperationException("New asset name is invalid.");
+            }
+
+            var extension = Path.GetExtension(assetPath);
+            var directory = Path.GetDirectoryName(assetPath)?.Replace('\\', '/') ?? "Assets";
+            var expectedPath = $"{directory}/{trimmedName}{extension}";
+            if (string.Equals(assetPath, expectedPath, StringComparison.OrdinalIgnoreCase))
+            {
+                return new RenameAssetResponse
+                {
+                    oldAssetPath = assetPath,
+                    newAssetPath = assetPath
+                };
+            }
+
+            if (AssetDatabase.LoadMainAssetAtPath(assetPath) == null)
+            {
+                throw new InvalidOperationException($"Asset not found: {assetPath}");
+            }
+
+            if (AssetDatabase.LoadMainAssetAtPath(expectedPath) != null)
+            {
+                throw new InvalidOperationException($"Asset already exists: {expectedPath}");
+            }
+
+            var error = AssetDatabase.RenameAsset(assetPath, trimmedName);
+            if (!string.IsNullOrWhiteSpace(error))
+            {
+                throw new InvalidOperationException($"Failed to rename asset: {error}");
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            return new RenameAssetResponse
+            {
+                oldAssetPath = assetPath,
+                newAssetPath = expectedPath
+            };
+        }
+
+        public static MetaLibSoRebuildResponse RebuildMetaLibSoEntries()
+        {
+            MetaLib.Reload();
+
+            var preserved = MetaLib.GetAllMetas()
+                .Where(entry => entry != null && entry.Kind != MetaLib.EntryKind.ResourceObject)
+                .ToDictionary(entry => entry.EffectiveID, entry => entry, StringComparer.Ordinal);
+
+            var duplicateMap = new Dictionary<string, DuplicateSoGroup>(StringComparer.Ordinal);
+            var soEntries = BuildMetaLibSoEntries(duplicateMap);
+
+            if (duplicateMap.Count > 0)
+            {
+                return new MetaLibSoRebuildResponse
+                {
+                    updated = false,
+                    preservedCount = preserved.Count,
+                    registeredSoCount = 0,
+                    duplicates = duplicateMap.Values
+                        .OrderBy(group => group.Id, StringComparer.Ordinal)
+                        .Select(group => new MetaLibDuplicateDto
+                        {
+                            id = group.Id,
+                            assetPaths = group.AssetPaths.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToArray(),
+                            resourcePaths = group.ResourcePaths.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToArray()
+                        })
+                        .ToArray()
+                };
+            }
+
+            var merged = new Dictionary<string, MetaLib.MetaEntry>(StringComparer.Ordinal);
+            foreach (var pair in preserved)
+            {
+                merged[pair.Key] = pair.Value;
+            }
+
+            foreach (var pair in soEntries)
+            {
+                if (merged.ContainsKey(pair.Key))
+                {
+                    if (!duplicateMap.TryGetValue(pair.Key, out var conflict))
+                    {
+                        var existing = merged[pair.Key];
+                        conflict = new DuplicateSoGroup
+                        {
+                            Id = pair.Key,
+                            AssetPaths = new List<string>(),
+                            ResourcePaths = new List<string>()
+                        };
+
+                        if (existing.CustomFields != null && existing.CustomFields.TryGetValue("AssetPath", out var existingAssetPath))
+                        {
+                            conflict.AssetPaths.Add(existingAssetPath);
+                        }
+
+                        if (!string.IsNullOrEmpty(existing.ResourcePath))
+                        {
+                            conflict.ResourcePaths.Add(existing.ResourcePath);
+                        }
+
+                        duplicateMap[pair.Key] = conflict;
+                    }
+
+                    if (pair.Value.CustomFields != null && pair.Value.CustomFields.TryGetValue("AssetPath", out var soAssetPath))
+                    {
+                        conflict.AssetPaths.Add(soAssetPath);
+                    }
+
+                    if (!string.IsNullOrEmpty(pair.Value.ResourcePath))
+                    {
+                        conflict.ResourcePaths.Add(pair.Value.ResourcePath);
+                    }
+
+                    continue;
+                }
+
+                merged[pair.Key] = pair.Value;
+            }
+
+            if (duplicateMap.Count > 0)
+            {
+                return new MetaLibSoRebuildResponse
+                {
+                    updated = false,
+                    preservedCount = preserved.Count,
+                    registeredSoCount = 0,
+                    duplicates = duplicateMap.Values
+                        .OrderBy(group => group.Id, StringComparer.Ordinal)
+                        .Select(group => new MetaLibDuplicateDto
+                        {
+                            id = group.Id,
+                            assetPaths = group.AssetPaths.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToArray(),
+                            resourcePaths = group.ResourcePaths.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(path => path, StringComparer.OrdinalIgnoreCase).ToArray()
+                        })
+                        .ToArray()
+                };
+            }
+
+            MetaLib.Clear();
+            foreach (var pair in merged)
+            {
+                MetaLib.Register(pair.Key, pair.Value);
+            }
+
+            MetaLib.Save();
+
+            return new MetaLibSoRebuildResponse
+            {
+                updated = true,
+                preservedCount = preserved.Count,
+                registeredSoCount = soEntries.Count,
+                duplicates = Array.Empty<MetaLibDuplicateDto>()
+            };
+        }
+
+        public static InspectAssetResponse InspectAsset(string rawPath)
+        {
+            var assetPath = NormalizeAssetPath(rawPath);
+            var asset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(assetPath);
+            if (asset == null)
+            {
+                throw new InvalidOperationException($"ScriptableObject not found: {assetPath}");
+            }
+
+            var serializedObject = new SerializedObject(asset);
+            var fields = new List<InspectorFieldDto>();
+            foreach (var semanticField in EnumerateInspectorFields(asset.GetType(), null))
+            {
+                fields.Add(ToInspectorField(serializedObject, semanticField));
+            }
+
+            return new InspectAssetResponse
+            {
+                assetPath = assetPath,
+                assetType = asset.GetType().FullName,
+                fields = fields.ToArray()
+            };
+        }
+
+        public static SetFieldResponse SetInspectorValue(string rawPath, string semanticPath, string rawValue)
+        {
+            var assetPath = NormalizeAssetPath(rawPath);
+            var asset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(assetPath);
+            if (asset == null)
+            {
+                throw new InvalidOperationException($"ScriptableObject not found: {assetPath}");
+            }
+
+            var mapping = ResolveInspectorField(asset.GetType(), semanticPath);
+            var serializedObject = new SerializedObject(asset);
+
+            if (mapping.Kind == InspectorFieldKind.RawProperty &&
+                IsAnimationSpeedPath(mapping.RawPath) &&
+                IsZeroFloatLiteral(rawValue))
+            {
+                throw new InvalidOperationException($"Animation speed cannot be 0: {semanticPath}. Use 1 for normal playback.");
+            }
+
+            if (mapping.Kind == InspectorFieldKind.ObjectReference)
+            {
+                var property = serializedObject.FindProperty(mapping.RawPath);
+                if (property == null || property.propertyType != SerializedPropertyType.ObjectReference)
+                {
+                    throw new InvalidOperationException($"Inspector field is not a reference: {semanticPath}");
+                }
+
+                var expectedType = ResolveReferenceFieldType(asset.GetType(), mapping.RawPath);
+                var reference = IsNullLiteral(rawValue)
+                    ? null
+                    : FindSingleAsset(rawValue, expectedType);
+                property.objectReferenceValue = reference;
+                serializedObject.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(asset);
+                AssetDatabase.SaveAssets();
+
+                return new SetFieldResponse
+                {
+                    assetPath = assetPath,
+                    assetType = asset.GetType().FullName,
+                    field = semanticPath,
+                    type = "InspectorReference",
+                    value = reference == null ? "null" : AssetDatabase.GetAssetPath(reference)
+                };
+            }
+
+            if (mapping.Kind == InspectorFieldKind.EndTime)
+            {
+                SetClipTransitionEndTime(serializedObject, mapping.RawPath, rawValue);
+                EditorUtility.SetDirty(asset);
+                AssetDatabase.SaveAssets();
+
+                return new SetFieldResponse
+                {
+                    assetPath = assetPath,
+                    assetType = asset.GetType().FullName,
+                    field = semanticPath,
+                    type = "InspectorValue",
+                    value = rawValue
+                };
+            }
+
+            return SetField(assetPath, mapping.RawPath, rawValue);
+        }
+
+        public static ListFieldResponse GetListField(string rawPath, string fieldPath)
+        {
+            var assetPath = NormalizeAssetPath(rawPath);
+            var asset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(assetPath);
+            if (asset == null)
+            {
+                throw new InvalidOperationException($"ScriptableObject not found: {assetPath}");
+            }
+
+            var serializedObject = new SerializedObject(asset);
+            var property = RequireListProperty(serializedObject, fieldPath);
+
+            var items = new List<ListElementDto>();
+            for (var i = 0; i < property.arraySize; i++)
+            {
+                var element = property.GetArrayElementAtIndex(i);
+                items.Add(new ListElementDto
+                {
+                    index = i,
+                    type = element.propertyType.ToString(),
+                    value = ReadValue(element)
+                });
+            }
+
+            return new ListFieldResponse
+            {
+                assetPath = assetPath,
+                assetType = asset.GetType().FullName,
+                field = fieldPath,
+                elementType = ResolveListElementType(asset.GetType(), fieldPath)?.Name ?? "",
+                size = property.arraySize,
+                items = items.ToArray()
+            };
+        }
+
+        public static ListFieldResponse AddListItem(string rawPath, string fieldPath, string rawValue)
+        {
+            return MutateList(rawPath, fieldPath, serializedObject =>
+            {
+                var property = RequireListProperty(serializedObject, fieldPath);
+                var index = property.arraySize;
+                property.InsertArrayElementAtIndex(index);
+                var element = property.GetArrayElementAtIndex(index);
+                ResetArrayElement(element);
+                AssignListElement(serializedObject.targetObject.GetType(), fieldPath, element, rawValue);
+                serializedObject.ApplyModifiedPropertiesWithoutUndo();
+            });
+        }
+
+        public static ListFieldResponse SetListItem(string rawPath, string fieldPath, int index, string rawValue)
+        {
+            return MutateList(rawPath, fieldPath, serializedObject =>
+            {
+                var property = RequireListProperty(serializedObject, fieldPath);
+                if (index < 0 || index >= property.arraySize)
+                {
+                    throw new InvalidOperationException($"List index out of range: {fieldPath}[{index}]");
+                }
+
+                var element = property.GetArrayElementAtIndex(index);
+                AssignListElement(serializedObject.targetObject.GetType(), fieldPath, element, rawValue);
+                serializedObject.ApplyModifiedPropertiesWithoutUndo();
+            });
+        }
+
+        public static ListFieldResponse RemoveListItem(string rawPath, string fieldPath, int index)
+        {
+            return MutateList(rawPath, fieldPath, serializedObject =>
+            {
+                var property = RequireListProperty(serializedObject, fieldPath);
+                if (index < 0 || index >= property.arraySize)
+                {
+                    throw new InvalidOperationException($"List index out of range: {fieldPath}[{index}]");
+                }
+
+                var element = property.GetArrayElementAtIndex(index);
+                if (element.propertyType == SerializedPropertyType.ObjectReference && element.objectReferenceValue != null)
+                {
+                    property.DeleteArrayElementAtIndex(index);
+                }
+
+                property.DeleteArrayElementAtIndex(index);
+                serializedObject.ApplyModifiedPropertiesWithoutUndo();
+            });
+        }
+
+        public static ListFieldResponse ClearListField(string rawPath, string fieldPath)
+        {
+            return MutateList(rawPath, fieldPath, serializedObject =>
+            {
+                var property = RequireListProperty(serializedObject, fieldPath);
+                property.ClearArray();
+                serializedObject.ApplyModifiedPropertiesWithoutUndo();
+            });
+        }
+
         private static FieldInfoDto ToFieldInfo(SerializedProperty property, Dictionary<string, FieldMetadata> metadata)
         {
             metadata.TryGetValue(property.propertyPath, out var info);
@@ -368,6 +734,28 @@ namespace BBBNexus
                     return true;
 
                 case SerializedPropertyType.Float:
+                    if (string.Equals(rawValue, "NaN", StringComparison.OrdinalIgnoreCase))
+                    {
+                        property.floatValue = float.NaN;
+                        assignedValue = "NaN";
+                        return true;
+                    }
+
+                    if (string.Equals(rawValue, "Infinity", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(rawValue, "+Infinity", StringComparison.OrdinalIgnoreCase))
+                    {
+                        property.floatValue = float.PositiveInfinity;
+                        assignedValue = "Infinity";
+                        return true;
+                    }
+
+                    if (string.Equals(rawValue, "-Infinity", StringComparison.OrdinalIgnoreCase))
+                    {
+                        property.floatValue = float.NegativeInfinity;
+                        assignedValue = "-Infinity";
+                        return true;
+                    }
+
                     if (!float.TryParse(rawValue, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var floatValue))
                     {
                         return false;
@@ -405,9 +793,172 @@ namespace BBBNexus
                     assignedValue = property.enumDisplayNames[enumIndex];
                     return true;
 
+                case SerializedPropertyType.ArraySize:
+                    if (!int.TryParse(rawValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var arraySize))
+                    {
+                        return false;
+                    }
+
+                    if (arraySize < 0)
+                    {
+                        return false;
+                    }
+
+                    property.intValue = arraySize;
+                    assignedValue = arraySize.ToString(CultureInfo.InvariantCulture);
+                    return true;
+
                 default:
                     return false;
             }
+        }
+
+        private static ListFieldResponse MutateList(string rawPath, string fieldPath, Action<SerializedObject> mutation)
+        {
+            var assetPath = NormalizeAssetPath(rawPath);
+            var asset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(assetPath);
+            if (asset == null)
+            {
+                throw new InvalidOperationException($"ScriptableObject not found: {assetPath}");
+            }
+
+            var serializedObject = new SerializedObject(asset);
+            RequireListProperty(serializedObject, fieldPath);
+            mutation(serializedObject);
+            EditorUtility.SetDirty(asset);
+            AssetDatabase.SaveAssets();
+            return GetListField(assetPath, fieldPath);
+        }
+
+        private static void InitializeNewArrayElements(SerializedObject serializedObject, string arraySizePath, int oldSize, int newSize)
+        {
+            if (newSize <= oldSize || !arraySizePath.EndsWith(".Array.size", StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            var arrayPath = arraySizePath[..^".Array.size".Length];
+            var arrayProperty = serializedObject.FindProperty(arrayPath);
+            if (arrayProperty == null || !arrayProperty.isArray)
+            {
+                return;
+            }
+
+            for (var i = oldSize; i < newSize; i++)
+            {
+                InitializeElementDefaults(arrayProperty.GetArrayElementAtIndex(i));
+            }
+        }
+
+        private static void InitializeElementDefaults(SerializedProperty element)
+        {
+            if (element == null)
+            {
+                return;
+            }
+
+            if (LooksLikeClipTransition(element))
+            {
+                SetFloatIfExists(element, "_FadeDuration", 0.25f);
+                SetFloatIfExists(element, "_Speed", 1f);
+                SetFloatIfExists(element, "_NormalizedStartTime", float.NaN);
+            }
+        }
+
+        private static bool LooksLikeClipTransition(SerializedProperty property)
+        {
+            return property.propertyType == SerializedPropertyType.Generic &&
+                   property.FindPropertyRelative("_Clip") != null &&
+                   property.FindPropertyRelative("_Speed") != null;
+        }
+
+        private static void SetFloatIfExists(SerializedProperty parent, string relativePath, float value)
+        {
+            var child = parent.FindPropertyRelative(relativePath);
+            if (child != null && child.propertyType == SerializedPropertyType.Float)
+            {
+                child.floatValue = value;
+            }
+        }
+
+        private static bool IsAnimationSpeedPath(string propertyPath)
+        {
+            return !string.IsNullOrWhiteSpace(propertyPath) &&
+                   (propertyPath.EndsWith("._Speed", StringComparison.Ordinal) ||
+                    propertyPath.EndsWith(".Speed", StringComparison.Ordinal));
+        }
+
+        private static bool IsZeroFloatLiteral(string rawValue)
+        {
+            return float.TryParse(rawValue, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var value) &&
+                   Mathf.Approximately(value, 0f);
+        }
+
+        private static SerializedProperty RequireListProperty(SerializedObject serializedObject, string fieldPath)
+        {
+            var property = serializedObject.FindProperty(fieldPath);
+            if (property == null)
+            {
+                throw new InvalidOperationException($"Field not found: {fieldPath}");
+            }
+
+            if (!property.isArray || property.propertyType == SerializedPropertyType.String)
+            {
+                throw new InvalidOperationException($"Field is not a supported list/array: {fieldPath}");
+            }
+
+            return property;
+        }
+
+        private static void ResetArrayElement(SerializedProperty element)
+        {
+            switch (element.propertyType)
+            {
+                case SerializedPropertyType.Integer:
+                    element.intValue = 0;
+                    break;
+                case SerializedPropertyType.Boolean:
+                    element.boolValue = false;
+                    break;
+                case SerializedPropertyType.Float:
+                    element.floatValue = 0f;
+                    break;
+                case SerializedPropertyType.String:
+                    element.stringValue = "";
+                    break;
+                case SerializedPropertyType.Enum:
+                    element.enumValueIndex = 0;
+                    break;
+                case SerializedPropertyType.ObjectReference:
+                    element.objectReferenceValue = null;
+                    break;
+            }
+
+            InitializeElementDefaults(element);
+        }
+
+        private static void AssignListElement(Type assetType, string fieldPath, SerializedProperty element, string rawValue)
+        {
+            if (element.propertyType == SerializedPropertyType.ObjectReference)
+            {
+                var expectedType = ResolveListElementType(assetType, fieldPath);
+                element.objectReferenceValue = IsNullLiteral(rawValue) ? null : FindSingleAsset(rawValue, expectedType);
+                return;
+            }
+
+            if (element.propertyType == SerializedPropertyType.Float &&
+                IsAnimationSpeedPath(element.propertyPath) &&
+                IsZeroFloatLiteral(rawValue))
+            {
+                throw new InvalidOperationException($"Animation speed cannot be 0: {element.propertyPath}. Use 1 for normal playback.");
+            }
+
+            if (TryAssignScalar(element, rawValue, out _))
+            {
+                return;
+            }
+
+            throw new InvalidOperationException($"Unsupported list element assignment for {fieldPath} ({element.propertyType})");
         }
 
         private static UnityEngine.Object FindSingleAsset(string assetName, Type expectedType)
@@ -416,6 +967,11 @@ namespace BBBNexus
             if (string.IsNullOrEmpty(normalizedName))
             {
                 throw new InvalidOperationException("Asset name is required.");
+            }
+
+            if (TryParseAssetSelector(normalizedName, out var selectorPath, out var selectorName))
+            {
+                return FindSingleAssetByPath(selectorPath, selectorName, expectedType);
             }
 
             var exactMatches = new List<UnityEngine.Object>();
@@ -465,12 +1021,72 @@ namespace BBBNexus
 
             if (matches.Count > 1)
             {
-                var details = string.Join(", ",
-                    matches.Take(5).Select(obj => $"{obj.name} ({obj.GetType().Name}) @ {AssetDatabase.GetAssetPath(obj)}"));
-                throw new InvalidOperationException($"Referenced asset is ambiguous: {normalizedName}. Matches: {details}");
+                var details = string.Join(Environment.NewLine,
+                    matches.Take(10).Select(DescribeAssetCandidate));
+                throw new InvalidOperationException(
+                    $"Referenced asset is ambiguous: {normalizedName}{Environment.NewLine}Candidates:{Environment.NewLine}{details}");
             }
 
             return matches[0];
+        }
+
+        private static bool TryParseAssetSelector(string rawInput, out string assetPath, out string nameHint)
+        {
+            assetPath = null;
+            nameHint = null;
+
+            var normalized = (rawInput ?? "").Trim().Replace('\\', '/');
+            if (normalized.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase))
+            {
+                assetPath = normalized;
+                return true;
+            }
+
+            var markerIndex = normalized.LastIndexOf(" @ Assets/", StringComparison.OrdinalIgnoreCase);
+            if (markerIndex < 0)
+            {
+                return false;
+            }
+
+            nameHint = normalized.Substring(0, markerIndex).Trim();
+            assetPath = normalized.Substring(markerIndex + 3).Trim();
+            return assetPath.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static UnityEngine.Object FindSingleAssetByPath(string assetPath, string nameHint, Type expectedType)
+        {
+            var normalizedPath = NormalizeAssetPath(assetPath);
+            var candidates = AssetDatabase.LoadAllAssetsAtPath(normalizedPath)
+                .Where(obj => obj != null && MatchesExpectedType(obj, expectedType))
+                .ToList();
+
+            if (!string.IsNullOrWhiteSpace(nameHint))
+            {
+                candidates = candidates
+                    .Where(obj => string.Equals(obj.name, nameHint, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            candidates = candidates
+                .GroupBy(obj => AssetDatabase.GetAssetPath(obj) + ":" + obj.name + ":" + obj.GetType().FullName)
+                .Select(group => group.First())
+                .ToList();
+
+            if (candidates.Count == 0)
+            {
+                var detail = string.IsNullOrWhiteSpace(nameHint) ? normalizedPath : $"{nameHint} @ {normalizedPath}";
+                throw new InvalidOperationException($"Referenced asset not found: {detail}");
+            }
+
+            if (candidates.Count > 1)
+            {
+                var details = string.Join(Environment.NewLine,
+                    candidates.Take(10).Select(DescribeAssetCandidate));
+                throw new InvalidOperationException(
+                    $"Referenced asset is ambiguous at path: {normalizedPath}{Environment.NewLine}Candidates:{Environment.NewLine}{details}");
+            }
+
+            return candidates[0];
         }
 
         private static bool IsNullLiteral(string value)
@@ -488,6 +1104,181 @@ namespace BBBNexus
             return expectedType.IsAssignableFrom(obj.GetType());
         }
 
+        private static InspectorFieldDto ToInspectorField(SerializedObject serializedObject, InspectorSemanticField semanticField)
+        {
+            if (semanticField.Kind == InspectorFieldKind.EndTime)
+            {
+                return new InspectorFieldDto
+                {
+                    path = semanticField.SemanticPath,
+                    rawPath = semanticField.RawPath,
+                    type = "Single",
+                    value = ReadClipTransitionEndTime(serializedObject, semanticField.RawPath),
+                    tooltip = semanticField.Tooltip,
+                    editable = true,
+                    derived = true
+                };
+            }
+
+            var property = serializedObject.FindProperty(semanticField.RawPath);
+            return new InspectorFieldDto
+            {
+                path = semanticField.SemanticPath,
+                rawPath = semanticField.RawPath,
+                type = property?.propertyType.ToString() ?? semanticField.DeclaredType,
+                value = property != null ? ReadValue(property) : "",
+                tooltip = semanticField.Tooltip,
+                editable = true,
+                derived = false
+            };
+        }
+
+        private static IEnumerable<InspectorSemanticField> EnumerateInspectorFields(Type type, string parentPath)
+        {
+            foreach (var field in GetSerializableFields(type))
+            {
+                var propertyPath = string.IsNullOrEmpty(parentPath) ? field.Name : parentPath + "." + field.Name;
+                var tooltip = GetAttribute<TooltipAttribute>(field)?.tooltip ?? "";
+
+                if (field.FieldType == typeof(ClipTransition))
+                {
+                    yield return new InspectorSemanticField
+                    {
+                        SemanticPath = propertyPath + ".Animation",
+                        RawPath = propertyPath + "._Clip",
+                        Kind = InspectorFieldKind.ObjectReference,
+                        DeclaredType = nameof(AnimationClip),
+                        Tooltip = "The animation to play"
+                    };
+                    yield return new InspectorSemanticField
+                    {
+                        SemanticPath = propertyPath + ".FadeDuration",
+                        RawPath = propertyPath + "._FadeDuration",
+                        Kind = InspectorFieldKind.RawProperty,
+                        DeclaredType = nameof(Single),
+                        Tooltip = "The amount of time the transition will take"
+                    };
+                    yield return new InspectorSemanticField
+                    {
+                        SemanticPath = propertyPath + ".Speed",
+                        RawPath = propertyPath + "._Speed",
+                        Kind = InspectorFieldKind.RawProperty,
+                        DeclaredType = nameof(Single),
+                        Tooltip = "How fast the animation will play"
+                    };
+                    yield return new InspectorSemanticField
+                    {
+                        SemanticPath = propertyPath + ".StartTime",
+                        RawPath = propertyPath + "._NormalizedStartTime",
+                        Kind = InspectorFieldKind.RawProperty,
+                        DeclaredType = nameof(Single),
+                        Tooltip = "Normalized start time shown in the Animancer inspector"
+                    };
+                    yield return new InspectorSemanticField
+                    {
+                        SemanticPath = propertyPath + ".EndTime",
+                        RawPath = propertyPath + "._Events",
+                        Kind = InspectorFieldKind.EndTime,
+                        DeclaredType = nameof(Single),
+                        Tooltip = "Normalized end time shown in the Animancer inspector"
+                    };
+                    continue;
+                }
+
+                if (field.FieldType == typeof(AnimPlayOptions))
+                {
+                    foreach (var child in GetSerializableFields(field.FieldType))
+                    {
+                        yield return new InspectorSemanticField
+                        {
+                            SemanticPath = propertyPath + "." + child.Name,
+                            RawPath = propertyPath + "." + child.Name,
+                            Kind = InspectorFieldKind.RawProperty,
+                            DeclaredType = GetFriendlyTypeName(child.FieldType),
+                            Tooltip = GetAttribute<TooltipAttribute>(child)?.tooltip ?? tooltip
+                        };
+                    }
+
+                    continue;
+                }
+
+                if (ShouldRecurseInto(field.FieldType))
+                {
+                    foreach (var child in EnumerateInspectorFields(field.FieldType, propertyPath))
+                    {
+                        yield return child;
+                    }
+
+                    continue;
+                }
+
+                yield return new InspectorSemanticField
+                {
+                    SemanticPath = propertyPath,
+                    RawPath = propertyPath,
+                    Kind = field.FieldType != typeof(string) && typeof(UnityEngine.Object).IsAssignableFrom(field.FieldType)
+                        ? InspectorFieldKind.ObjectReference
+                        : InspectorFieldKind.RawProperty,
+                    DeclaredType = GetFriendlyTypeName(field.FieldType),
+                    Tooltip = tooltip
+                };
+            }
+        }
+
+        private static InspectorSemanticField ResolveInspectorField(Type assetType, string semanticPath)
+        {
+            var match = EnumerateInspectorFields(assetType, null)
+                .FirstOrDefault(field => string.Equals(field.SemanticPath, semanticPath, StringComparison.OrdinalIgnoreCase));
+            if (match == null)
+            {
+                throw new InvalidOperationException($"Inspector field not found: {semanticPath}");
+            }
+
+            return match;
+        }
+
+        private static string ReadClipTransitionEndTime(SerializedObject serializedObject, string eventsPath)
+        {
+            var times = serializedObject.FindProperty(eventsPath + "._NormalizedTimes");
+            var speedProperty = serializedObject.FindProperty(eventsPath[..^"._Events".Length] + "._Speed");
+            var speed = speedProperty != null ? speedProperty.floatValue : 1f;
+
+            if (times == null || !times.isArray || times.arraySize == 0)
+            {
+                return AnimancerEvent.Sequence.GetDefaultNormalizedEndTime(speed).ToString(CultureInfo.InvariantCulture);
+            }
+
+            var endElement = times.GetArrayElementAtIndex(times.arraySize - 1);
+            return endElement.floatValue.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static void SetClipTransitionEndTime(SerializedObject serializedObject, string eventsPath, string rawValue)
+        {
+            if (!float.TryParse(rawValue, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var value))
+            {
+                throw new InvalidOperationException($"Invalid end time: {rawValue}");
+            }
+
+            var times = serializedObject.FindProperty(eventsPath + "._NormalizedTimes");
+            if (times == null)
+            {
+                throw new InvalidOperationException($"Event times field not found: {eventsPath}._NormalizedTimes");
+            }
+
+            if (!times.isArray)
+            {
+                throw new InvalidOperationException($"Event times field is not an array: {eventsPath}._NormalizedTimes");
+            }
+
+            if (times.arraySize == 0)
+            {
+                times.arraySize = 1;
+            }
+
+            times.GetArrayElementAtIndex(times.arraySize - 1).floatValue = value;
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         private static Type ResolveReferenceFieldType(Type assetType, string fieldPath)
         {
             if (assetType == null || string.IsNullOrWhiteSpace(fieldPath))
@@ -495,34 +1286,87 @@ namespace BBBNexus
                 return null;
             }
 
-            var firstSegment = fieldPath.Split('.')[0];
-            if (string.IsNullOrWhiteSpace(firstSegment) || firstSegment == "Array")
+            var currentType = assetType;
+            foreach (var segment in fieldPath.Split('.'))
             {
-                return null;
-            }
-
-            var field = FindField(assetType, firstSegment);
-            if (field == null)
-            {
-                return null;
-            }
-
-            var fieldType = field.FieldType;
-            if (fieldType.IsArray)
-            {
-                fieldType = fieldType.GetElementType();
-            }
-
-            if (fieldType != null && fieldType.IsGenericType)
-            {
-                var genericType = fieldType.GetGenericTypeDefinition();
-                if (genericType == typeof(List<>))
+                if (string.IsNullOrWhiteSpace(segment) || segment == "Array")
                 {
-                    fieldType = fieldType.GetGenericArguments()[0];
+                    return null;
+                }
+
+                if (segment == "data")
+                {
+                    continue;
+                }
+
+                var field = FindField(currentType, segment);
+                if (field == null)
+                {
+                    return null;
+                }
+
+                currentType = field.FieldType;
+                if (currentType.IsArray)
+                {
+                    currentType = currentType.GetElementType();
+                }
+
+                if (currentType != null && currentType.IsGenericType &&
+                    currentType.GetGenericTypeDefinition() == typeof(List<>))
+                {
+                    currentType = currentType.GetGenericArguments()[0];
                 }
             }
 
-            return typeof(UnityEngine.Object).IsAssignableFrom(fieldType) ? fieldType : null;
+            return currentType != null && typeof(UnityEngine.Object).IsAssignableFrom(currentType) ? currentType : null;
+        }
+
+        private static Type ResolveListElementType(Type assetType, string fieldPath)
+        {
+            var fieldType = ResolveFieldType(assetType, fieldPath);
+            if (fieldType == null)
+            {
+                return null;
+            }
+
+            if (fieldType.IsArray)
+            {
+                return fieldType.GetElementType();
+            }
+
+            if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                return fieldType.GetGenericArguments()[0];
+            }
+
+            return null;
+        }
+
+        private static Type ResolveFieldType(Type assetType, string fieldPath)
+        {
+            if (assetType == null || string.IsNullOrWhiteSpace(fieldPath))
+            {
+                return null;
+            }
+
+            var currentType = assetType;
+            foreach (var segment in fieldPath.Split('.'))
+            {
+                if (string.IsNullOrWhiteSpace(segment) || segment == "Array" || segment == "data")
+                {
+                    continue;
+                }
+
+                var field = FindField(currentType, segment);
+                if (field == null)
+                {
+                    return null;
+                }
+
+                currentType = field.FieldType;
+            }
+
+            return currentType;
         }
 
         private static FieldInfo FindField(Type type, string fieldName)
@@ -579,8 +1423,8 @@ namespace BBBNexus
             foreach (var field in GetSerializableFields(type))
             {
                 var propertyPath = string.IsNullOrEmpty(parentPath) ? field.Name : parentPath + "." + field.Name;
-                var header = field.GetCustomAttribute<HeaderAttribute>()?.header ?? "";
-                var tooltip = field.GetCustomAttribute<TooltipAttribute>()?.tooltip ?? "";
+                var header = GetAttribute<HeaderAttribute>(field)?.header ?? "";
+                var tooltip = GetAttribute<TooltipAttribute>(field)?.tooltip ?? "";
 
                 yield return new SerializableFieldPath
                 {
@@ -627,12 +1471,17 @@ namespace BBBNexus
                         continue;
                     }
 
-                    if (field.IsPublic || field.GetCustomAttribute<SerializeField>() != null)
+                    if (field.IsPublic || GetAttribute<SerializeField>(field) != null)
                     {
                         yield return field;
                     }
                 }
             }
+        }
+
+        private static T GetAttribute<T>(MemberInfo member) where T : Attribute
+        {
+            return member.GetCustomAttributes(typeof(T), true).OfType<T>().LastOrDefault();
         }
 
         private static bool ShouldRecurseInto(Type type)
@@ -818,10 +1667,152 @@ namespace BBBNexus
         private static void EnsureParentFolderExists(string assetPath)
         {
             var folder = Path.GetDirectoryName(assetPath)?.Replace('\\', '/');
-            if (string.IsNullOrEmpty(folder) || !AssetDatabase.IsValidFolder(folder))
+            if (string.IsNullOrEmpty(folder))
             {
-                throw new InvalidOperationException($"Target folder does not exist in Assets/: {folder}");
+                throw new InvalidOperationException($"Target folder is invalid: {folder}");
             }
+
+            if (AssetDatabase.IsValidFolder(folder))
+            {
+                return;
+            }
+
+            CreateFoldersRecursively(folder);
+            AssetDatabase.Refresh();
+
+            if (!AssetDatabase.IsValidFolder(folder))
+            {
+                throw new InvalidOperationException($"Failed to create target folder in Assets/: {folder}");
+            }
+        }
+
+        private static void CreateFoldersRecursively(string folder)
+        {
+            if (string.Equals(folder, "Assets", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            var parent = Path.GetDirectoryName(folder)?.Replace('\\', '/');
+            var leaf = Path.GetFileName(folder);
+            if (string.IsNullOrEmpty(parent) || string.IsNullOrEmpty(leaf))
+            {
+                throw new InvalidOperationException($"Invalid folder path: {folder}");
+            }
+
+            if (!AssetDatabase.IsValidFolder(parent))
+            {
+                CreateFoldersRecursively(parent);
+            }
+
+            if (!AssetDatabase.IsValidFolder(folder))
+            {
+                AssetDatabase.CreateFolder(parent, leaf);
+            }
+        }
+
+        private static Dictionary<string, MetaLib.MetaEntry> BuildMetaLibSoEntries(Dictionary<string, DuplicateSoGroup> duplicateMap)
+        {
+            var results = new Dictionary<string, MetaLib.MetaEntry>(StringComparer.Ordinal);
+            foreach (var guid in AssetDatabase.FindAssets("t:ScriptableObject"))
+            {
+                var assetPath = AssetDatabase.GUIDToAssetPath(guid);
+                if (string.IsNullOrEmpty(assetPath) || !assetPath.EndsWith(".asset", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (assetPath.IndexOf("/Resources/", StringComparison.OrdinalIgnoreCase) < 0 &&
+                    assetPath.IndexOf("\\Resources\\", StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    continue;
+                }
+
+                var scriptableObject = AssetDatabase.LoadAssetAtPath<ScriptableObject>(assetPath);
+                if (scriptableObject == null)
+                {
+                    continue;
+                }
+
+                var type = scriptableObject.GetType();
+                if (string.IsNullOrEmpty(type.Namespace) ||
+                    !type.Namespace.StartsWith("BBBNexus", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var id = scriptableObject.name;
+                var resourcePath = ToResourcesPath(assetPath);
+
+                if (results.TryGetValue(id, out var existing))
+                {
+                    duplicateMap[id] = new DuplicateSoGroup
+                    {
+                        Id = id,
+                        AssetPaths = new List<string>
+                        {
+                            existing.CustomFields != null && existing.CustomFields.TryGetValue("AssetPath", out var existingAssetPath)
+                                ? existingAssetPath
+                                : existing.ResourcePath,
+                            assetPath
+                        },
+                        ResourcePaths = new List<string>
+                        {
+                            existing.ResourcePath,
+                            resourcePath
+                        }
+                    };
+
+                    results.Remove(id);
+                    continue;
+                }
+
+                if (duplicateMap.TryGetValue(id, out var duplicate))
+                {
+                    duplicate.AssetPaths.Add(assetPath);
+                    duplicate.ResourcePaths.Add(resourcePath);
+                    continue;
+                }
+
+                results[id] = new MetaLib.MetaEntry
+                {
+                    ID = id,
+                    PackID = id,
+                    Kind = MetaLib.EntryKind.ResourceObject,
+                    Storage = MetaLib.StorageType.Resources,
+                    ResourcePath = resourcePath,
+                    ObjectType = type.FullName,
+                    DisplayName = scriptableObject.name,
+                    Author = "NekoTeam",
+                    Version = "1.0.0",
+                    Description = string.Empty,
+                    CustomFields = new Dictionary<string, string>
+                    {
+                        ["AssetPath"] = assetPath
+                    }
+                };
+            }
+
+            return results;
+        }
+
+        private static string ToResourcesPath(string assetPath)
+        {
+            var normalized = assetPath.Replace('\\', '/');
+            const string marker = "/Resources/";
+            var markerIndex = normalized.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (markerIndex < 0)
+            {
+                throw new InvalidOperationException($"Asset is not under a Resources folder: {assetPath}");
+            }
+
+            var relative = normalized.Substring(markerIndex + marker.Length);
+            if (relative.EndsWith(".asset", StringComparison.OrdinalIgnoreCase))
+            {
+                relative = relative.Substring(0, relative.Length - ".asset".Length);
+            }
+
+            return relative;
         }
 
         private static CreatableScriptableObjectDescriptor ResolveCreatableScriptableObjectType(string typeOrMenu)
@@ -889,6 +1880,20 @@ namespace BBBNexus
             return string.IsNullOrEmpty(path) ? value.name : $"{value.name} @ {path}";
         }
 
+        private static string DescribeAssetCandidate(UnityEngine.Object obj)
+        {
+            var path = AssetDatabase.GetAssetPath(obj);
+            var guid = "";
+            long localFileId = 0;
+            if (!string.IsNullOrEmpty(path))
+            {
+                guid = AssetDatabase.AssetPathToGUID(path);
+                AssetDatabase.TryGetGUIDAndLocalFileIdentifier(obj, out _, out localFileId);
+            }
+
+            return $"- {obj.name} ({obj.GetType().Name}) | guid={guid} | localFileId={localFileId} | path={path}";
+        }
+
         private sealed class FieldMetadata
         {
             public string DeclaredType;
@@ -903,12 +1908,35 @@ namespace BBBNexus
             public string MenuName;
         }
 
+        private sealed class DuplicateSoGroup
+        {
+            public string Id;
+            public List<string> AssetPaths = new List<string>();
+            public List<string> ResourcePaths = new List<string>();
+        }
+
         private sealed class SerializableFieldPath
         {
             public string PropertyPath;
             public FieldInfo Field;
             public string Header;
             public string Tooltip;
+        }
+
+        private sealed class InspectorSemanticField
+        {
+            public string SemanticPath;
+            public string RawPath;
+            public InspectorFieldKind Kind;
+            public string DeclaredType;
+            public string Tooltip;
+        }
+
+        private enum InspectorFieldKind
+        {
+            RawProperty,
+            ObjectReference,
+            EndTime
         }
     }
 }

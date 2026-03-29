@@ -65,6 +65,12 @@ namespace BBBNexus
         {
             if (_player == null || _player.AnimFacade == null || _config == null) return;
 
+            if (_player.StateMachine.CurrentState is StatusEffectState || _player.RuntimeData.Arbitration.BlockAction)
+            {
+                CancelAttack();
+                return;
+            }
+
             if (_phase == SwordPhase.Attacking && Time.time >= _attackFallbackEndTime)
             {
                 EndAttackLocally();

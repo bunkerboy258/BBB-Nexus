@@ -11,14 +11,27 @@ namespace BBBNexus
     {
         private const bool ActionIntentTrace = true;
         private readonly PlayerRuntimeData _data;
+        private readonly InputPipeline _input;
 
-        public ActionIntentProcessor(PlayerRuntimeData data)
+        public ActionIntentProcessor(PlayerRuntimeData data, InputPipeline input)
         {
             _data = data;
+            _input = input;
         }
 
         public void Update(in ProcessedInputData input)
         {
+            if (_data.Arbitration.BlockAction)
+            {
+                if (input.PrimaryAttackPressed)
+                    _input?.ConsumePrimaryAttackPressed();
+
+                if (input.InteractPressed)
+                    _input?.ConsumeInteractPressed();
+
+                return;
+            }
+
             if (input.PrimaryAttackPressed)
             {
                 _data.WantsToPrimaryAction = true;

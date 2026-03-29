@@ -59,6 +59,59 @@ namespace BBBNexus
     }
 
     [Serializable]
+    internal sealed class RenameAssetRequest
+    {
+        public string path;
+        public string name;
+    }
+
+    [Serializable]
+    internal sealed class InspectAssetRequest
+    {
+        public string path;
+    }
+
+    [Serializable]
+    internal sealed class SetInspectorValueRequest
+    {
+        public string path;
+        public string field;
+        public string value;
+    }
+
+    [Serializable]
+    internal sealed class ListFieldRequest
+    {
+        public string path;
+        public string field;
+    }
+
+    [Serializable]
+    internal sealed class ListSetRequest
+    {
+        public string path;
+        public string field;
+        public int index;
+        public string value;
+    }
+
+    [Serializable]
+    internal sealed class ListAddRequest
+    {
+        public string path;
+        public string field;
+        public string value;
+    }
+
+    [Serializable]
+    internal sealed class ListRemoveRequest
+    {
+        public string path;
+        public string field;
+        public int index;
+    }
+
+    [Serializable]
     internal sealed class FindClipRequest
     {
         public string query;
@@ -135,6 +188,69 @@ namespace BBBNexus
         public string assetPath;
         public string assetType;
         public string menuName;
+    }
+
+    [Serializable]
+    internal sealed class RenameAssetResponse
+    {
+        public string oldAssetPath;
+        public string newAssetPath;
+    }
+
+    [Serializable]
+    internal sealed class InspectorFieldDto
+    {
+        public string path;
+        public string rawPath;
+        public string type;
+        public string value;
+        public string tooltip;
+        public bool editable;
+        public bool derived;
+    }
+
+    [Serializable]
+    internal sealed class InspectAssetResponse
+    {
+        public string assetPath;
+        public string assetType;
+        public InspectorFieldDto[] fields;
+    }
+
+    [Serializable]
+    internal sealed class ListElementDto
+    {
+        public int index;
+        public string type;
+        public string value;
+    }
+
+    [Serializable]
+    internal sealed class ListFieldResponse
+    {
+        public string assetPath;
+        public string assetType;
+        public string field;
+        public string elementType;
+        public int size;
+        public ListElementDto[] items;
+    }
+
+    [Serializable]
+    internal sealed class MetaLibDuplicateDto
+    {
+        public string id;
+        public string[] assetPaths;
+        public string[] resourcePaths;
+    }
+
+    [Serializable]
+    internal sealed class MetaLibSoRebuildResponse
+    {
+        public bool updated;
+        public int preservedCount;
+        public int registeredSoCount;
+        public MetaLibDuplicateDto[] duplicates;
     }
 }
 #endif

@@ -223,6 +223,68 @@ namespace BBBNexus
                         return JsonUtility.ToJson(ConfigToolAssetService.CreateScriptableObject(dto.type, dto.path));
                     });
 
+                case "/assets/rename":
+                    return RunBody(request, body =>
+                    {
+                        var dto = JsonUtility.FromJson<RenameAssetRequest>(body);
+                        return JsonUtility.ToJson(ConfigToolAssetService.RenameAsset(dto.path, dto.name));
+                    });
+
+                case "/metas/rebuild-so":
+                    return RunBody(request, _ =>
+                    {
+                        return JsonUtility.ToJson(ConfigToolAssetService.RebuildMetaLibSoEntries());
+                    });
+
+                case "/assets/inspect":
+                    return RunBody(request, body =>
+                    {
+                        var dto = JsonUtility.FromJson<InspectAssetRequest>(body);
+                        return JsonUtility.ToJson(ConfigToolAssetService.InspectAsset(dto.path));
+                    });
+
+                case "/assets/set-inspector":
+                    return RunBody(request, body =>
+                    {
+                        var dto = JsonUtility.FromJson<SetInspectorValueRequest>(body);
+                        return JsonUtility.ToJson(ConfigToolAssetService.SetInspectorValue(dto.path, dto.field, dto.value));
+                    });
+
+                case "/assets/list-get":
+                    return RunBody(request, body =>
+                    {
+                        var dto = JsonUtility.FromJson<ListFieldRequest>(body);
+                        return JsonUtility.ToJson(ConfigToolAssetService.GetListField(dto.path, dto.field));
+                    });
+
+                case "/assets/list-set":
+                    return RunBody(request, body =>
+                    {
+                        var dto = JsonUtility.FromJson<ListSetRequest>(body);
+                        return JsonUtility.ToJson(ConfigToolAssetService.SetListItem(dto.path, dto.field, dto.index, dto.value));
+                    });
+
+                case "/assets/list-add":
+                    return RunBody(request, body =>
+                    {
+                        var dto = JsonUtility.FromJson<ListAddRequest>(body);
+                        return JsonUtility.ToJson(ConfigToolAssetService.AddListItem(dto.path, dto.field, dto.value));
+                    });
+
+                case "/assets/list-remove":
+                    return RunBody(request, body =>
+                    {
+                        var dto = JsonUtility.FromJson<ListRemoveRequest>(body);
+                        return JsonUtility.ToJson(ConfigToolAssetService.RemoveListItem(dto.path, dto.field, dto.index));
+                    });
+
+                case "/assets/list-clear":
+                    return RunBody(request, body =>
+                    {
+                        var dto = JsonUtility.FromJson<ListFieldRequest>(body);
+                        return JsonUtility.ToJson(ConfigToolAssetService.ClearListField(dto.path, dto.field));
+                    });
+
                 default:
                     throw new InvalidOperationException($"Unknown route: {path}");
             }

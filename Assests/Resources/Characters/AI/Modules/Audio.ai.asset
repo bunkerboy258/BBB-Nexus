@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 388c0b6f233e1db45a3ea847e9a922af, type: 3}
+  m_Name: Audio.ai
+  m_EditorClassIdentifier: 
+  _entries:
+  - Event: 5
+    Clips:
+    - {fileID: 8300000, guid: 77aacfe7153bf1546a516c8f004e61bc, type: 3}
+  - Event: 7
+    Clips:
+    - {fileID: 8300000, guid: 77d421828d1de5f469b0e110b2fcbfd9, type: 3}
+    - {fileID: 8300000, guid: e82a0a7cd2d3391438652bb683381702, type: 3}

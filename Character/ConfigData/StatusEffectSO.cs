@@ -29,10 +29,45 @@ namespace BBBNexus
 
         #region 动画
 
-        [Header("动画表现")]
+        [Header("通用 / 被格挡 Clip")]
 
-        [Tooltip("状态期间循环/播放的动画 Clip")]
+        [Tooltip("通用动画 Clip，同时作为方向性受击的 fallback（方向槽为空时使用此项）")]
         public ClipTransition Clip;
+
+        [Header("方向性受击僵直 Clips（4向）")]
+
+        [Tooltip("正面受击僵直")]
+        public ClipTransition ClipHitFront;
+
+        [Tooltip("背面受击僵直")]
+        public ClipTransition ClipHitBack;
+
+        [Tooltip("左侧受击僵直")]
+        public ClipTransition ClipHitLeft;
+
+        [Tooltip("右侧受击僵直")]
+        public ClipTransition ClipHitRight;
+
+        [Header("方向性击退 Clips（4向）")]
+
+        [Tooltip("正面击退")]
+        public ClipTransition ClipKnockbackFront;
+
+        [Tooltip("背面击退")]
+        public ClipTransition ClipKnockbackBack;
+
+        [Tooltip("左侧击退")]
+        public ClipTransition ClipKnockbackLeft;
+
+        [Tooltip("右侧击退")]
+        public ClipTransition ClipKnockbackRight;
+
+        [Header("击倒")]
+
+        [Tooltip("击倒动画 Clip（倒地）")]
+        public ClipTransition ClipKnockdown;
+
+        [Header("动画播放参数")]
 
         [Tooltip("动画播放参数（层级、淡入时间、速度等）\n" +
                  "Layer=0 全身  Layer=1 上半身")]
@@ -94,6 +129,32 @@ namespace BBBNexus
             if (BlockUpperBody)  flags.BlockUpperBody  = true;
             if (BlockInventory)  flags.BlockInventory  = true;
             if (BlockIK)         flags.BlockIK         = true;
+        }
+
+        /// <summary>
+        /// 根据受击方向角（相对角色自身朝向，度数）选取对应的方向性 Clip。
+        /// 无对应方向 Clip 时 fallback 到 <see cref="Clip"/>。
+        /// </summary>
+        /// <param name="angleFromForward">
+        /// 攻击来源方向与角色 forward 的夹角（-180~180°，正值=右侧）。
+        /// 传 float.NaN 或不关心方向时直接返回 <see cref="Clip"/>。
+        /// </param>
+        public ClipTransition SelectHitClip(float angleFromForward = float.NaN)
+        {
+            if (!float.IsNaN(angleFromForward))
+            {
+                float abs = Mathf.Abs(angleFromForward);
+
+                ClipTransition directional =
+                    abs <= 45f   ? ClipHitFront :   // 正面
+                    abs >= 135f  ? ClipHitBack  :   // 背面
+                    angleFromForward > 0f ? ClipHitRight : ClipHitLeft; // 左右
+
+                if (directional?.Clip != null)
+                    return directional;
+            }
+
+            return Clip;
         }
 
         #endregion

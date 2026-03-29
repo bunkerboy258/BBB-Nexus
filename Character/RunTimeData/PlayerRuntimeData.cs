@@ -20,6 +20,7 @@ namespace BBBNexus
     public class PlayerRuntimeData
     {
         public OverrideContext Override;
+        public StatusEffectContext StatusEffect;
         public ArbitrationFlags Arbitration;
         public ActionArbitrationContext ActionArbitration;
 
@@ -29,6 +30,7 @@ namespace BBBNexus
             CameraTransform = player.PlayerCamera;
             CurrentStamina = player.Config.Core.MaxStamina;
             Override.Clear();
+            StatusEffect.Clear();
             Arbitration.Clear();
             ActionArbitration.Clear();
 
@@ -174,6 +176,16 @@ namespace BBBNexus
         public bool WantsExpression7;
         /// <summary>表情 8 意图（预留）</summary>
         public bool WantsExpression8;
+
+        /// <summary>额外动作 1 意图（如闭眼）</summary>
+        public bool WantsExtraAction1;
+        /// <summary>额外动作 2 意图（预留）</summary>
+        public bool WantsExtraAction2;
+        /// <summary>额外动作 3 意图（预留）</summary>
+        public bool WantsExtraAction3;
+        /// <summary>额外动作 4 意图（预留）</summary>
+        public bool WantsExtraAction4;
+
         /// <summary>情境交互意图（E 键）：开门/开箱/爬梯子等，由 ActionController 读取</summary>
         public bool WantsToInteract;
         #endregion
@@ -288,6 +300,11 @@ namespace BBBNexus
             WantsExpression6 = false;
             WantsExpression7 = false;
             WantsExpression8 = false;
+
+            WantsExtraAction1 = false;
+            WantsExtraAction2 = false;
+            WantsExtraAction3 = false;
+            WantsExtraAction4 = false;
 
             // 表情事件：在 LateUpdate 清理（FacialController 在 Update 消费）
             FacialEventRequest = PlayerFacialEvent.None;

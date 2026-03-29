@@ -25,6 +25,22 @@ namespace BBBNexus
         }
     }
 
+    public struct StatusEffectContext
+    {
+        public bool IsActive;
+        public StatusEffectSO Effect;
+        public BaseState ReturnState;
+        public float HitAngle;
+
+        public void Clear()
+        {
+            IsActive = false;
+            Effect = null;
+            ReturnState = null;
+            HitAngle = float.NaN;
+        }
+    }
+
     public struct ArbitrationFlags
     {
         public bool BlockInput;

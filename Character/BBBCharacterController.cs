@@ -46,8 +46,16 @@ namespace BBBNexus
 
 
         [Header("--- 调试选项 ---")]
+        public EquippableItemSO DebugMainhandEquipment;
+        public EquippableItemSO DebugOffhandEquipment;
+        [HideInInspector]
+        [System.Obsolete("Use DebugMainhandEquipment/DebugOffhandEquipment instead.")]
         public EquippableItemSO DefaultEquipment1;
+        [HideInInspector]
+        [System.Obsolete("Use DebugMainhandEquipment/DebugOffhandEquipment instead.")]
         public EquippableItemSO DefaultEquipment2;
+        [HideInInspector]
+        [System.Obsolete("Use DebugMainhandEquipment/DebugOffhandEquipment instead.")]
         public EquippableItemSO DefaultEquipment3;
         public bool statedebug = false;
 
@@ -239,7 +247,9 @@ namespace BBBNexus
             if (RuntimeData != null)
             {
                 RuntimeData.Override.IsActive = false;
+                RuntimeData.StatusEffect.Clear();
             }
+            StatusEffects?.Clear();
         }
 
         public void OnDespawned()
@@ -259,9 +269,11 @@ namespace BBBNexus
             {
                 RuntimeData.CurrentItem = null;
                 RuntimeData.CurrentAimReference = null;
+                RuntimeData.StatusEffect.Clear();
                 RuntimeData.WantsLookAtIK = false;
                 RuntimeData.ResetIntetnt();
             }
+            StatusEffects?.Clear();
         }
 
         private void OnEnable()
@@ -365,21 +377,28 @@ namespace BBBNexus
         private void InitializeEquipments()
         {
             InventoryController.Initialize();
+            var mainhandInstance = CreateDebugEquipmentInstance(DebugMainhandEquipment);
+            var offhandInstance = CreateDebugEquipmentInstance(DebugOffhandEquipment);
 
-            EquippableItemSO[] defaults = new EquippableItemSO[] { DefaultEquipment1, DefaultEquipment2, DefaultEquipment3 };
-            ItemInstance firstToEquip = null;
-
-            for (int i = 0; i < defaults.Length; i++)
+            if (mainhandInstance != null)
             {
-                if (defaults[i] != null)
-                {
-                    var instance = new ItemInstance(defaults[i], 1);
-                    InventoryController.AssignItemToSlot(i, instance);
-                    if (firstToEquip == null) firstToEquip = instance;
-                }
+                EquipmentDriver.EquipItemToSlot(mainhandInstance, EquipmentSlot.MainHand);
+                RuntimeData.CurrentItem = mainhandInstance;
             }
 
-            if (firstToEquip != null) RuntimeData.CurrentItem = firstToEquip;
+            if (offhandInstance != null)
+            {
+                EquipmentDriver.EquipItemToSlot(offhandInstance, EquipmentSlot.OffHand);
+                if (mainhandInstance == null)
+                {
+                    RuntimeData.OffhandItem = offhandInstance;
+                }
+            }
+        }
+
+        private static ItemInstance CreateDebugEquipmentInstance(EquippableItemSO equipment)
+        {
+            return equipment != null ? new ItemInstance(equipment, 1) : null;
         }
 
         private void BootUpStateMachines()

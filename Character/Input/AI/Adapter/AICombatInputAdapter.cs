@@ -3,6 +3,7 @@ using UnityEngine;
 namespace BBBNexus
 {
     [DisallowMultipleComponent]
+    [System.Obsolete("Use AIBlackboardInputAdapter instead. This adapter writes AI intent into player raw-input semantics too naively and is kept only for backward compatibility.")]
     public class AICombatInputAdapter : InputSourceBase
     {
         [Header("AI Modules")]
@@ -80,8 +81,10 @@ namespace BBBNexus
             rawData.AimHeld = currentAimIntent;
 
             bool currentAttackIntent = intent.WantsToAttack;
-            rawData.Expression1Held = currentAttackIntent;
-            rawData.Expression1JustPressed = currentAttackIntent && !_lastAttackIntent;
+            rawData.PrimaryAttackHeld = currentAttackIntent;
+            // AI intent is semantic, not a hardware edge. Keep emitting press pulses while attack intent is active
+            // so combo-capable behaviours can continue buffering follow-up attacks.
+            rawData.PrimaryAttackJustPressed = currentAttackIntent;
 
             // --- 跳跃信号映射 ---
             bool currentJumpIntent = intent.WantsToJump;
@@ -112,8 +115,8 @@ namespace BBBNexus
             rawData.MoveAxis = Vector2.zero;
             rawData.LookAxis = Vector2.zero;
             rawData.AimHeld = false;
-            rawData.Expression1Held = false;
-            rawData.Expression1JustPressed = false;
+            rawData.PrimaryAttackHeld = false;
+            rawData.PrimaryAttackJustPressed = false;
             rawData.JumpHeld = false;
             rawData.JumpJustPressed = false;
             rawData.DodgeHeld = false;

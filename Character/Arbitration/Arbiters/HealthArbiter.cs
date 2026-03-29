@@ -35,6 +35,19 @@ namespace BBBNexus
         }
 
         /// <summary>
+        /// 计算受击方向角：攻击者方向与角色 forward 的 SignedAngle（度数）。
+        /// 无攻击者信息时返回 float.NaN。
+        /// </summary>
+        private float CalculateHitAngle(in DamageRequest req)
+        {
+            if (req.Attacker == null) return float.NaN;
+            var toAttacker = req.Attacker.transform.position - _player.transform.position;
+            toAttacker.y = 0f;
+            if (toAttacker.sqrMagnitude < 0.001f) return float.NaN;
+            return Vector3.SignedAngle(_player.transform.forward, toAttacker, Vector3.up);
+        }
+
+        /// <summary>
         /// 每帧统一裁决
         /// </summary>
         public void Arbitrate()
@@ -60,6 +73,14 @@ namespace BBBNexus
                     IsFatal         = _data.CurrentHealth <= 0f,
                 });
 
+                // 受击僵直：非致命伤害时施加 HitReaction 状态
+                if (_data.CurrentHealth > 0f)
+                {
+                    var hitReaction = _player.Config?.HitReaction;
+                    if (hitReaction != null)
+                        _player.StatusEffects.Apply(hitReaction, CalculateHitAngle(in req));
+                }
+
                 _head = (_head + 1) % _damageQueue.Length;
             }
 
@@ -68,6 +89,7 @@ namespace BBBNexus
             {
                 _data.CurrentHealth = 0;
                 _data.IsDead = true;
+                _player.StatusEffects?.Clear();
 
                 _data.Arbitration.IsDead = true;
                 _data.Arbitration.BlockInput = true;

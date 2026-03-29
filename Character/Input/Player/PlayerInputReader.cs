@@ -38,10 +38,16 @@ namespace BBBNexus
         public InputActionReference expression2Action;
         public InputActionReference expression3Action;
         public InputActionReference expression4Action;
-        public InputActionReference expression5Action;  // 闭眼交互（Q 键）
-        public InputActionReference expression6Action;  // 预留
-        public InputActionReference expression7Action;  // 预留
-        public InputActionReference expression8Action;  // 预留
+        public InputActionReference expression5Action;
+        public InputActionReference expression6Action;
+        public InputActionReference expression7Action;
+        public InputActionReference expression8Action;
+
+        [Header("额外动作输入引用")]
+        public InputActionReference extraAction1Action;  // 闭眼 Q 键
+        public InputActionReference extraAction2Action;  // 预留
+        public InputActionReference extraAction3Action;  // 预留
+        public InputActionReference extraAction4Action;  // 预留
         #endregion
 
         private void OnEnable() => ToggleActions(true);
@@ -98,6 +104,12 @@ namespace BBBNexus
             rawData.Expression6JustPressed = expression6Action != null && expression6Action.action.WasPressedThisFrame();
             rawData.Expression7JustPressed = expression7Action != null && expression7Action.action.WasPressedThisFrame();
             rawData.Expression8JustPressed = expression8Action != null && expression8Action.action.WasPressedThisFrame();
+
+            rawData.ExtraAction1JustPressed = extraAction1Action != null && extraAction1Action.action.WasPressedThisFrame();
+            rawData.ExtraAction2JustPressed = extraAction2Action != null && extraAction2Action.action.WasPressedThisFrame();
+            rawData.ExtraAction3JustPressed = extraAction3Action != null && extraAction3Action.action.WasPressedThisFrame();
+            rawData.ExtraAction4JustPressed = extraAction4Action != null && extraAction4Action.action.WasPressedThisFrame();
+
             rawData.Number1JustPressed = number1Action != null && number1Action.action.WasPressedThisFrame();
             rawData.Number2JustPressed = number2Action != null && number2Action.action.WasPressedThisFrame();
             rawData.Number3JustPressed = number3Action != null && number3Action.action.WasPressedThisFrame();
@@ -121,7 +133,8 @@ namespace BBBNexus
                 interactAction, primaryAttackAction, secondaryAttackAction,
                 number1Action, number2Action, number3Action, number4Action, number5Action,
                 expression1Action, expression2Action, expression3Action, expression4Action,
-                expression5Action, expression6Action, expression7Action, expression8Action
+                expression5Action, expression6Action, expression7Action, expression8Action,
+                extraAction1Action, extraAction2Action, extraAction3Action, extraAction4Action
             };
 
             foreach (var ar in all)

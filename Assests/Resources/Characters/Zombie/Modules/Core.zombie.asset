@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e92b4698a9c1cce4f9e932743fcc4493, type: 3}
+  m_Name: Core.zombie
+  m_EditorClassIdentifier: 
+  MaxHealth: 100
+  DeathAnim: {fileID: 0}
+  LODCheckInterval: 0.5
+  MediumLODDistance: 15
+  LowLODDistance: 30
+  LookSensitivity: {x: 150, y: 150}
+  PitchLimits: {x: -70, y: 70}
+  RotationSmoothTime: 0.16
+  WalkSpeed: 1.6
+  JogSpeed: 2.4
+  SprintSpeed: 3.2
+  Gravity: -20
+  ReboundForce: -1
+  AirControl: 0.2
+  MoveSpeedSmoothTime: 0.32
+  XAnimBlendSmoothTime: 0.2
+  YAnimBlendSmoothTime: 0.2
+  MaxStamina: 1000
+  StaminaDrainRate: 20
+  StaminaRegenRate: 15
+  WalkStaminaRegenMult: 1.5
+  StaminaRecoverThreshold: 0.2
+  UpperBodyMask: {fileID: 0}
+  FacialMask: {fileID: 0}
+  FallHeightLevelThreshold: 1
+  FallVerticalVelocityThreshold: -5
