@@ -97,7 +97,7 @@ namespace BBBNexus
             bool wantsAttack = _player.RuntimeData.WantsToPrimaryAction;
             bool attackInputObserved = wantsAttack || input.PrimaryAttackHeld || input.PrimaryAttackPressed;
 
-            if (_player.StateMachine.CurrentState is StatusEffectState)
+            if (_player.CharacterArbiter != null && _player.CharacterArbiter.IsUnderStatusControl())
             {
                 if (_isAttacking || _isEnteringStance || _isExitingStance || _activeAttackContext != null)
                     ResetComboState();
@@ -106,7 +106,7 @@ namespace BBBNexus
                 return;
             }
 
-            if (_player.RuntimeData.Arbitration.BlockAction)
+            if (_player.CharacterArbiter != null && _player.CharacterArbiter.IsActionBlocked())
             {
                 if (_isAttacking || _isEnteringStance || _isExitingStance || _activeAttackContext != null)
                     ResetComboState();

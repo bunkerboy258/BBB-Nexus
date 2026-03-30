@@ -18,7 +18,7 @@ namespace BBBNexus
         {
             if (brain == null || brain.AvailableStates == null || brain.AvailableStates.Count == 0)
             {
-                Debug.LogError("[BBBNexus] 存在PlayerBrainSO 未配置或没有添加任何状态！");
+                Debug.LogError("[BBBNexus] LocomotionBrain 未配置或没有添加任何状态。");
                 return;
             }
 
@@ -75,7 +75,7 @@ namespace BBBNexus
             if (_states.TryGetValue(typeof(T), out var state))
                 return state as T;
 
-            Debug.LogError($"未找到状态 {typeof(T).Name}！请检查 PlayerBrainSO 是否添加了对应的枚举！");
+            Debug.LogError($"未找到状态 {typeof(T).Name}！请检查 LocomotionBrain 是否添加了对应的枚举。");
             return null;
         }
     }

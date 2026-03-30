@@ -17,9 +17,12 @@ MonoBehaviour:
   LocomotionAnims: {fileID: 11400000, guid: 63fce11ae0f62484682b552c8bbf58c4, type: 2}
   JumpAndLanding: {fileID: 11400000, guid: fa517b21ea10ba5419ff4d252d8367aa, type: 2}
   Aiming: {fileID: 11400000, guid: 9379cc176f4cd1b4bb49b3421cd91238, type: 2}
+  HitReaction: {fileID: 11400000, guid: 3edb0af975bee894d921c8a07d37d1e2, type: 2}
   Vaulting: {fileID: 11400000, guid: c817245546f047f4eaf477b9f3429f8a, type: 2}
   Dodging: {fileID: 11400000, guid: 73049487dd19b0f40b9d0cf4ffb8fa7a, type: 2}
   Rolling: {fileID: 11400000, guid: b5a26fbe4f8d93f42835b41a4bd1ff44, type: 2}
   Action: {fileID: 11400000, guid: 34dfdfa74970bd94d9e51f28bf840248, type: 2}
+  ActionArbiterConfig: {fileID: 0}
+  StatusArbiterConfig: {fileID: 0}
   Audio: {fileID: 11400000, guid: 4d323a5e935a4d04fb4c5704c9bcbb15, type: 2}
   Emj: {fileID: 11400000, guid: 1bd984c7c70cd654580352c0e11101cb, type: 2}

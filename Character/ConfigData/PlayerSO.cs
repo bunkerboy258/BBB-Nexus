@@ -14,6 +14,9 @@ namespace BBBNexus
         [Tooltip("角色状态机与全局打断逻辑注册表")]
         public PlayerBrainSO Brain;
 
+        [Tooltip("Locomotion 域仲裁配置。当前为 Brain 的语义别名，避免旧资源断引用。")]
+        public PlayerBrainSO LocomotionBrain => Brain;
+
         [Tooltip("基础物理参数模块")]
         public CoreSO Core;
 
@@ -35,6 +38,10 @@ namespace BBBNexus
         public DodgingSO Dodging;
         public RollSO Rolling;
         public ActionSO Action;
+        [Tooltip("Action 域仲裁配置。当前可为空，逐步承接从 OverrideState 迁出的动作规则。")]
+        public ActionArbiterSO ActionArbiterConfig;
+        [Tooltip("Status 域仲裁配置。当前可为空，逐步承接受击/僵直等控制规则。")]
+        public StatusArbiterSO StatusArbiterConfig;
         public AudioSO Audio;
         public EmjSO Emj;
     }

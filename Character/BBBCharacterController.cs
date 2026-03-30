@@ -44,6 +44,7 @@ namespace BBBNexus
         public Transform RightHandBone { get; private set; }
         public Transform LeftFootBone { get; private set; }
         public Transform RightFootBone { get; private set; }
+        public Transform HeadBone { get; private set; }
 
 
         [Header("--- 调试选项 ---")]
@@ -64,6 +65,8 @@ namespace BBBNexus
         [System.Obsolete("Use DebugMainhandEquipment1~5/DebugOffhandEquipment instead.")]
         public EquippableItemSO DefaultEquipment3;
         public bool statedebug = false;
+        public bool DebugShowCurrentClipOverlay = false;
+        public Vector3 DebugClipOverlayWorldOffset = new Vector3(0f, 0.35f, 0f);
 
 
         // 运行时核心引用
@@ -104,12 +107,15 @@ namespace BBBNexus
 
         /// <summary>异常状态仲裁器快捷访问</summary>
         public StatusEffectArbiter StatusEffects => ArbiterPipeline.StatusEffect;
+        public CharacterArbiter CharacterArbiter => ArbiterPipeline.Character;
 
         //调试用缓存
         private PlayerBaseState _lastState;
         public event System.Action OnEquipmentChanged;
 
         private bool _booted;
+        private bool _wasLocomotionBlocked;
+        private GUIStyle _debugClipOverlayStyle;
 
         // Awake 负责内存分配、找组件、依赖注入 
         private void Awake()
@@ -122,6 +128,7 @@ namespace BBBNexus
             RightHandBone=Animator.GetBoneTransform(HumanBodyBones.RightHand);
             LeftFootBone=Animator.GetBoneTransform(HumanBodyBones.LeftFoot);
             RightFootBone=Animator.GetBoneTransform(HumanBodyBones.RightFoot);
+            HeadBone=Animator.GetBoneTransform(HumanBodyBones.Head);
 
             // 统一的面板依赖注入检查 失败直接抛出异常
             try
@@ -202,9 +209,9 @@ namespace BBBNexus
 
             // 装载状态字典 分配独立内存实例
             StateRegistry = new PlayerStateRegistry();
-            if (Config != null && Config.Brain != null)
+            if (Config != null && Config.LocomotionBrain != null)
             {
-                StateRegistry.InitializeFromBrain(Config.Brain, this);
+                StateRegistry.InitializeFromBrain(Config.LocomotionBrain, this);
             }
             else
             {
@@ -260,8 +267,12 @@ namespace BBBNexus
             {
                 RuntimeData.Override.IsActive = false;
                 RuntimeData.StatusEffect.Clear();
+                RuntimeData.ActionControl.Clear();
+                RuntimeData.StatusControl.Clear();
+                RuntimeData.CharacterControl.Clear();
             }
             StatusEffects?.Clear();
+            _wasLocomotionBlocked = false;
         }
 
         public void OnDespawned()
@@ -282,10 +293,14 @@ namespace BBBNexus
                 RuntimeData.CurrentItem = null;
                 RuntimeData.CurrentAimReference = null;
                 RuntimeData.StatusEffect.Clear();
+                RuntimeData.ActionControl.Clear();
+                RuntimeData.StatusControl.Clear();
+                RuntimeData.CharacterControl.Clear();
                 RuntimeData.WantsLookAtIK = false;
                 RuntimeData.ResetIntetnt();
             }
             StatusEffects?.Clear();
+            _wasLocomotionBlocked = false;
         }
 
         private void OnEnable()
@@ -316,7 +331,18 @@ namespace BBBNexus
 
             MainProcessorPipeline.UpdateParameterProcessors();
 
-            StateMachine.CurrentState.LogicUpdate();
+            bool locomotionBlocked = CharacterArbiter != null && CharacterArbiter.IsLocomotionBlocked();
+            if (!locomotionBlocked)
+            {
+                if (_wasLocomotionBlocked)
+                {
+                    RestoreLocomotionPresentation();
+                }
+
+                StateMachine.CurrentState.LogicUpdate();
+            }
+
+            _wasLocomotionBlocked = locomotionBlocked;
 
             UpperBodyCtrl.Update();
 
@@ -350,13 +376,52 @@ namespace BBBNexus
         {
             if (!_booted) return; // pooling safety
 
-            StateMachine.CurrentState?.PhysicsUpdate();
+            bool locomotionBlocked = CharacterArbiter != null && CharacterArbiter.IsLocomotionBlocked();
+            if (locomotionBlocked)
+            {
+                bool applyGravityOnly = RuntimeData.StatusControl.IsActive ||
+                                        (RuntimeData.ActionControl.IsActive && RuntimeData.Override.Request.ApplyGravity);
+
+                if (applyGravityOnly)
+                    MotionDriver.UpdateGravityOnly();
+            }
+            else
+            {
+                StateMachine.CurrentState?.PhysicsUpdate();
+            }
 
             IkController.Update();
 
             ArbiterPipeline?.ProcessLateUpdateArbiters();
 
             RuntimeData.ResetIntetnt();
+        }
+
+        private void OnGUI()
+        {
+            if (!Application.isPlaying || !DebugShowCurrentClipOverlay || Animancer == null)
+                return;
+
+            var cameraTransform = PlayerCamera != null ? PlayerCamera : Camera.main != null ? Camera.main.transform : null;
+            var camera = cameraTransform != null ? cameraTransform.GetComponent<Camera>() : Camera.main;
+            if (camera == null)
+                return;
+
+            Vector3 anchor = GetDebugClipOverlayAnchor();
+            Vector3 screenPos = camera.WorldToScreenPoint(anchor);
+            if (screenPos.z <= 0f)
+                return;
+
+            string text = BuildDebugClipOverlayText();
+            if (string.IsNullOrWhiteSpace(text))
+                return;
+
+            var style = GetDebugClipOverlayStyle();
+            var content = new GUIContent(text);
+            Vector2 size = style.CalcSize(content);
+            float x = screenPos.x - size.x * 0.5f;
+            float y = Screen.height - screenPos.y - size.y;
+            GUI.Label(new Rect(x, y, size.x, size.y), content, style);
         }
 
         public void NotifyEquipmentChanged()
@@ -371,6 +436,67 @@ namespace BBBNexus
             // 如果要求立即刷新 则直接跑一次仲裁(一般情况下不用 如果有严格同步需求才请求)
             if (flushImmediately)
                 ArbiterPipeline?.Action?.Arbitrate();
+        }
+
+        private void RestoreLocomotionPresentation()
+        {
+            if (StateMachine?.CurrentState == null)
+                return;
+
+            // 控制域释放时，layer0 仍可能停留在旧的 full-body action/status clip。
+            // 这里强制重进当前 locomotion state，让基础姿态立刻重新接管表现层。
+            StateMachine.ChangeState(StateMachine.CurrentState);
+        }
+
+        private Vector3 GetDebugClipOverlayAnchor()
+        {
+            if (HeadBone != null)
+                return HeadBone.position + DebugClipOverlayWorldOffset;
+
+            return transform.position + Vector3.up * (CharController != null ? CharController.height + 0.2f : 2f) + DebugClipOverlayWorldOffset;
+        }
+
+        private string BuildDebugClipOverlayText()
+        {
+            string fullBodyState = StateMachine?.CurrentState?.GetType().Name ?? "null";
+            string upperBodyState = UpperBodyCtrl?.StateMachine?.CurrentState?.GetType().Name ?? "null";
+            string layer0Clip = GetLayerClipLabel(0);
+            string layer1Clip = GetLayerClipLabel(1);
+            string controlDomain = RuntimeData != null ? RuntimeData.CharacterControl.ActiveDomain.ToString() : "Unknown";
+
+            return $"Full:{fullBodyState}\nUpper:{upperBodyState}\nOwner:{controlDomain}\nL0:{layer0Clip}\nL1:{layer1Clip}";
+        }
+
+        private string GetLayerClipLabel(int layerIndex)
+        {
+            if (Animancer == null || Animancer.Layers == null)
+                return "null";
+
+            AnimancerState state = Animancer.Layers[layerIndex].CurrentState;
+            if (state == null)
+                return "null";
+
+            var clip = state.Clip != null ? state.Clip : state.MainObject as AnimationClip;
+            string clipName = clip != null ? clip.name : state.ToString();
+            return $"{clipName} @ {state.NormalizedTime:0.00}";
+        }
+
+        private GUIStyle GetDebugClipOverlayStyle()
+        {
+            if (_debugClipOverlayStyle != null)
+                return _debugClipOverlayStyle;
+
+            _debugClipOverlayStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 12,
+                normal =
+                {
+                    textColor = Color.white
+                }
+            };
+
+            return _debugClipOverlayStyle;
         }
 
         private void InitializeCamera()

@@ -6,12 +6,12 @@ namespace BBBNexus
     [CreateAssetMenu(fileName = "PlayerBrain_Default", menuName = "BBBNexus/Player/Modules/Player Brain")]
     public class PlayerBrainSO : ScriptableObject
     {
-        [Header("--- 1. 状态装载名单 (State Roster) ---")]
-        [Tooltip("只需在下拉菜单中勾选玩家需要的状态。列表中排在【第0位】的将作为启动状态！")]
+        [Header("--- 1. Locomotion 状态装载名单 (State Roster) ---")]
+        [Tooltip("这里承载的是 Locomotion 域状态名单。列表中排在第 0 位的将作为启动状态。")]
         public List<PlayerStateType> AvailableStates = new List<PlayerStateType>();
 
-        [Header("--- 2. 全局打断管线 (Interceptors) ---")]
-        [Tooltip("将打断器SO拖入此列表，从上到下决定绝对优先级。")]
+        [Header("--- 2. Locomotion 全局打断管线 (Interceptors) ---")]
+        [Tooltip("这里承载的是 Locomotion 域拦截器，从上到下决定优先级。")]
         public List<StateInterceptorSO> GlobalInterceptors = new List<StateInterceptorSO>();
 
         [Header("--- 上半身状态 (Upper Body & Combat) ---")]
@@ -20,6 +20,9 @@ namespace BBBNexus
 
         [Tooltip("上半身专属打断管线")]
         public List<UpperBodyInterceptorSO> UpperBodyInterceptors = new List<UpperBodyInterceptorSO>();
+
+        public IReadOnlyList<PlayerStateType> LocomotionStates => AvailableStates;
+        public IReadOnlyList<StateInterceptorSO> LocomotionInterceptors => GlobalInterceptors;
 
     }
     // 一些设计说明:......

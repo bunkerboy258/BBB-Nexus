@@ -14,13 +14,13 @@
         }
 
         // 尝试处理上半身拦截 
-        // 依次遍历 PlayerBrainSO 中的上半身拦截器集合 如果有拦截器返回 true 就切换状态
+        // 依次遍历 LocomotionBrain 中的上半身拦截器集合 如果有拦截器返回 true 就切换状态
         public bool TryProcessInterrupts(UpperBodyBaseState currentState)
         {
-            if (_player.Config == null || _player.Config.Brain == null || _player.Config.Brain.UpperBodyInterceptors == null)
+            if (_player.Config == null || _player.Config.LocomotionBrain == null || _player.Config.LocomotionBrain.UpperBodyInterceptors == null)
                 return false;
 
-            var pipeline = _player.Config.Brain.UpperBodyInterceptors;
+            var pipeline = _player.Config.LocomotionBrain.UpperBodyInterceptors;
             for (int i = 0; i < pipeline.Count; i++)
             {
                 var interceptor = pipeline[i];

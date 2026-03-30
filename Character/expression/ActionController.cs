@@ -43,7 +43,7 @@ namespace BBBNexus
                     _index = 0;
             }
 
-            if (_data.Arbitration.BlockAction) return;
+            if (_player.CharacterArbiter != null && _player.CharacterArbiter.IsActionBlocked()) return;
             if (!_data.WantsToInteract) return;
 
             _input.ConsumeInteractPressed();

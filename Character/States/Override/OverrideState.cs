@@ -18,6 +18,11 @@ namespace BBBNexus
 
             // 代理模式期间 拒绝物品栏切换
             data.Arbitration.BlockInventory = true;
+            data.ActionControl.IsActive = true;
+            data.ActionControl.Priority = data.Override.IsActive ? data.Override.Request.Priority : 0;
+            data.ActionControl.BlocksLocomotion = true;
+            data.ActionControl.BlocksUpperBody = true;
+            data.ActionControl.UsesLegacyOverrideState = true;
 
             Apply();
         }
@@ -31,6 +36,7 @@ namespace BBBNexus
             AnimFacade.StopFullBodyAction();
 
             data.Override.Clear();
+            data.ActionControl.Clear();
             data.Arbitration.BlockInventory = false;
         }
 

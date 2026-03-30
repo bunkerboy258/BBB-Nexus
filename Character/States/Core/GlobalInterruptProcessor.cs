@@ -12,15 +12,15 @@
         }
 
         // 尝试处理全局拦截 
-        // 依次遍历 PlayerBrainSO 中的拦截器集合 如果有拦截器返回 true 就切换状态并结束检测
+        // 依次遍历 LocomotionBrain 中的拦截器集合 如果有拦截器返回 true 就切换状态并结束检测
         public bool TryProcessInterrupts(PlayerBaseState currentState)
         {
             // 如果没有配置全局拦截器 直接返回
-            if (_player.Config == null || _player.Config.Brain == null || _player.Config.Brain.GlobalInterceptors == null)
+            if (_player.Config == null || _player.Config.LocomotionBrain == null || _player.Config.LocomotionBrain.GlobalInterceptors == null)
                 return false;
 
             // 遍历拦截器管道
-            var pipeline = _player.Config.Brain.GlobalInterceptors;
+            var pipeline = _player.Config.LocomotionBrain.GlobalInterceptors;
             for (int i = 0; i < pipeline.Count; i++)
             {
                 var interceptor = pipeline[i];

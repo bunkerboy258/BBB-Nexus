@@ -62,7 +62,7 @@ namespace BBBNexus
 
         [Header("--- 相机表现力 ---")]
         [Tooltip("装备此物品时的相机预设。null = 沿用当前相机默认配置，不做任何覆写。")]
-        public CameraPresetSO CameraPreset;
+        public CameraExpressionSO CameraPreset;
 
         [Header("--- otherslot 联动 ---")]
         [Tooltip("主武器可声明一个 virtualpack 联动槽。装备主手时，系统会把 virtualpack 的另一半搬到对应 otherslot；切走主手时再搬回。")]

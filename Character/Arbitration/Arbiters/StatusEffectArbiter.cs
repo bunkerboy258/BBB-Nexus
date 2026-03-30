@@ -31,11 +31,6 @@ namespace BBBNexus
             if (_current != null && effect.Priority < _current.Priority)
                 return;
 
-            bool alreadyInState = _player.StateMachine.CurrentState is StatusEffectState;
-            var state = _player.StateRegistry?.GetState<StatusEffectState>();
-            if (state == null)
-                return;
-
             if (_current == effect)
             {
                 if (!effect.CanBeRefreshed)
@@ -43,10 +38,12 @@ namespace BBBNexus
 
                 _remainingTime = effect.Duration;
                 _data.StatusEffect.HitAngle = hitAngle;
-                if (alreadyInState)
-                    state.ForceReapply();
+                SyncStatusControl(effect, usesLegacyStatusState: false);
+                ApplyCurrentEffect();
                 return;
             }
+
+            _player.ArbiterPipeline?.Action?.CancelActiveAction(stopAnimation: false);
 
             _current = effect;
             _remainingTime = effect.Duration;
@@ -54,45 +51,19 @@ namespace BBBNexus
             _data.StatusEffect.IsActive = true;
             _data.StatusEffect.Effect = effect;
             _data.StatusEffect.HitAngle = hitAngle;
-            if (!alreadyInState)
-                _data.StatusEffect.ReturnState = ResolveSafeReturnState();
-
-            if (alreadyInState)
-            {
-                state.ForceReapply();
-                return;
-            }
-
-            _player.StateMachine.ChangeState(state);
-        }
-
-        private BaseState ResolveSafeReturnState()
-        {
-            var currentState = _player.StateMachine.CurrentState;
-            if (currentState is OverrideState)
-            {
-                // StatusEffect 会触发 OverrideState.Exit，而 Exit 会清掉 Override 上下文。
-                // 受击结束后再返回同一个 OverrideState 会进入一个没有请求可回放的空壳状态。
-                if (_data.Override.ReturnState != null &&
-                    _data.Override.ReturnState is not OverrideState &&
-                    _data.Override.ReturnState is not StatusEffectState)
-                {
-                    return _data.Override.ReturnState;
-                }
-
-                return _data.CurrentLocomotionState != LocomotionState.Idle
-                    ? _player.StateRegistry.GetState<PlayerMoveLoopState>()
-                    : _player.StateRegistry.GetState<PlayerIdleState>();
-            }
-
-            return currentState;
+            _data.StatusEffect.ReturnState = _player.StateMachine.CurrentState;
+            SyncStatusControl(effect, usesLegacyStatusState: false);
+            ApplyCurrentEffect();
         }
 
         public void Clear()
         {
+            _player.AnimFacade?.ClearOverrideOnEndCallback();
+            _player.AnimFacade?.StopFullBodyAction();
             _current = null;
             _remainingTime = 0f;
             _data.StatusEffect.Clear();
+            _data.StatusControl.Clear();
         }
 
         public void Arbitrate()
@@ -105,22 +76,47 @@ namespace BBBNexus
                 _remainingTime -= Time.deltaTime;
                 if (_remainingTime <= 0f)
                 {
-                    _current = null;
-                    if (_data.StatusEffect.IsActive)
-                    {
-                        _data.StatusEffect.IsActive = false;
-                        if (_player.StateMachine.CurrentState is StatusEffectState)
-                        {
-                            var state = _player.StateRegistry?.GetState<StatusEffectState>();
-                            state?.ReturnToPreviousState();
-                        }
-                    }
-
+                    Clear();
                     return;
                 }
             }
 
             _current.ApplyBlockFlagsTo(ref _data.Arbitration);
+        }
+
+        private void ApplyCurrentEffect()
+        {
+            if (!_data.StatusEffect.IsActive || _current == null)
+                return;
+
+            var transition = _current.SelectHitClip(_data.StatusEffect.HitAngle);
+            if (transition?.Clip == null)
+            {
+                Clear();
+                return;
+            }
+
+            _player.AnimFacade?.ClearOverrideOnEndCallback();
+            _player.AnimFacade?.PlayFullBodyActionTransition(transition);
+            _player.AnimFacade?.SetOverrideOnEndCallback(OnStatusClipEnd);
+        }
+
+        private void OnStatusClipEnd()
+        {
+            if (_current == null)
+                return;
+
+            Clear();
+        }
+
+        private void SyncStatusControl(StatusEffectSO effect, bool usesLegacyStatusState)
+        {
+            _data.StatusControl.IsActive = effect != null;
+            _data.StatusControl.Priority = effect != null ? effect.Priority : 0;
+            _data.StatusControl.BlocksAction = effect != null && effect.BlockAction;
+            _data.StatusControl.BlocksLocomotion = effect != null;
+            _data.StatusControl.BlocksInput = effect != null && effect.BlockInput;
+            _data.StatusControl.UsesLegacyStatusState = usesLegacyStatusState;
         }
     }
 }

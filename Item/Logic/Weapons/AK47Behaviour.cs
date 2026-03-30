@@ -90,7 +90,8 @@ namespace BBBNexus
         public void OnUpdateLogic()
         {
             if (_player != null &&
-                (_player.StateMachine.CurrentState is StatusEffectState || _player.RuntimeData.Arbitration.BlockAction))
+                ((_player.CharacterArbiter != null && _player.CharacterArbiter.IsUnderStatusControl()) ||
+                 (_player.CharacterArbiter != null && _player.CharacterArbiter.IsActionBlocked())))
             {
                 return;
             }

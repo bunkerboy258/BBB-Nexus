@@ -16,7 +16,7 @@ namespace BBBNexus
         {
             if (brain == null || brain.UpperBodyStates == null || brain.UpperBodyStates.Count == 0)
             {
-                Debug.LogWarning("[BBBNexus] PlayerBrainSO 中未配置上半身状态！");
+                Debug.LogWarning("[BBBNexus] LocomotionBrain 中未配置上半身状态。");
                 return;
             }
 

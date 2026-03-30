@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Core.zombie
   m_EditorClassIdentifier: 
   MaxHealth: 100
-  DeathAnim: {fileID: 0}
+  DeathAnim: {fileID: 3060610079319413300, guid: 198306c1209c75d45a2115e0cf9ff8ed,
+    type: 3}
   LODCheckInterval: 0.5
   MediumLODDistance: 15
   LowLODDistance: 30

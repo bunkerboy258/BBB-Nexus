@@ -12,6 +12,12 @@ namespace BBBNexus
         public override void Enter()
         {
             _applied = false;
+            data.StatusControl.IsActive = data.StatusEffect.IsActive;
+            data.StatusControl.Priority = data.StatusEffect.Effect != null ? data.StatusEffect.Effect.Priority : 0;
+            data.StatusControl.BlocksAction = data.StatusEffect.Effect != null && data.StatusEffect.Effect.BlockAction;
+            data.StatusControl.BlocksLocomotion = data.StatusEffect.Effect != null && data.StatusEffect.Effect.BlockInput;
+            data.StatusControl.BlocksInput = data.StatusEffect.Effect != null && data.StatusEffect.Effect.BlockInput;
+            data.StatusControl.UsesLegacyStatusState = true;
             Apply();
         }
 
@@ -20,6 +26,7 @@ namespace BBBNexus
             AnimFacade.ClearOverrideOnEndCallback();
             AnimFacade.StopFullBodyAction();
             data.StatusEffect.Clear();
+            data.StatusControl.Clear();
         }
 
         protected override bool CheckInterrupts() => false;

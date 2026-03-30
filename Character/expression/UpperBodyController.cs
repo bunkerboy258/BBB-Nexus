@@ -21,9 +21,9 @@
             InterruptProcessor = new UpperBodyInterruptProcessor(player, this);
 
             // 从配置的 BrainSO 加载所有上半身状态
-            if (player.Config != null && player.Config.Brain != null)
+            if (player.Config != null && player.Config.LocomotionBrain != null)
             {
-                StateRegistry.InitializeFromBrain(player.Config.Brain, player);
+                StateRegistry.InitializeFromBrain(player.Config.LocomotionBrain, player);
             }
         }
 

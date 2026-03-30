@@ -62,7 +62,8 @@ namespace BBBNexus
                 return;
             }
 
-            if (_player.StateMachine.CurrentState is StatusEffectState || _player.RuntimeData.Arbitration.BlockAction)
+            if ((_player.CharacterArbiter != null && _player.CharacterArbiter.IsUnderStatusControl()) ||
+                (_player.CharacterArbiter != null && _player.CharacterArbiter.IsActionBlocked()))
             {
                 return;
             }

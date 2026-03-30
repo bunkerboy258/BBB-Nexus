@@ -11,6 +11,15 @@ namespace BBBNexus
         Low 
     }
 
+    public enum CharacterControlDomain
+    {
+        None = 0,
+        Locomotion = 1,
+        Action = 2,
+        Status = 3,
+        Death = 4,
+    }
+
     public struct OverrideContext
     {
         public bool IsActive;
@@ -38,6 +47,60 @@ namespace BBBNexus
             Effect = null;
             ReturnState = null;
             HitAngle = float.NaN;
+        }
+    }
+
+    public struct ActionControlContext
+    {
+        public bool IsActive;
+        public int Priority;
+        public bool BlocksLocomotion;
+        public bool BlocksUpperBody;
+        public bool UsesLegacyOverrideState;
+
+        public void Clear()
+        {
+            IsActive = false;
+            Priority = 0;
+            BlocksLocomotion = false;
+            BlocksUpperBody = false;
+            UsesLegacyOverrideState = false;
+        }
+    }
+
+    public struct StatusControlContext
+    {
+        public bool IsActive;
+        public int Priority;
+        public bool BlocksAction;
+        public bool BlocksLocomotion;
+        public bool BlocksInput;
+        public bool UsesLegacyStatusState;
+
+        public void Clear()
+        {
+            IsActive = false;
+            Priority = 0;
+            BlocksAction = false;
+            BlocksLocomotion = false;
+            BlocksInput = false;
+            UsesLegacyStatusState = false;
+        }
+    }
+
+    public struct CharacterControlContext
+    {
+        public CharacterControlDomain ActiveDomain;
+        public bool BlocksAction;
+        public bool BlocksLocomotion;
+        public bool BlocksInput;
+
+        public void Clear()
+        {
+            ActiveDomain = CharacterControlDomain.None;
+            BlocksAction = false;
+            BlocksLocomotion = false;
+            BlocksInput = false;
         }
     }
 

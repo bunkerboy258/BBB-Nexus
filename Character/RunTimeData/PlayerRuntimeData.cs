@@ -21,6 +21,9 @@ namespace BBBNexus
     {
         public OverrideContext Override;
         public StatusEffectContext StatusEffect;
+        public ActionControlContext ActionControl;
+        public StatusControlContext StatusControl;
+        public CharacterControlContext CharacterControl;
         public ArbitrationFlags Arbitration;
         public ActionArbitrationContext ActionArbitration;
 
@@ -31,6 +34,9 @@ namespace BBBNexus
             CurrentStamina = player.Config.Core.MaxStamina;
             Override.Clear();
             StatusEffect.Clear();
+            ActionControl.Clear();
+            StatusControl.Clear();
+            CharacterControl.Clear();
             Arbitration.Clear();
             ActionArbitration.Clear();
 
@@ -284,6 +290,22 @@ namespace BBBNexus
         public PlayerRuntimeData()
         {
             CurrentLocomotionState = LocomotionState.Idle;
+        }
+
+        public void ResetArbitrationFrameFlags()
+        {
+            Arbitration.Clear();
+
+            if (IsDead)
+            {
+                Arbitration.IsDead = true;
+                Arbitration.BlockInput = true;
+                Arbitration.BlockUpperBody = true;
+                Arbitration.BlockFacial = true;
+                Arbitration.BlockIK = true;
+                Arbitration.BlockInventory = true;
+                Arbitration.BlockAction = true;
+            }
         }
 
         /// <summary>
