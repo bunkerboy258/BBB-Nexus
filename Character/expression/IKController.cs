@@ -34,7 +34,9 @@ namespace BBBNexus
             _player = player;
             _data = player.RuntimeData;
             _config = player.Config;
-            _lookAtPositionSmoothTime = _config.Aiming.AimIkChaseSmoothTime;
+            _lookAtPositionSmoothTime = _config.TacticalMotionBase != null
+                ? _config.TacticalMotionBase.AimIkChaseSmoothTime
+                : 0.1f;
         }
 
         // 优先级：LOD拦截 -> Warp IK 拦截 -> Aim 基准点更新 -> 左手 IK -> 右手 IK -> 头部注视
@@ -77,7 +79,7 @@ namespace BBBNexus
             }
 
             // AimIK 基准点更新（注：从瞄准切到非瞄准时必须清理）
-            if (_data.IsAiming && _data.WantsLookAtIK && _data.CurrentAimReference != null)
+            if (_data.IsTacticalStance && _data.WantsLookAtIK && _data.CurrentAimReference != null)
             {
                 if (_data.CurrentAimReference != _lastAimReference)
                 {

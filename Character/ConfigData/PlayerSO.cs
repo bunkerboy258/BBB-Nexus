@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace BBBNexus
 {
@@ -26,8 +27,12 @@ namespace BBBNexus
         [Tooltip("跳跃与落地系统")]
         public JumpSO JumpAndLanding;
 
-        [Tooltip("瞄准系统参数")]
-        public AimingSO Aiming;
+        [FormerlySerializedAs("Aiming")]
+        [Tooltip("战术持枪下半身基座参数")]
+        public TacticalMotionBaseSO TacticalMotionBase;
+
+        [System.Obsolete("Use TacticalMotionBase instead.")]
+        public TacticalMotionBaseSO Aiming => TacticalMotionBase;
 
         [Header("被动反应")]
         [Tooltip("受击僵直状态 SO（HealthArbiter 在结算伤害时自动施加）")]

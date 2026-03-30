@@ -115,7 +115,7 @@ namespace BBBNexus
             _config = player.Config;
             _transform = player.transform;
 
-            _loco.WasAiming = _data.IsAiming;
+            _loco.WasAiming = _data.IsTacticalStance;
         }
 
         #region Public API
@@ -291,7 +291,7 @@ namespace BBBNexus
 
         private Vector3 CalculateInputDrivenVelocity(float speedMult)
         {
-            return _data.IsAiming
+            return _data.IsTacticalStance
                 ? CalculateAimVelocity(speedMult)
                 : CalculateFreeLookVelocity(speedMult);
         }
@@ -323,7 +323,12 @@ namespace BBBNexus
         private Vector3 CalculateAimVelocity(float speedMult)
         {
             if (!ConsumeYawRequest())
-                ApplySmoothYaw(_data.AuthorityYaw, _config.Aiming.AimRotationSmoothTime);
+            {
+                float smoothTime = _config.TacticalMotionBase != null
+                    ? _config.TacticalMotionBase.AimRotationSmoothTime
+                    : _config.Core.RotationSmoothTime;
+                ApplySmoothYaw(_data.AuthorityYaw, smoothTime);
+            }
 
             Vector2 input = _data.MoveInput;
             if (input.sqrMagnitude < 0.001f)
@@ -448,9 +453,9 @@ namespace BBBNexus
 
         private float GetBaseSpeed(LocomotionState state, bool isAiming) => state switch
         {
-            LocomotionState.Walk => isAiming ? _config.Aiming.AimWalkSpeed : _config.Core.WalkSpeed,
-            LocomotionState.Jog => isAiming ? _config.Aiming.AimJogSpeed : _config.Core.JogSpeed,
-            LocomotionState.Sprint => isAiming ? _config.Aiming.AimSprintSpeed : _config.Core.SprintSpeed,
+            LocomotionState.Walk => isAiming ? (_config.TacticalMotionBase != null ? _config.TacticalMotionBase.AimWalkSpeed : _config.Core.WalkSpeed) : _config.Core.WalkSpeed,
+            LocomotionState.Jog => isAiming ? (_config.TacticalMotionBase != null ? _config.TacticalMotionBase.AimJogSpeed : _config.Core.JogSpeed) : _config.Core.JogSpeed,
+            LocomotionState.Sprint => isAiming ? (_config.TacticalMotionBase != null ? _config.TacticalMotionBase.AimSprintSpeed : _config.Core.SprintSpeed) : _config.Core.SprintSpeed,
             _ => 0f
         };
 
@@ -477,13 +482,13 @@ namespace BBBNexus
 
         private void HandleAimModeTransitionIfNeeded()
         {
-            if (_data.IsAiming == _loco.WasAiming) return;
+            if (_data.IsTacticalStance == _loco.WasAiming) return;
 
             // 形态切换：清理旋转与速度平滑状态
             _data.RotationVelocity = 0f;
             _loco.LastAimMoveDir = Vector3.zero;
             _loco.SpeedVelocity = 0f;
-            _loco.WasAiming = _data.IsAiming;
+            _loco.WasAiming = _data.IsTacticalStance;
         }
 
         private void AutoHandleCurveDrivenEnter(MotionClipData clipData, float stateTime)

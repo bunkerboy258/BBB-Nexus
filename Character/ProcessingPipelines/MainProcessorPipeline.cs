@@ -16,7 +16,7 @@ namespace BBBNexus
 
         // 持有各意图处理器
         private readonly LocomotionIntentProcessor _locomotionIntentProcessor;
-        private readonly AimIntentProcessor _aimIntentProcessor;
+        private readonly TacticalStanceIntentProcessor _tacticalStanceIntentProcessor;
         private readonly JumpOrVaultIntentProcessor _jumpOrVaultIntentProcessor;
         private readonly EojIntentProcessor _eojIntentProcessor;
         private readonly HotbarIntentProcessor _hotbarIntentProcessor;
@@ -32,7 +32,7 @@ namespace BBBNexus
             _runtimeData = player.RuntimeData;
             _config = player.Config;
 
-            _aimIntentProcessor = new AimIntentProcessor(_runtimeData, _inputPipeline, player);
+            _tacticalStanceIntentProcessor = new TacticalStanceIntentProcessor(_runtimeData, _inputPipeline, player);
             _locomotionIntentProcessor = new LocomotionIntentProcessor(_runtimeData, _config);
             _jumpOrVaultIntentProcessor = new JumpOrVaultIntentProcessor(_runtimeData, _config, player.transform);
             _eojIntentProcessor = new EojIntentProcessor(_runtimeData, _inputPipeline);
@@ -53,7 +53,7 @@ namespace BBBNexus
             ref readonly ProcessedInputData inputSnapshot = ref _inputPipeline.Current.currentFrameData.Processed;
 
             _viewRotationProcessor.Update(in inputSnapshot);
-            _aimIntentProcessor.Update(in inputSnapshot);
+            _tacticalStanceIntentProcessor.Update(in inputSnapshot);
             _locomotionIntentProcessor.Update(in inputSnapshot);
             _jumpOrVaultIntentProcessor.Update(in inputSnapshot);
             _eojIntentProcessor.Update(in inputSnapshot);

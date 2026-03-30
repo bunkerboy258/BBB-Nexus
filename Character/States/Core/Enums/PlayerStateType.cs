@@ -16,8 +16,8 @@ namespace BBBNexus
         Dodge,
         Roll,
         Vault,
-        AimIdle,
-        AimMove,
+        TacticalIdle,
+        TacticalMove,
         Override,
         Death,
         StatusEffect

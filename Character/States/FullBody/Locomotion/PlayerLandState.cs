@@ -23,14 +23,13 @@ namespace BBBNexus
 
             bool wantToMove = data.CurrentLocomotionState != LocomotionState.Idle;
 
-            // 落地瞬间如果在瞄准 直接切瞄准状态 不播放落地缓冲
-            if (data.IsAiming)
+            // 落地瞬间如果在战术姿态，直接切回战术基座。
+            if (data.IsTacticalStance)
             {
-                // 消费 FallHeightLevel 一次性消费数据 然后清零
                 data.FallHeightLevel = 0;
                 player.StateMachine.ChangeState(wantToMove
-                    ? player.StateRegistry.GetState<PlayerAimMoveState>()
-                    : player.StateRegistry.GetState<PlayerAimIdleState>());
+                    ? player.StateRegistry.GetState<PlayerTacticalMoveState>()
+                    : player.StateRegistry.GetState<PlayerTacticalIdleState>());
                 return;
             }
 

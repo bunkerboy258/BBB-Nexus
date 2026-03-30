@@ -270,6 +270,8 @@ namespace BBBNexus
                 RuntimeData.ActionControl.Clear();
                 RuntimeData.StatusControl.Clear();
                 RuntimeData.CharacterControl.Clear();
+                RuntimeData.IsTacticalStance = false;
+                RuntimeData.CanEnterTacticalMotionBase = false;
             }
             StatusEffects?.Clear();
             _wasLocomotionBlocked = false;
@@ -296,6 +298,8 @@ namespace BBBNexus
                 RuntimeData.ActionControl.Clear();
                 RuntimeData.StatusControl.Clear();
                 RuntimeData.CharacterControl.Clear();
+                RuntimeData.IsTacticalStance = false;
+                RuntimeData.CanEnterTacticalMotionBase = false;
                 RuntimeData.WantsLookAtIK = false;
                 RuntimeData.ResetIntetnt();
             }

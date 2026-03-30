@@ -57,6 +57,10 @@ namespace BBBNexus
         {
             _player = player;
             _isEquipping = true;
+            if (_player?.RuntimeData != null)
+            {
+                _player.RuntimeData.CanEnterTacticalMotionBase = false;
+            }
             if (_leftHandGoal != null && _player != null && _player.RuntimeData != null)
             {
                 _player.RuntimeData.LeftHandGoal = _leftHandGoal;
@@ -128,6 +132,10 @@ namespace BBBNexus
                 if (Time.time >= _equipEndTime)
                 {
                     _isEquipping = false;
+                    if (_player?.RuntimeData != null)
+                    {
+                        _player.RuntimeData.CanEnterTacticalMotionBase = true;
+                    }
                     if (_cannonConfig != null && _cannonConfig.EquipIdleAnim != null && _player != null)
                     {
                         _player.AnimFacade.PlayTransition(_cannonConfig.EquipIdleAnim, _cannonConfig.EquipIdleAnimOptions);
@@ -138,7 +146,7 @@ namespace BBBNexus
                     return;
                 }
             }
-            bool isAiming = _player != null && _player.RuntimeData != null && _player.RuntimeData.IsAiming;
+            bool isAiming = _player != null && _player.RuntimeData != null && _player.RuntimeData.IsTacticalStance;
             if (!_isEquipping && _wasAiming != isAiming)
             {
                 if (isAiming)
@@ -178,6 +186,10 @@ namespace BBBNexus
         public void OnForceUnequip()
         {
             _isEquipping = false;
+            if (_player?.RuntimeData != null)
+            {
+                _player.RuntimeData.CanEnterTacticalMotionBase = false;
+            }
             if (_muzzleFlash != null) _muzzleFlash.Stop();
 
             if (_cannonConfig != null)

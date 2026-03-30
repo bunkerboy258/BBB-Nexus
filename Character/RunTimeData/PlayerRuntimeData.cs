@@ -92,8 +92,16 @@ namespace BBBNexus
         #endregion
 
         #region 下半身运动状态
-        /// <summary>是否瞄准 影响上身/动画树</summary>
-        public bool IsAiming;
+        /// <summary>是否处于战术持枪姿态 影响下半身基座/镜头/武器上身行为</summary>
+        public bool IsTacticalStance;
+        /// <summary>当前武器是否允许进入 TacticalMotionBase（通常要求 equip 已完成）</summary>
+        public bool CanEnterTacticalMotionBase;
+        [System.Obsolete("Use IsTacticalStance instead.")]
+        public bool IsAiming
+        {
+            get => IsTacticalStance;
+            set => IsTacticalStance = value;
+        }
         /// <summary>上一帧运动状态</summary>
         public LocomotionState LastLocomotionState = LocomotionState.Idle;
         /// <summary>当前运动状态 用于动画混合</summary>

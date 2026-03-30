@@ -2,14 +2,11 @@
 
 namespace BBBNexus
 {
-    // 玩家瞄准移动状态 
-    // 在瞄准模式下持续移动：
-    // 1) 使用三个动画树分别对应 Walk/Jog/Sprint（三套素材 各自独立）
-    // 2) Mixer 参数统一映射到半径为 1 的圆内坐标（x=右 y=前）
-    // 3) 支持运行时热切换动画树：运动状态变了就立刻切树 不再做旧版的“强度映射”
-    public class PlayerAimMoveState : PlayerBaseState
+    // 战术姿态移动状态。
+    // 使用 TacticalMotionBase 配置中的三套下半身混合树。
+    public class PlayerTacticalMoveState : PlayerBaseState
     {
-        public PlayerAimMoveState(BBBCharacterController player) : base(player) { }
+        public PlayerTacticalMoveState(BBBCharacterController player) : base(player) { }
 
         private LocomotionState _lastTreeState = LocomotionState.Idle;
 
@@ -26,7 +23,7 @@ namespace BBBNexus
         // 状态逻辑 检测松开瞄准 跳跃 或停止输入
         protected override void UpdateStateLogic()
         {
-            if (!data.IsAiming)
+            if (!data.IsTacticalStance)
             {
                 player.StateMachine.ChangeState(
                     data.CurrentLocomotionState == LocomotionState.Idle
@@ -49,7 +46,7 @@ namespace BBBNexus
 
             if (data.CurrentLocomotionState == LocomotionState.Idle)
             {
-                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerAimIdleState>());
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerTacticalIdleState>());
                 return;
             }
 
@@ -90,19 +87,19 @@ namespace BBBNexus
             options.FadeDuration = 0.12f;
 
             // 三树：Walk / Jog / Sprint
-            var aiming = config.Aiming;
-            if (aiming == null)
+            var tacticalMotionBase = config.TacticalMotionBase;
+            if (tacticalMotionBase == null)
             {
-                Debug.LogError("[PlayerAimMoveState] 致命错误 未配置 AimingModuleSO");
+                Debug.LogError("[PlayerTacticalMoveState] 致命错误 未配置 TacticalMotionBaseSO");
                 return;
             }
 
             object tree = desired switch
             {
-                LocomotionState.Walk => aiming.AimWalkMixer,
-                LocomotionState.Jog => aiming.AimJogMixer,
-                LocomotionState.Sprint => aiming.AimSprintMixer,
-                _ => aiming.AimJogMixer
+                LocomotionState.Walk => tacticalMotionBase.AimWalkMixer,
+                LocomotionState.Jog => tacticalMotionBase.AimJogMixer,
+                LocomotionState.Sprint => tacticalMotionBase.AimSprintMixer,
+                _ => tacticalMotionBase.AimJogMixer
             };
 
             AnimFacade.PlayTransition(tree, options);

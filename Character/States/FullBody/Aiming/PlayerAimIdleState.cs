@@ -1,10 +1,10 @@
 ﻿namespace BBBNexus
 {
-    // 玩家瞄准空闲状态 
-    // 在瞄准模式下保持站立 对应FreeLook的IdleState 
-    public class PlayerAimIdleState : PlayerBaseState
+    // 战术姿态待机状态。
+    // 当前为兼容既有资源，仍复用普通 idle 作为下半身基座待机片段。
+    public class PlayerTacticalIdleState : PlayerBaseState
     {
-        public PlayerAimIdleState(BBBCharacterController player) : base(player) { }
+        public PlayerTacticalIdleState(BBBCharacterController player) : base(player) { }
 
         // 进入状态 播放空闲动画 使用较长的淡入时间确保平滑过渡
         public override void Enter()
@@ -18,7 +18,7 @@
         // 状态逻辑 检测松开瞄准 跳跃 或移动输入
         protected override void UpdateStateLogic()
         {
-            if (!data.IsAiming)
+            if (!data.IsTacticalStance)
             {
                 player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerIdleState>());
                 return;
@@ -38,7 +38,7 @@
 
             if (data.CurrentLocomotionState != LocomotionState.Idle)
             {
-                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerAimMoveState>());
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerTacticalMoveState>());
             }
         }
 

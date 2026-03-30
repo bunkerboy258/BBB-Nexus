@@ -22,8 +22,8 @@ namespace BBBNexus
         // 下落意图计算状态 累积空中时间判断是否应该进入下落动画
         private float _airborneTime;
 
-        // 记录上一次瞄准状态
-        private bool _lastAiming = false;
+        // 记录上一次战术姿态状态
+        private bool _lastTacticalStance = false;
 
         // 构造函数 极简注入 仅依赖黑板 配置 与 Transform
         public MovementParameterProcessor(PlayerRuntimeData data, PlayerSO config, Transform playerTransform)
@@ -80,24 +80,24 @@ namespace BBBNexus
             Vector2 input = _data.MoveInput;
             Vector2 circle = input.sqrMagnitude < 0.0001f ? Vector2.zero : input.normalized;
 
-            bool aimingNow = _data.IsAiming;
-            if (aimingNow != _lastAiming)
+            bool tacticalNow = _data.IsTacticalStance;
+            if (tacticalNow != _lastTacticalStance)
             {
                 _xBlendVelocity = 0f;
                 _yBlendVelocity = 0f;
             }
-            _lastAiming = aimingNow;
+            _lastTacticalStance = tacticalNow;
 
             float xSmoothTime, ySmoothTime;
-            if (_config.Aiming == null)
+            if (_config.TacticalMotionBase == null)
             {
                 xSmoothTime = _config.Core.XAnimBlendSmoothTime;
                 ySmoothTime = _config.Core.YAnimBlendSmoothTime;
             }
             else
             {
-                xSmoothTime = Mathf.Max(0.0001f, aimingNow ? _config.Aiming.AimXAnimBlendSmoothTime : _config.Core.XAnimBlendSmoothTime);
-                ySmoothTime = Mathf.Max(0.0001f, aimingNow ? _config.Aiming.AimYAnimBlendSmoothTime : _config.Core.YAnimBlendSmoothTime);
+                xSmoothTime = Mathf.Max(0.0001f, tacticalNow ? _config.TacticalMotionBase.AimXAnimBlendSmoothTime : _config.Core.XAnimBlendSmoothTime);
+                ySmoothTime = Mathf.Max(0.0001f, tacticalNow ? _config.TacticalMotionBase.AimYAnimBlendSmoothTime : _config.Core.YAnimBlendSmoothTime);
             }
 
             _currentAnimBlendX = Mathf.SmoothDamp(_currentAnimBlendX, circle.x, ref _xBlendVelocity, xSmoothTime, Mathf.Infinity, Time.deltaTime);

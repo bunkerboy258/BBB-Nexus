@@ -3,10 +3,11 @@ using UnityEngine;
 
 namespace BBBNexus
 {
-    // 瞄准系统配置模块 它独立管理瞄准状态下的所有参数 包括灵敏度 移动速度 混合树等 
-    // 瞄准时会从常规移动状态切到瞄准移动状态 所有参数都独立设置 
-    [CreateAssetMenu(fileName = "AimingSO", menuName = "BBBNexus/Player/Modules/AimingSO")]
-    public class AimingSO : ScriptableObject
+    // TacticalMotionBase 配置模块。
+    // 当前承载的是“持枪/战术姿态下的下半身基座”参数与混合树，
+    // 资源字段暂时沿用旧 Aim 命名以兼容既有资产。
+    [CreateAssetMenu(fileName = "TacticalMotionBaseSO", menuName = "BBBNexus/Player/Modules/TacticalMotionBaseSO")]
+    public class TacticalMotionBaseSO : ScriptableObject
     {
         [Header("灵敏度")]
         

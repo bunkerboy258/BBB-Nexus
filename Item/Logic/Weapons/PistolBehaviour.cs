@@ -43,6 +43,10 @@ namespace BBBNexus
             _player = player;
             _isEquipping = true;
             _equipEndTime = Time.time + (_config != null ? _config.EquipEndTime : 0.35f);
+            if (_player?.RuntimeData != null)
+            {
+                _player.RuntimeData.CanEnterTacticalMotionBase = false;
+            }
 
             if (_muzzle != null && _player?.RuntimeData != null)
             {
@@ -73,6 +77,7 @@ namespace BBBNexus
                 if (Time.time >= _equipEndTime)
                 {
                     _isEquipping = false;
+                    _player.RuntimeData.CanEnterTacticalMotionBase = true;
                     if (_config.EquipIdleAnim != null)
                     {
                         _player.AnimFacade.PlayTransition(_config.EquipIdleAnim, _config.EquipIdleAnimOptions);
@@ -86,7 +91,7 @@ namespace BBBNexus
 
             bool isAiming =
                 _player.RuntimeData != null &&
-                _player.RuntimeData.IsAiming &&
+                _player.RuntimeData.IsTacticalStance &&
                 _player.RuntimeData.IsItemEquipped(_instance);
 
             if (_wasAiming != isAiming)
@@ -123,6 +128,10 @@ namespace BBBNexus
         {
             _isEquipping = false;
             _wasAiming = false;
+            if (_player?.RuntimeData != null)
+            {
+                _player.RuntimeData.CanEnterTacticalMotionBase = false;
+            }
 
             if (_muzzleFlash != null)
             {

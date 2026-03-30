@@ -1,14 +1,14 @@
 ﻿namespace BBBNexus
 {
-    // 瞄准与副键意图处理器。
-    // 右键不再全局劫持 Aim 状态，只有当前主手武器显式支持时才会进入 Aim。
-    public class AimIntentProcessor
+    // 战术姿态与副键意图处理器。
+    // 只有当前主手武器显式支持，且装备阶段已完成时，才会进入 TacticalMotionBase。
+    public class TacticalStanceIntentProcessor
     {
         private readonly PlayerRuntimeData _data;
         private readonly InputPipeline _input;
         private readonly BBBCharacterController _player;
 
-        public AimIntentProcessor(PlayerRuntimeData data, InputPipeline input, BBBCharacterController player)
+        public TacticalStanceIntentProcessor(PlayerRuntimeData data, InputPipeline input, BBBCharacterController player)
         {
             _data = data;
             _input = input;
@@ -19,7 +19,7 @@
         {
             bool wantsSecondary = input.AimHeld || input.SecondaryAttackHeld;
             _data.WantsToSecondaryAction = wantsSecondary;
-            _data.IsAiming = wantsSecondary && CanCurrentMainhandEnterAimState();
+            _data.IsTacticalStance = wantsSecondary && CanCurrentMainhandEnterTacticalMotionBase();
 
             if (_data.Arbitration.BlockAction)
             {
@@ -28,16 +28,16 @@
                 return;
             }
 
-            if (input.PrimaryAttackHeld && _data.IsAiming)
+            if (input.PrimaryAttackHeld && _data.IsTacticalStance)
             {
                 _data.WantsToPrimaryAction = true;
             }
         }
 
-        private bool CanCurrentMainhandEnterAimState()
+        private bool CanCurrentMainhandEnterTacticalMotionBase()
         {
             var ranged = _player?.EquipmentDriver?.MainhandItemData as RangedWeaponSO;
-            return ranged != null && ranged.EnablesAimState;
+            return ranged != null && ranged.EnablesAimState && _data.CanEnterTacticalMotionBase;
         }
     }
 }
