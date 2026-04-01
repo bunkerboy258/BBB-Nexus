@@ -6,8 +6,9 @@ using UnityEngine;
 namespace BBBNexus
 {
     /// <summary>
-    /// 玩家 equipment pack 的静态 VFS 工具。
-    /// 负责在已 boot 的 equipment pack 中写入 / 删除 .equipid 文件。
+    /// 装备 Pack VFS 工具喵~
+    /// 负责在 equipment pack 中写入 / 删除 .equipid 文件
+    /// 使用 PackVfs 统一层进行路由
     /// </summary>
     public static class EquipmentPackVfs
     {
@@ -18,80 +19,64 @@ namespace BBBNexus
         public const string VirtualPackDir = "/virtualpack";
         public const string MainSlotOccupierId = "__mainslotoccupier_mainhand__";
 
-        public static BasePackData GetEquipmentPack(BBBCharacterController owner = null, UserModel user = null)
+        /// <summary>
+        /// 确保装备 Pack 布局存在喵~
+        /// </summary>
+        public static void EnsureLayout(BBBCharacterController owner)
         {
-            if (ShouldUseLocalBackend(owner))
+            if (owner == null)
             {
-                owner.EnsureLocalEquipmentPackReady();
-                var localPack = FindPackByPackID(owner.LocalPackDataDict, EquipmentPackId);
-                if (localPack == null)
-                {
-                    throw new InvalidOperationException($"Required local pack '{EquipmentPackId}' was not found.");
-                }
-
-                return localPack;
+                throw new InvalidOperationException("owner cannot be null.");
             }
 
-            user ??= MainModel.Instance?.CurrentUser;
-            if (user == null)
-            {
-                throw new InvalidOperationException("Current user is null.");
-            }
-
-            SaveBootstrapRegistry.EnsureDefaultPacks(user);
-            var pack = user?.FindPackByPackID(EquipmentPackId);
-            if (pack == null)
-            {
-                throw new InvalidOperationException($"Required pack '{EquipmentPackId}' was not found in UserModel.PackDataDict.");
-            }
-
-            return pack;
-        }
-
-        public static void EnsureLayout(BBBCharacterController owner = null, UserModel user = null)
-        {
-            var analyser = GetEquipmentPackAnalyser(owner, user);
+            var analyser = PackVfs.GetAnalyser(owner, EquipmentPackId);
             analyser.CreateDirectory(EquipmentPackId, MainSlotDir, PackAccessSubjects.SystemMin);
             analyser.CreateDirectory(EquipmentPackId, OtherSlotDir, PackAccessSubjects.SystemMin);
             analyser.CreateDirectory(EquipmentPackId, HidePackDir, PackAccessSubjects.SystemMin);
             analyser.CreateDirectory(EquipmentPackId, VirtualPackDir, PackAccessSubjects.SystemMin);
-            WriteEquipIdFile(GetMainSlotOccupierVirtualPath(), MainSlotOccupierId, owner, user);
+            WriteEquipIdFile(GetMainSlotOccupierVirtualPath(), MainSlotOccupierId, owner);
         }
 
-        public static void SetMainSlotItem(int index, string itemId, BBBCharacterController owner = null, UserModel user = null)
+        public static void SetMainSlotItem(int index, string itemId, BBBCharacterController owner)
         {
-            EnsureLayout(owner, user);
-            WriteEquipIdFile($"{MainSlotDir}/{GetMainSlotFileName(index)}.equipid", itemId, owner, user);
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            EnsureLayout(owner);
+            WriteEquipIdFile($"{MainSlotDir}/{GetMainSlotFileName(index)}.equipid", itemId, owner);
         }
 
-        public static void ClearMainSlotItem(int index, BBBCharacterController owner = null, UserModel user = null)
+        public static void ClearMainSlotItem(int index, BBBCharacterController owner)
         {
-            EnsureLayout(owner, user);
-            DeletePath($"{MainSlotDir}/{GetMainSlotFileName(index)}.equipid", owner, user);
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            EnsureLayout(owner);
+            DeletePath($"{MainSlotDir}/{GetMainSlotFileName(index)}.equipid", owner);
         }
 
-        public static void SetOtherSlot(EquipmentSlot slot, string itemId, BBBCharacterController owner = null, UserModel user = null)
+        public static void SetOtherSlot(EquipmentSlot slot, string itemId, BBBCharacterController owner)
         {
-            EnsureLayout(owner, user);
-            WriteEquipIdFile($"{OtherSlotDir}/{GetOtherSlotFileName(slot)}.equipid", itemId, owner, user);
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            EnsureLayout(owner);
+            WriteEquipIdFile($"{OtherSlotDir}/{GetOtherSlotFileName(slot)}.equipid", itemId, owner);
         }
 
-        public static void ClearOtherSlot(EquipmentSlot slot, BBBCharacterController owner = null, UserModel user = null)
+        public static void ClearOtherSlot(EquipmentSlot slot, BBBCharacterController owner)
         {
-            EnsureLayout(owner, user);
-            DeletePath($"{OtherSlotDir}/{GetOtherSlotFileName(slot)}.equipid", owner, user);
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            EnsureLayout(owner);
+            DeletePath($"{OtherSlotDir}/{GetOtherSlotFileName(slot)}.equipid", owner);
         }
 
-        public static void SetHideSlot(EquipmentSlot slot, string itemId, BBBCharacterController owner = null, UserModel user = null)
+        public static void SetHideSlot(EquipmentSlot slot, string itemId, BBBCharacterController owner)
         {
-            EnsureLayout(owner, user);
-            WriteEquipIdFile($"{HidePackDir}/{GetOtherSlotFileName(slot)}.equipid", itemId, owner, user);
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            EnsureLayout(owner);
+            WriteEquipIdFile($"{HidePackDir}/{GetOtherSlotFileName(slot)}.equipid", itemId, owner);
         }
 
-        public static void ClearHideSlot(EquipmentSlot slot, BBBCharacterController owner = null, UserModel user = null)
+        public static void ClearHideSlot(EquipmentSlot slot, BBBCharacterController owner)
         {
-            EnsureLayout(owner, user);
-            DeletePath($"{HidePackDir}/{GetOtherSlotFileName(slot)}.equipid", owner, user);
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            EnsureLayout(owner);
+            DeletePath($"{HidePackDir}/{GetOtherSlotFileName(slot)}.equipid", owner);
         }
 
         public static string BuildEquipIdJson(string itemId)
@@ -104,57 +89,78 @@ namespace BBBNexus
             return JsonConvert.SerializeObject(new EquipIdData { Id = itemId }, Formatting.Indented);
         }
 
-        public static bool TryGetOtherSlotItemId(EquipmentSlot slot, out string itemId, BBBCharacterController owner = null, UserModel user = null)
+        public static bool TryGetOtherSlotItemId(EquipmentSlot slot, out string itemId, BBBCharacterController owner)
         {
-            return TryReadEquipIdFile($"{OtherSlotDir}/{GetOtherSlotFileName(slot)}.equipid", out itemId, owner, user);
+            itemId = null;
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            
+            EnsureLayout(owner);
+            return TryReadEquipIdFile($"{OtherSlotDir}/{GetOtherSlotFileName(slot)}.equipid", out itemId, owner);
         }
 
-        public static bool TryGetMainSlotItemId(int index, out string itemId, BBBCharacterController owner = null, UserModel user = null)
+        public static bool TryGetMainSlotItemId(int index, out string itemId, BBBCharacterController owner)
         {
-            return TryReadEquipIdFile($"{MainSlotDir}/{GetMainSlotFileName(index)}.equipid", out itemId, owner, user);
+            itemId = null;
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            
+            EnsureLayout(owner);
+            return TryReadEquipIdFile($"{MainSlotDir}/{GetMainSlotFileName(index)}.equipid", out itemId, owner);
         }
 
-        public static bool TryGetHideSlotItemId(EquipmentSlot slot, out string itemId, BBBCharacterController owner = null, UserModel user = null)
+        public static bool TryGetHideSlotItemId(EquipmentSlot slot, out string itemId, BBBCharacterController owner)
         {
-            return TryReadEquipIdFile($"{HidePackDir}/{GetOtherSlotFileName(slot)}.equipid", out itemId, owner, user);
+            itemId = null;
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            
+            EnsureLayout(owner);
+            return TryReadEquipIdFile($"{HidePackDir}/{GetOtherSlotFileName(slot)}.equipid", out itemId, owner);
         }
 
-        public static void SetVirtualSlot(string ownerItemId, EquipmentSlot slot, string itemId, BBBCharacterController owner = null, UserModel user = null)
+        public static void SetVirtualSlot(string ownerItemId, EquipmentSlot slot, string itemId, BBBCharacterController owner)
         {
-            EnsureLayout(owner, user);
-            WriteEquipIdFile(BuildVirtualSlotPath(ownerItemId, slot), itemId, owner, user);
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            EnsureLayout(owner);
+            WriteEquipIdFile(BuildVirtualSlotPath(ownerItemId, slot), itemId, owner);
         }
 
-        public static void ClearVirtualSlot(string ownerItemId, EquipmentSlot slot, BBBCharacterController owner = null, UserModel user = null)
+        public static void ClearVirtualSlot(string ownerItemId, EquipmentSlot slot, BBBCharacterController owner)
         {
-            EnsureLayout(owner, user);
-            DeletePath(BuildVirtualSlotPath(ownerItemId, slot), owner, user);
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            DeletePath(BuildVirtualSlotPath(ownerItemId, slot), owner);
         }
 
-        public static bool TryGetVirtualSlotItemId(string ownerItemId, EquipmentSlot slot, out string itemId, BBBCharacterController owner = null, UserModel user = null)
+        public static bool TryGetVirtualSlotItemId(string ownerItemId, EquipmentSlot slot, out string itemId, BBBCharacterController owner)
         {
-            return TryReadEquipIdFile(BuildVirtualSlotPath(ownerItemId, slot), out itemId, owner, user);
+            itemId = null;
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            
+            return TryReadEquipIdFile(BuildVirtualSlotPath(ownerItemId, slot), out itemId, owner);
         }
 
-        public static bool TryTakeVirtualSlotItemId(string ownerItemId, EquipmentSlot slot, out string itemId, BBBCharacterController owner = null, UserModel user = null)
+        public static bool TryTakeVirtualSlotItemId(string ownerItemId, EquipmentSlot slot, out string itemId, BBBCharacterController owner)
         {
-            if (!TryGetVirtualSlotItemId(ownerItemId, slot, out itemId, owner, user))
+            itemId = null;
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            
+            if (!TryGetVirtualSlotItemId(ownerItemId, slot, out itemId, owner))
             {
                 return false;
             }
 
-            ClearVirtualSlot(ownerItemId, slot, owner, user);
+            ClearVirtualSlot(ownerItemId, slot, owner);
             return true;
         }
 
-        public static bool TryGetOccupiedMainSlotIndex(out int index, BBBCharacterController owner = null, UserModel user = null)
+        public static bool TryGetOccupiedMainSlotIndex(out int index, BBBCharacterController owner)
         {
             index = -1;
-            EnsureLayout(owner, user);
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            
+            EnsureLayout(owner);
 
             for (int i = 1; i <= 5; i++)
             {
-                if (TryGetMainSlotItemId(i, out var itemId, owner, user) &&
+                if (TryGetMainSlotItemId(i, out var itemId, owner) &&
                     string.Equals(itemId, MainSlotOccupierId, StringComparison.Ordinal))
                 {
                     index = i;
@@ -165,96 +171,113 @@ namespace BBBNexus
             return false;
         }
 
-        public static bool SwapMainHandWithMainSlot(int index, BBBCharacterController owner = null, UserModel user = null)
+        public static bool SwapMainHandWithMainSlot(int index, BBBCharacterController owner)
         {
-            EnsureLayout(owner, user);
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            
+            EnsureLayout(owner);
 
-            if (!TryGetMainSlotItemId(index, out var targetItemId, owner, user) ||
+            if (!TryGetMainSlotItemId(index, out var targetItemId, owner) ||
                 string.IsNullOrWhiteSpace(targetItemId) ||
                 string.Equals(targetItemId, MainSlotOccupierId, StringComparison.Ordinal))
             {
                 return false;
             }
 
-            TryGetOtherSlotItemId(EquipmentSlot.MainHand, out var currentMainhandItemId, owner, user);
-            TryGetOccupiedMainSlotIndex(out var occupiedIndex, owner, user);
+            TryGetOtherSlotItemId(EquipmentSlot.MainHand, out var currentMainhandItemId, owner);
+            var hasOccupiedIndex = TryGetOccupiedMainSlotIndex(out var occupiedIndex, owner);
 
-            SwapEquipIdPaths(
-                $"{MainSlotDir}/{GetMainSlotFileName(index)}.equipid",
-                $"{OtherSlotDir}/{GetOtherSlotFileName(EquipmentSlot.MainHand)}.equipid",
-                MainSlotOccupierId,
-                owner,
-                user);
+            if (!string.IsNullOrWhiteSpace(currentMainhandItemId) && !hasOccupiedIndex)
+            {
+                Debug.LogWarning("[EquipmentPackVfs] MainHand has item but no mainslot occupier was found. Swap aborted.");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(currentMainhandItemId) && hasOccupiedIndex && occupiedIndex != index)
+            {
+                ClearMainSlotItem(occupiedIndex, owner);
+            }
+
+            SetMainSlotItem(index, MainSlotOccupierId, owner);
+            SetOtherSlot(EquipmentSlot.MainHand, targetItemId, owner);
 
             if (!string.IsNullOrWhiteSpace(currentMainhandItemId) && occupiedIndex > 0 && occupiedIndex != index)
             {
-                SetMainSlotItem(occupiedIndex, currentMainhandItemId, owner, user);
+                SetMainSlotItem(occupiedIndex, currentMainhandItemId, owner);
             }
 
             return true;
         }
 
-        public static bool ReturnMainHandToOccupiedMainSlot(BBBCharacterController owner = null, UserModel user = null)
+        public static bool ReturnMainHandToOccupiedMainSlot(BBBCharacterController owner)
         {
-            EnsureLayout(owner, user);
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            
+            EnsureLayout(owner);
 
-            if (!TryGetOtherSlotItemId(EquipmentSlot.MainHand, out var currentMainhandItemId, owner, user) ||
+            if (!TryGetOtherSlotItemId(EquipmentSlot.MainHand, out var currentMainhandItemId, owner) ||
                 string.IsNullOrWhiteSpace(currentMainhandItemId))
             {
                 return false;
             }
 
-            if (!TryGetOccupiedMainSlotIndex(out var occupiedIndex, owner, user))
+            if (!TryGetOccupiedMainSlotIndex(out var occupiedIndex, owner))
             {
                 return false;
             }
 
-            SetMainSlotItem(occupiedIndex, currentMainhandItemId, owner, user);
-            ClearOtherSlot(EquipmentSlot.MainHand, owner, user);
+            SetMainSlotItem(occupiedIndex, currentMainhandItemId, owner);
+            ClearOtherSlot(EquipmentSlot.MainHand, owner);
             return true;
         }
 
-        public static void SwapEquipIdPaths(string leftPath, string rightPath, string emptyFallbackForLeft = null, BBBCharacterController owner = null, UserModel user = null)
+        public static void SwapEquipIdPaths(string leftPath, string rightPath, string emptyFallbackForLeft, BBBCharacterController owner)
         {
-            EnsureLayout(owner, user);
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+            
+            EnsureLayout(owner);
 
-            TryReadEquipIdFile(leftPath, out var leftItemId, owner, user);
-            TryReadEquipIdFile(rightPath, out var rightItemId, owner, user);
+            TryReadEquipIdFile(leftPath, out var leftItemId, owner);
+            TryReadEquipIdFile(rightPath, out var rightItemId, owner);
 
-            WriteOrDeleteEquipIdFile(leftPath, string.IsNullOrWhiteSpace(rightItemId) ? emptyFallbackForLeft : rightItemId, owner, user);
-            WriteOrDeleteEquipIdFile(rightPath, leftItemId, owner, user);
+            WriteOrDeleteEquipIdFile(leftPath, string.IsNullOrWhiteSpace(rightItemId) ? emptyFallbackForLeft : rightItemId, owner);
+            WriteOrDeleteEquipIdFile(rightPath, leftItemId, owner);
         }
 
-        private static void WriteEquipIdFile(string path, string itemId, BBBCharacterController owner, UserModel user)
+        // =========================================================
+        // 内部辅助方法喵~
+        // =========================================================
+
+        private static void WriteEquipIdFile(string path, string itemId, BBBCharacterController owner)
         {
-            var analyser = GetEquipmentPackAnalyser(owner, user);
+            var analyser = PackVfs.GetAnalyser(owner, EquipmentPackId);
             if (!analyser.WriteFile(EquipmentPackId, path, BuildEquipIdJson(itemId), PackAccessSubjects.SystemMin))
             {
                 throw new InvalidOperationException($"Failed to write equipment VFS file: {path}");
             }
         }
 
-        private static void WriteOrDeleteEquipIdFile(string path, string itemId, BBBCharacterController owner, UserModel user)
+        private static void WriteOrDeleteEquipIdFile(string path, string itemId, BBBCharacterController owner)
         {
             if (string.IsNullOrWhiteSpace(itemId))
             {
-                DeletePath(path, owner, user);
+                DeletePath(path, owner);
                 return;
             }
 
-            WriteEquipIdFile(path, itemId, owner, user);
+            WriteEquipIdFile(path, itemId, owner);
         }
 
-        private static void DeletePath(string path, BBBCharacterController owner, UserModel user)
+        private static void DeletePath(string path, BBBCharacterController owner)
         {
-            var analyser = GetEquipmentPackAnalyser(owner, user);
+            var analyser = PackVfs.GetAnalyser(owner, EquipmentPackId);
             analyser.Delete(EquipmentPackId, path, PackAccessSubjects.SystemMin);
         }
 
-        private static bool TryReadEquipIdFile(string path, out string itemId, BBBCharacterController owner, UserModel user)
+        private static bool TryReadEquipIdFile(string path, out string itemId, BBBCharacterController owner)
         {
             itemId = null;
-            var analyser = GetEquipmentPackAnalyser(owner, user);
+            var analyser = PackVfs.GetAnalyser(owner, EquipmentPackId);
             var node = analyser.GetNode(EquipmentPackId, path, PackAccessSubjects.SystemMin) as VFSNodeData;
             if (node == null || string.IsNullOrWhiteSpace(node.DataJson))
             {
@@ -269,68 +292,6 @@ namespace BBBNexus
 
             itemId = data.Id;
             return true;
-        }
-
-        private static GraphAnalyser GetEquipmentPackAnalyser(BBBCharacterController owner, UserModel user)
-        {
-            if (ShouldUseLocalBackend(owner))
-            {
-                owner.EnsureLocalEquipmentPackReady();
-                GetEquipmentPack(owner, user);
-                owner.LocalGraphHub.Analyser.RebuildIndex();
-                return owner.LocalGraphHub.Analyser;
-            }
-
-            user ??= MainModel.Instance?.CurrentUser;
-            if (user == null)
-            {
-                throw new InvalidOperationException("Current user is null.");
-            }
-
-            SaveBootstrapRegistry.EnsureDefaultPacks(user);
-            GetEquipmentPack(owner, user);
-            var graphHub = GraphHub.Instance;
-            if (graphHub == null)
-            {
-                throw new InvalidOperationException("GraphHub.Instance is null.");
-            }
-
-            var context = graphHub.GetContext(GraphInstanceSlot.Player);
-            if (context == null || context.Analyser == null)
-            {
-                throw new InvalidOperationException("Player graph context or analyser is unavailable.");
-            }
-
-            if (!ReferenceEquals(context.PackDataDict, user.GetPlayerPackDict()))
-            {
-                context.SetPackDataDict(user.GetPlayerPackDict());
-            }
-
-            context.Analyser.RebuildIndex();
-            return context.Analyser;
-        }
-
-        private static bool ShouldUseLocalBackend(BBBCharacterController owner)
-        {
-            return owner != null && owner.UseLocalEquipmentBackend;
-        }
-
-        private static BasePackData FindPackByPackID(System.Collections.Generic.Dictionary<string, BasePackData> packs, string packId)
-        {
-            if (packs == null || string.IsNullOrWhiteSpace(packId))
-            {
-                return null;
-            }
-
-            foreach (var pair in packs)
-            {
-                if (pair.Value != null && string.Equals(pair.Value.PackID, packId, StringComparison.Ordinal))
-                {
-                    return pair.Value;
-                }
-            }
-
-            return null;
         }
 
         private static string GetOtherSlotFileName(EquipmentSlot slot)

@@ -17,9 +17,10 @@ namespace BBBNexus
                 if (currentState is PlayerTacticalIdleState || currentState is PlayerTacticalMoveState)
                     return false;
 
-                // 保护动作完整性 如果处于跳跃 二段跳 落地 翻越等状态 不在此处强行拦截
+                // 保护动作完整性 如果处于空中/翻越状态 不在此处强行拦截
                 if (currentState is PlayerJumpState ||
                     currentState is PlayerDoubleJumpState ||
+                    currentState is PlayerFallState ||
                     currentState is PlayerLandState ||
                     currentState is PlayerVaultState)
                     return false;

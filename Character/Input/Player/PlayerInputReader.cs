@@ -1,11 +1,11 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace BBBNexus
 {
     public class PlayerInputReader : InputSourceBase
     {
-        private const bool InputTrace = true;
+        public bool InputTrace = true;
 
         #region 配置参数
         [Header("视角设置")]

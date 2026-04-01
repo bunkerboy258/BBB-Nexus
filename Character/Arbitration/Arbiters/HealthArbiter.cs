@@ -40,8 +40,10 @@ namespace BBBNexus
         /// </summary>
         private float CalculateHitAngle(in DamageRequest req)
         {
-            if (req.Attacker == null) return float.NaN;
-            var toAttacker = req.Attacker.transform.position - _player.transform.position;
+            var attackerTransform = req.ResolveAttackerTransform();
+            if (attackerTransform == null) return float.NaN;
+
+            var toAttacker = attackerTransform.position - _player.transform.position;
             toAttacker.y = 0f;
             if (toAttacker.sqrMagnitude < 0.001f) return float.NaN;
             return Vector3.SignedAngle(_player.transform.forward, toAttacker, Vector3.up);

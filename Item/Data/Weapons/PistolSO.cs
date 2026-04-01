@@ -17,6 +17,9 @@ namespace BBBNexus
         public float ProjectileSpeed = 24f;
 
         [Header("--- Shooting ---")]
+        [Tooltip("全自动模式：持续按住左键持续射击。关闭则为半自动（每次按键仅射一发）。")]
+        public bool IsFullAuto = false;
+
         [Tooltip("射击间隔 (秒)。如果未设置将回退到父类的 FireRate")]
         public float ShootInterval = 0.18f;
 
@@ -46,6 +49,12 @@ namespace BBBNexus
 
         [Tooltip("后坐力的偏航角度 (左右晃动，单位：度)")]
         public float RecoilYawAngle = 0.8f;
+
+        [Header("--- 相机表现力覆写 ---")]
+        [Tooltip("瞄准时的相机预设。null = 沿用 EquippableItemSO.CameraPreset")]
+        public CameraExpressionSO AimingCameraPreset;
+        [Tooltip("冲刺时的相机预设。null = 沿用 EquippableItemSO.CameraPreset")]
+        public CameraExpressionSO SprintCameraPreset;
 
         [Header("--- Recoil Randomness (后坐力随机性) ---")]
         [Tooltip("俯仰随机范围（度）。实际俯仰 = RecoilPitchAngle + Random.Range(-RecoilPitchRandomRange, RecoilPitchRandomRange)")]

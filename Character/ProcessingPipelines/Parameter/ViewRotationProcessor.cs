@@ -21,9 +21,11 @@ namespace BBBNexus
 
             if (lookInput.sqrMagnitude > 0.000001f)
             {
-                // 把增量累加进 Yaw 和 Pitch 里
-                _data.ViewYaw += lookInput.x * _config.Core.LookSensitivity.x;
-                _data.ViewPitch += lookInput.y * _config.Core.LookSensitivity.y;
+                // 把增量累加进 Yaw 和 Pitch 里（CameraExpression.SensitivityScale 为 0 时视为不覆写，用 1）
+                float scale = (_data.CameraExpression.HasRequest && _data.CameraExpression.SensitivityScale > 0f)
+                    ? _data.CameraExpression.SensitivityScale : 1f;
+                _data.ViewYaw += lookInput.x * _config.Core.LookSensitivity.x * scale;
+                _data.ViewPitch += lookInput.y * _config.Core.LookSensitivity.y * scale;
 
                 // 钳制 Pitch 并让 Yaw 在 360 度内循环
                 _data.ViewPitch = Mathf.Clamp(_data.ViewPitch, _config.Core.PitchLimits.x, _config.Core.PitchLimits.y);

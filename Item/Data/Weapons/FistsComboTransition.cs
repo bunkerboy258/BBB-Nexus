@@ -25,27 +25,74 @@ namespace BBBNexus
 
     public partial class FistsComboTransition : ITransitionGUI
     {
+        private enum OverlayKind
+        {
+            Damage = 0,
+            Alignment = 1,
+        }
+
         private struct OverlayData
         {
+            public OverlayKind Kind;
             public bool Enabled;
             public float StartNormalized;
             public float EndNormalized;
         }
 
-        private static readonly Dictionary<string, OverlayData> OverlayByPropertyKey = new Dictionary<string, OverlayData>();
-        private static readonly Color EnabledColor = new Color(0.9f, 0.2f, 0.2f, 0.38f);
-        private static readonly Color DisabledColor = new Color(0.45f, 0.2f, 0.2f, 0.18f);
-        private static readonly Color PreviewBannerColor = new Color(0.82f, 0.16f, 0.16f, 0.82f);
+        private static readonly Dictionary<string, List<OverlayData>> OverlayByPropertyKey = new Dictionary<string, List<OverlayData>>();
+        private static readonly Color DamageEnabledColor = new Color(0.9f, 0.2f, 0.2f, 0.38f);
+        private static readonly Color DamageDisabledColor = new Color(0.45f, 0.2f, 0.2f, 0.18f);
+        private static readonly Color AlignmentEnabledColor = new Color(0.95f, 0.28f, 0.72f, 0.34f);
+        private static readonly Color AlignmentDisabledColor = new Color(0.42f, 0.18f, 0.34f, 0.16f);
+        private static readonly Color DamagePreviewBannerColor = new Color(0.82f, 0.16f, 0.16f, 0.82f);
+        private static readonly Color AlignmentPreviewBannerColor = new Color(0.95f, 0.22f, 0.66f, 0.84f);
         private static GUIStyle _PreviewBannerStyle;
 
         public static void SetOverlay(string propertyKey, bool enabled, float startNormalized, float endNormalized)
         {
-            OverlayByPropertyKey[propertyKey] = new OverlayData
+            SetOverlay(propertyKey, OverlayKind.Damage, enabled, startNormalized, endNormalized);
+        }
+
+        public static void SetAlignmentOverlay(string propertyKey, bool enabled, float startNormalized, float endNormalized)
+        {
+            SetOverlay(propertyKey, OverlayKind.Alignment, enabled, startNormalized, endNormalized);
+        }
+
+        private static void SetOverlay(string propertyKey, OverlayKind kind, bool enabled, float startNormalized, float endNormalized)
+        {
+            if (!OverlayByPropertyKey.TryGetValue(propertyKey, out var overlays))
             {
-                Enabled = enabled,
-                StartNormalized = startNormalized,
-                EndNormalized = endNormalized,
-            };
+                overlays = new List<OverlayData>(2);
+                OverlayByPropertyKey[propertyKey] = overlays;
+            }
+
+            bool replaced = false;
+            for (int i = 0; i < overlays.Count; i++)
+            {
+                if (overlays[i].Kind != kind)
+                    continue;
+
+                overlays[i] = new OverlayData
+                {
+                    Kind = kind,
+                    Enabled = enabled,
+                    StartNormalized = startNormalized,
+                    EndNormalized = endNormalized,
+                };
+                replaced = true;
+                break;
+            }
+
+            if (!replaced)
+            {
+                overlays.Add(new OverlayData
+                {
+                    Kind = kind,
+                    Enabled = enabled,
+                    StartNormalized = startNormalized,
+                    EndNormalized = endNormalized,
+                });
+            }
         }
 
         public static string GetPropertyKey(SerializedProperty property)
@@ -66,16 +113,32 @@ namespace BBBNexus
             if (property == null)
                 return;
 
-            if (!OverlayByPropertyKey.TryGetValue(GetPropertyKey(property), out OverlayData overlay) || !overlay.Enabled)
-                return;
-
-            if (!TryGetEffectiveWindow(property, overlay, out _, out _, out float effectiveStartNormalized, out float effectiveEndNormalized))
+            if (!OverlayByPropertyKey.TryGetValue(GetPropertyKey(property), out List<OverlayData> overlays) || overlays.Count == 0)
                 return;
 
             float previewNormalizedTime = TransitionPreviewWindow.PreviewNormalizedTime;
-            float min = Mathf.Min(effectiveStartNormalized, effectiveEndNormalized);
-            float max = Mathf.Max(effectiveStartNormalized, effectiveEndNormalized);
-            if (previewNormalizedTime < min || previewNormalizedTime > max)
+            bool hasBanner = false;
+            OverlayKind bannerKind = OverlayKind.Damage;
+            for (int i = 0; i < overlays.Count; i++)
+            {
+                OverlayData overlay = overlays[i];
+                if (!overlay.Enabled)
+                    continue;
+
+                if (!TryGetEffectiveWindow(property, overlay, out _, out _, out float effectiveStartNormalized, out float effectiveEndNormalized))
+                    continue;
+
+                float min = Mathf.Min(effectiveStartNormalized, effectiveEndNormalized);
+                float max = Mathf.Max(effectiveStartNormalized, effectiveEndNormalized);
+                if (previewNormalizedTime < min || previewNormalizedTime > max)
+                    continue;
+
+                hasBanner = true;
+                bannerKind = overlay.Kind;
+                break;
+            }
+
+            if (!hasBanner)
                 return;
 
             Handles.BeginGUI();
@@ -89,8 +152,8 @@ namespace BBBNexus
                 };
 
                 Rect area = new Rect(14f, 14f, 120f, 24f);
-                EditorGUI.DrawRect(area, PreviewBannerColor);
-                GUI.Label(area, "DAMAGE", _PreviewBannerStyle);
+                EditorGUI.DrawRect(area, GetPreviewBannerColor(bannerKind));
+                GUI.Label(area, GetPreviewBannerLabel(bannerKind), _PreviewBannerStyle);
             }
             finally
             {
@@ -107,30 +170,34 @@ namespace BBBNexus
             if (property == null)
                 return;
 
-            if (!OverlayByPropertyKey.TryGetValue(GetPropertyKey(property), out OverlayData overlay))
+            if (!OverlayByPropertyKey.TryGetValue(GetPropertyKey(property), out List<OverlayData> overlays) || overlays.Count == 0)
                 return;
 
             TimelineGUI timeline = TimelineGUI.Current;
             if (timeline == null)
                 return;
 
-            if (!TryGetEffectiveWindow(property, overlay, out _, out _, out float effectiveStartNormalized, out float effectiveEndNormalized))
-                return;
-
-            float duration = GetClip(property).length;
-            float effectiveStart = effectiveStartNormalized * duration;
-            float effectiveEnd = effectiveEndNormalized * duration;
-
-            float xMin = Mathf.Clamp(timeline.SecondsToPixels(effectiveStart), timeline.Area.xMin, timeline.Area.xMax);
-            float xMax = Mathf.Clamp(timeline.SecondsToPixels(effectiveEnd), timeline.Area.xMin, timeline.Area.xMax);
             float overlayHeight = Mathf.Max(4f, (timeline.Area.height - timeline.TickHeight) / 2f);
-            Rect area = new Rect(
-                Mathf.Min(xMin, xMax),
-                0f,
-                Mathf.Max(2f, Mathf.Abs(xMax - xMin)),
-                overlayHeight);
+            for (int i = 0; i < overlays.Count; i++)
+            {
+                OverlayData overlay = overlays[i];
+                if (!TryGetEffectiveWindow(property, overlay, out _, out _, out float effectiveStartNormalized, out float effectiveEndNormalized))
+                    continue;
 
-            EditorGUI.DrawRect(area, overlay.Enabled ? EnabledColor : DisabledColor);
+                float duration = GetClip(property).length;
+                float effectiveStart = effectiveStartNormalized * duration;
+                float effectiveEnd = effectiveEndNormalized * duration;
+
+                float xMin = Mathf.Clamp(timeline.SecondsToPixels(effectiveStart), timeline.Area.xMin, timeline.Area.xMax);
+                float xMax = Mathf.Clamp(timeline.SecondsToPixels(effectiveEnd), timeline.Area.xMin, timeline.Area.xMax);
+                Rect area = new Rect(
+                    Mathf.Min(xMin, xMax),
+                    0f,
+                    Mathf.Max(2f, Mathf.Abs(xMax - xMin)),
+                    overlayHeight);
+
+                EditorGUI.DrawRect(area, GetOverlayColor(overlay.Kind, overlay.Enabled));
+            }
         }
 
         public void OnTimelineForegroundGUI()
@@ -211,6 +278,33 @@ namespace BBBNexus
             effectiveStartNormalized = duration > 0f ? effectiveStart / duration : 0f;
             effectiveEndNormalized = duration > 0f ? effectiveEnd / duration : 0f;
             return true;
+        }
+
+        private static Color GetOverlayColor(OverlayKind kind, bool enabled)
+        {
+            return kind switch
+            {
+                OverlayKind.Alignment => enabled ? AlignmentEnabledColor : AlignmentDisabledColor,
+                _ => enabled ? DamageEnabledColor : DamageDisabledColor,
+            };
+        }
+
+        private static Color GetPreviewBannerColor(OverlayKind kind)
+        {
+            return kind switch
+            {
+                OverlayKind.Alignment => AlignmentPreviewBannerColor,
+                _ => DamagePreviewBannerColor,
+            };
+        }
+
+        private static string GetPreviewBannerLabel(OverlayKind kind)
+        {
+            return kind switch
+            {
+                OverlayKind.Alignment => "ALIGN",
+                _ => "DAMAGE",
+            };
         }
     }
 }

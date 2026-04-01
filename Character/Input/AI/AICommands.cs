@@ -27,10 +27,10 @@ namespace BBBNexus
                 position = new Vector3(x, y, z);
             }
 
-            var runner = GraphRunner.Instance;
+            var runner = GraphHub.Instance?.GetContext(GraphInstanceSlot.System)?.Runner;
             if (runner == null)
             {
-                return CommandOutput.Fail("GraphRunner 未初始化");
+                return CommandOutput.Fail("System GraphRunner 未初始化");
             }
 
             if (!MetaLib.HasMeta(packId))

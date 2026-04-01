@@ -36,13 +36,13 @@ namespace BBBNexus
             {
                 _data.CurrentStamina += (-drainRate) * Time.deltaTime;
 
-                if (_data.CurrentStamina > _config.Core.MaxStamina * _config.Core.StaminaRecoverThreshold)
+                if (_data.CurrentStamina > _data.MaxStamina * _config.Core.StaminaRecoverThreshold)
                 {
                     _data.IsStaminaDepleted = false;
                 }
             }
 
-            _data.CurrentStamina = Mathf.Clamp(_data.CurrentStamina, 0f, _config.Core.MaxStamina);
+            _data.CurrentStamina = Mathf.Clamp(_data.CurrentStamina, 0f, _data.MaxStamina);
         }
 
         private float GetStaminaDrainRateForState(BBBNexus.LocomotionState state)

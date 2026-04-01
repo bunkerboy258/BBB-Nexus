@@ -35,6 +35,44 @@ namespace BBBNexus
             Attacker        = attacker;
             WeaponTransform = weaponTransform;
         }
+
+        /// <summary>
+        /// 尝试解析这次伤害对应的攻击者控制器。
+        /// 优先使用显式注入的 Attacker，其次回退到 WeaponTransform 所在层级。
+        /// </summary>
+        public BBBCharacterController ResolveAttackerController()
+        {
+            if (Attacker != null)
+            {
+                var controller = Attacker.GetComponent<BBBCharacterController>();
+                if (controller != null)
+                    return controller;
+
+                controller = Attacker.GetComponentInParent<BBBCharacterController>();
+                if (controller != null)
+                    return controller;
+            }
+
+            if (WeaponTransform != null)
+                return WeaponTransform.GetComponentInParent<BBBCharacterController>();
+
+            return null;
+        }
+
+        /// <summary>
+        /// 命中方向/朝向判定优先使用攻击者控制器，其次回退到显式攻击者或武器挂点。
+        /// </summary>
+        public Transform ResolveAttackerTransform()
+        {
+            var controller = ResolveAttackerController();
+            if (controller != null)
+                return controller.transform;
+
+            if (Attacker != null)
+                return Attacker.transform;
+
+            return WeaponTransform;
+        }
     }
 
     public interface IDamageable

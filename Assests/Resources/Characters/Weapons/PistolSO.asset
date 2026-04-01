@@ -21,7 +21,7 @@ MonoBehaviour:
   Prefab: {fileID: 8268913222844310316, guid: 5bdc84a3ea5f8e04b9ea94835d561533, type: 3}
   EquipSlot: 1
   HoldPositionOffset: {x: 0, y: 0, z: 0}
-  HoldRotationOffset: {x: 0, y: 0, z: 0, w: 0}
+  HoldRotationOffset: {x: 0, y: 0, z: 0, w: 1}
   UpperBodyLayerWeight: 1
   EquipAnim:
     _FadeDuration: 0.25
@@ -68,11 +68,13 @@ MonoBehaviour:
     Speed: -1
     NormalizedTime: -1
     ForcePhaseSync: 0
+  CameraPreset: {fileID: 11400000, guid: 9b4bf23210883ac4c8e8e357bcad17b2, type: 2}
   VirtualOtherSlot:
     Enabled: 0
     TargetSlot: 0
     ItemId: 
   EnablesAimState: 1
+  UseAimCorrection: 1
   AimAnim:
     _FadeDuration: 0.25
     _Speed: 1
@@ -93,12 +95,18 @@ MonoBehaviour:
   EquipEndTime: 0.35
   ProjectilePrefab: {fileID: 0}
   ProjectileSpeed: 24
+  IsFullAuto: 0
   ShootInterval: 0.18
+  HitScanRange: 80
+  DamageAmount: 10
+  TracerDuration: 0.06
   ShootSound: {fileID: 0}
   ProjectileHitSound: {fileID: 0}
   MuzzleVFXPrefab: {fileID: 0}
   RecoilPitchAngle: 1.4
   RecoilYawAngle: 0.8
+  AimingCameraPreset: {fileID: 11400000, guid: cc228b3ceeaedf94196955ec5bef6254, type: 2}
+  SprintCameraPreset: {fileID: 11400000, guid: 7623d472f1292d94286cb6658a1c749c, type: 2}
   RecoilPitchRandomRange: 0.35
   RecoilYawRandomRange: 0.35
   references:

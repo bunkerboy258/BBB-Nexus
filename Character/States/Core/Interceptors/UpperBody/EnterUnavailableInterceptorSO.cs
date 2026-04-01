@@ -20,8 +20,8 @@ namespace BBBNexus
             // 2. 获取下半身的当前状态 判断是否需要禁用上半身
             var playerbasestate = player.StateMachine.CurrentState;
 
-            // 3. 进行判断 如果是 Vault Fall Roll 状态 禁用上半身
-            if (playerbasestate is PlayerVaultState || playerbasestate is PlayerFallState || playerbasestate is PlayerRollState)
+            // 3. 进行判断 如果是 Vault Roll 状态 禁用上半身（Fall 不锁，允许持枪下落）
+            if (playerbasestate is PlayerVaultState || playerbasestate is PlayerRollState)
             {
                 // 获取不可用 Unavailable 状态
                 nextState = player.UpperBodyCtrl.StateRegistry.GetState<UpperBodyUnavailableState>();

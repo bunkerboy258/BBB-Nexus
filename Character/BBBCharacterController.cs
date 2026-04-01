@@ -1,4 +1,4 @@
-﻿using Animancer;
+using Animancer;
 using System.Collections.Generic;
 using UnityEngine;
 using NekoGraph;
@@ -19,8 +19,10 @@ namespace BBBNexus
     [RequireComponent(typeof(Animator))]
     [RequireComponent(typeof(AudioSource))]
     [DefaultExecutionOrder(-300)]
-    public class BBBCharacterController : MonoBehaviour, IDamageable, IPoolable
+    public class BBBCharacterController : MonoBehaviour, IDamageable, IPoolable, IHealthBarTarget
     {
+        public static BBBCharacterController PlayerInstance { get; private set; }
+
         [Header("--- 输入与表现源  ---")]
         [Tooltip("输入源 - 可拖拽赋值任何继承 IInputSourceBase 的组件")]
         public InputSourceBase InputSourceRef;
@@ -54,7 +56,7 @@ namespace BBBNexus
         public EquippableItemSO DebugMainhandEquipment4;
         public EquippableItemSO DebugMainhandEquipment5;
         public EquippableItemSO DebugOffhandEquipment;
-        public bool UseLocalEquipmentBackend = false;
+        public bool DebugParryTrace = true;
         [HideInInspector]
         [System.Obsolete("Use DebugMainhandEquipment1~5/DebugOffhandEquipment instead.")]
         public EquippableItemSO DefaultEquipment1;
@@ -66,7 +68,7 @@ namespace BBBNexus
         public EquippableItemSO DefaultEquipment3;
         public bool statedebug = false;
         public bool DebugShowCurrentClipOverlay = false;
-        public Vector3 DebugClipOverlayWorldOffset = new Vector3(0f, 0.35f, 0f);
+        public Vector3 DebugClipOverlayWorldOffset = new Vector3(0f, 0.12f, 0f);
 
 
         // 运行时核心引用
@@ -87,6 +89,7 @@ namespace BBBNexus
         public ActionController ActionController { get; private set; }
         public AudioController AudioController { get; private set; }
         public ExtraActionController ExtraActionController { get; private set; }
+        public ParryHandler ParryHandler { get; private set; }
 
         // 驱动器与外观层系统
         public AnimancerComponent Animancer { get; private set; }
@@ -108,6 +111,15 @@ namespace BBBNexus
         /// <summary>异常状态仲裁器快捷访问</summary>
         public StatusEffectArbiter StatusEffects => ArbiterPipeline.StatusEffect;
         public CharacterArbiter CharacterArbiter => ArbiterPipeline.Character;
+        public float CurrentMaxHealth => RuntimeData != null && RuntimeData.MaxHealth > 0f
+            ? RuntimeData.MaxHealth
+            : (Config != null && Config.Core != null ? Config.Core.MaxHealth : 0f);
+        public float CurrentMaxSanity => RuntimeData != null && RuntimeData.MaxSanity > 0f ? RuntimeData.MaxSanity : 100f;
+        public float CurrentSanity => RuntimeData != null ? Mathf.Clamp(RuntimeData.CurrentSanity, 0f, CurrentMaxSanity) : 0f;
+        public float CurrentSanityNormalized => CurrentMaxSanity > 0f ? CurrentSanity / CurrentMaxSanity : 0f;
+        public Transform HealthBarTransform => transform;
+        public float CurrentHealthForBar => RuntimeData != null ? RuntimeData.CurrentHealth : 0f;
+        public float MaxHealthForBar => CurrentMaxHealth;
 
         //调试用缓存
         private PlayerBaseState _lastState;
@@ -116,10 +128,15 @@ namespace BBBNexus
         private bool _booted;
         private bool _wasLocomotionBlocked;
         private GUIStyle _debugClipOverlayStyle;
+        private GUIStyle _debugClipOverlayPanelStyle;
+        private Renderer[] _debugOverlayRenderers;
+        private AvatarMask _runtimeUpperBodyMask;
+        private AvatarMask _runtimeFacialMask;
 
         // Awake 负责内存分配、找组件、依赖注入 
         private void Awake()
         {
+            RegisterAsPlayerSingletonIfNeeded();
             Animator = GetComponent<Animator>();
             Animancer = GetComponent<AnimancerComponent>();
             CharController = GetComponent<CharacterController>();
@@ -129,6 +146,7 @@ namespace BBBNexus
             LeftFootBone=Animator.GetBoneTransform(HumanBodyBones.LeftFoot);
             RightFootBone=Animator.GetBoneTransform(HumanBodyBones.RightFoot);
             HeadBone=Animator.GetBoneTransform(HumanBodyBones.Head);
+            _debugOverlayRenderers = GetComponentsInChildren<Renderer>(true);
 
             // 统一的面板依赖注入检查 失败直接抛出异常
             try
@@ -165,7 +183,7 @@ namespace BBBNexus
             }
             catch (System.Exception ex)
             {
-                Debug.LogError($"[PlayerController] 初始化警告 {ex.Message}");
+                Debug.LogWarning($"[PlayerController] 初始化警告 {ex.Message}");
             }
 
             Animancer.Animator.applyRootMotion = false;
@@ -207,6 +225,11 @@ namespace BBBNexus
             var eyesClosedManager = FindObjectOfType<EyesClosedSystemManager>();
             ExtraActionController = new ExtraActionController(RuntimeData, eyesClosedManager);
 
+            // 替身格挡处理器（可选，优先同物体，其次回退到子物体）
+            ParryHandler = GetComponent<ParryHandler>();
+            if (ParryHandler == null)
+                ParryHandler = GetComponentInChildren<ParryHandler>(true);
+
             // 装载状态字典 分配独立内存实例
             StateRegistry = new PlayerStateRegistry();
             if (Config != null && Config.LocomotionBrain != null)
@@ -223,6 +246,10 @@ namespace BBBNexus
         {
             // 非池化使用触发一次Boot
             BootIfNeeded();
+            if (CompareTag("Player") && PlayerRespawnService.Instance != null)
+            {
+                PlayerRespawnService.Instance.TryPlaceAtInitialSpawn(this);
+            }
         }
 
         private void BootIfNeeded()
@@ -309,9 +336,26 @@ namespace BBBNexus
 
         private void OnEnable()
         {
+            RegisterAsPlayerSingletonIfNeeded();
             // 对象池激活时 Start 不一定每次都会走（取决于场景/脚本执行顺序） 这里作为兜底
             if (Application.isPlaying)
                 BootIfNeeded();
+        }
+
+        private void OnDisable()
+        {
+            if (ReferenceEquals(PlayerInstance, this))
+            {
+                PlayerInstance = null;
+            }
+        }
+
+        private void RegisterAsPlayerSingletonIfNeeded()
+        {
+            if (CompareTag("Player"))
+            {
+                PlayerInstance = this;
+            }
         }
 
         // 逻辑与意图更新 (在动画引擎运算之前)
@@ -406,26 +450,35 @@ namespace BBBNexus
             if (!Application.isPlaying || !DebugShowCurrentClipOverlay || Animancer == null)
                 return;
 
-            var cameraTransform = PlayerCamera != null ? PlayerCamera : Camera.main != null ? Camera.main.transform : null;
-            var camera = cameraTransform != null ? cameraTransform.GetComponent<Camera>() : Camera.main;
+            var camera = Camera.main;
             if (camera == null)
                 return;
 
             Vector3 anchor = GetDebugClipOverlayAnchor();
             Vector3 screenPos = camera.WorldToScreenPoint(anchor);
             if (screenPos.z <= 0f)
-                return;
+            {
+                if (!TryGetVisibleBoundsAnchor(camera, out anchor, out screenPos))
+                    return;
+            }
 
             string text = BuildDebugClipOverlayText();
             if (string.IsNullOrWhiteSpace(text))
                 return;
 
             var style = GetDebugClipOverlayStyle();
+            var panelStyle = GetDebugClipOverlayPanelStyle();
             var content = new GUIContent(text);
             Vector2 size = style.CalcSize(content);
-            float x = screenPos.x - size.x * 0.5f;
-            float y = Screen.height - screenPos.y - size.y;
+            size.y = Mathf.Max(size.y, style.lineHeight * 6.2f);
+            float clampedX = Mathf.Clamp(screenPos.x, size.x * 0.5f + 8f, Screen.width - size.x * 0.5f - 8f);
+            float clampedY = Mathf.Clamp(Screen.height - screenPos.y - size.y, 8f, Screen.height - size.y - 8f);
+            float x = clampedX - size.x * 0.5f;
+            float y = clampedY;
+            GUI.Box(new Rect(x - 6f, y - 4f, size.x + 12f, size.y + 8f), GUIContent.none, panelStyle);
             GUI.Label(new Rect(x, y, size.x, size.y), content, style);
+            GUI.Label(new Rect(clampedX - 10f, y + size.y - 2f, 20f, 16f), "\u25BC", style);
+
         }
 
         public void NotifyEquipmentChanged()
@@ -454,10 +507,51 @@ namespace BBBNexus
 
         private Vector3 GetDebugClipOverlayAnchor()
         {
-            if (HeadBone != null)
-                return HeadBone.position + DebugClipOverlayWorldOffset;
+            float controllerHeight = CharController != null ? CharController.height : 2f;
+            Vector3 bodyAnchor = transform.position + Vector3.up * (controllerHeight * 0.78f);
 
-            return transform.position + Vector3.up * (CharController != null ? CharController.height + 0.2f : 2f) + DebugClipOverlayWorldOffset;
+            if (HeadBone != null)
+            {
+                Vector3 headAnchor = Vector3.Lerp(bodyAnchor, HeadBone.position, 0.45f);
+                return headAnchor + DebugClipOverlayWorldOffset;
+            }
+
+            return bodyAnchor + DebugClipOverlayWorldOffset;
+        }
+
+        private bool TryGetVisibleBoundsAnchor(Camera camera, out Vector3 anchor, out Vector3 screenPos)
+        {
+            anchor = transform.position + Vector3.up;
+            screenPos = default;
+
+            if (_debugOverlayRenderers == null || _debugOverlayRenderers.Length == 0)
+                return false;
+
+            bool hasBounds = false;
+            Bounds combinedBounds = default;
+            for (int i = 0; i < _debugOverlayRenderers.Length; i++)
+            {
+                var renderer = _debugOverlayRenderers[i];
+                if (renderer == null || !renderer.enabled)
+                    continue;
+
+                if (!hasBounds)
+                {
+                    combinedBounds = renderer.bounds;
+                    hasBounds = true;
+                }
+                else
+                {
+                    combinedBounds.Encapsulate(renderer.bounds);
+                }
+            }
+
+            if (!hasBounds)
+                return false;
+
+            anchor = combinedBounds.center + Vector3.up * (combinedBounds.extents.y + 0.1f) + DebugClipOverlayWorldOffset;
+            screenPos = camera.WorldToScreenPoint(anchor);
+            return screenPos.z > 0f;
         }
 
         private string BuildDebugClipOverlayText()
@@ -467,8 +561,12 @@ namespace BBBNexus
             string layer0Clip = GetLayerClipLabel(0);
             string layer1Clip = GetLayerClipLabel(1);
             string controlDomain = RuntimeData != null ? RuntimeData.CharacterControl.ActiveDomain.ToString() : "Unknown";
+            string locomotionState = RuntimeData != null ? RuntimeData.CurrentLocomotionState.ToString() : "Unknown";
+            string tactical = RuntimeData != null ? RuntimeData.IsTacticalStance.ToString() : "Unknown";
+            string tacticalReady = RuntimeData != null ? RuntimeData.CanEnterTacticalMotionBase.ToString() : "Unknown";
+            string blend = RuntimeData != null ? $"{RuntimeData.CurrentAnimBlendX:0.00},{RuntimeData.CurrentAnimBlendY:0.00}" : "Unknown";
 
-            return $"Full:{fullBodyState}\nUpper:{upperBodyState}\nOwner:{controlDomain}\nL0:{layer0Clip}\nL1:{layer1Clip}";
+            return $"Full:{fullBodyState}\nUpper:{upperBodyState}\nOwner:{controlDomain}\nLoco:{locomotionState} Tactical:{tactical} Ready:{tacticalReady}\nBlend:{blend}\nL0:{layer0Clip}\nL1:{layer1Clip}";
         }
 
         private string GetLayerClipLabel(int layerIndex)
@@ -503,6 +601,26 @@ namespace BBBNexus
             return _debugClipOverlayStyle;
         }
 
+        private GUIStyle GetDebugClipOverlayPanelStyle()
+        {
+            if (_debugClipOverlayPanelStyle != null)
+                return _debugClipOverlayPanelStyle;
+
+            Texture2D background = new Texture2D(1, 1, TextureFormat.RGBA32, false);
+            background.SetPixel(0, 0, new Color(0f, 0f, 0f, 0.72f));
+            background.Apply();
+
+            _debugClipOverlayPanelStyle = new GUIStyle(GUI.skin.box)
+            {
+                normal =
+                {
+                    background = background
+                }
+            };
+
+            return _debugClipOverlayPanelStyle;
+        }
+
         private void InitializeCamera()
         {
             if (PlayerCamera == null && Camera.main != null) PlayerCamera = Camera.main.transform;
@@ -513,16 +631,70 @@ namespace BBBNexus
         {
             if (AnimFacade != null && Config != null)
             {
-                AnimFacade.SetLayerMask(1, Config.Core.UpperBodyMask);
-                AnimFacade.SetLayerMask(2, Config.Core.FacialMask);
+                var upperBodyMask = Config.Core != null ? Config.Core.UpperBodyMask : null;
+                var facialMask = Config.Core != null ? Config.Core.FacialMask : null;
+
+                if (upperBodyMask == null)
+                {
+                    _runtimeUpperBodyMask ??= CreateRuntimeUpperBodyMask();
+                    upperBodyMask = _runtimeUpperBodyMask;
+                }
+
+                if (facialMask == null)
+                {
+                    _runtimeFacialMask ??= CreateRuntimeFacialMask();
+                    facialMask = _runtimeFacialMask;
+                }
+
+                AnimFacade.SetLayerMask(1, upperBodyMask);
+                AnimFacade.SetLayerMask(2, facialMask);
             }
+        }
+
+        private static AvatarMask CreateRuntimeUpperBodyMask()
+        {
+            var mask = new AvatarMask();
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.Root, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.Body, true);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.Head, true);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftLeg, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightLeg, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftArm, true);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightArm, true);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftFingers, true);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightFingers, true);
+            mask.name = "RuntimeUpperBodyMask";
+            return mask;
+        }
+
+        private static AvatarMask CreateRuntimeFacialMask()
+        {
+            var mask = new AvatarMask();
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.Root, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.Body, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.Head, true);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftLeg, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightLeg, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftArm, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightArm, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.LeftFingers, false);
+            mask.SetHumanoidBodyPartActive(AvatarMaskBodyPart.RightFingers, false);
+            mask.name = "RuntimeFacialMask";
+            return mask;
         }
 
         private void InitializeEquipments()
         {
+            InitializeMaxCoreState();
             InventoryController.Initialize();
             InitializeEquipmentPackDefaults();
             RestoreEquippedItemsFromPack();
+        }
+
+        private void InitializeMaxCoreState()
+        {
+            CharMaxStatePackVfs.EnsureDefaultMaxCoreState(this);
+            CharMaxStatePackVfs.ApplyToOwner(this, refillCurrent: true);
         }
 
         private void InitializeEquipmentPackDefaults()
@@ -613,39 +785,153 @@ namespace BBBNexus
             if (UpperBodyCtrl.StateRegistry.InitialState != null) UpperBodyCtrl.StateMachine.Initialize(UpperBodyCtrl.StateRegistry.InitialState);
         }
 
-        public void EnsureLocalEquipmentPackReady()
+        /// <summary>
+        /// 确保本地 Pack 存在喵~
+        /// 非玩家单位（小怪）使用此方法初始化本地 Pack
+        /// </summary>
+        public void EnsureLocalPackStorageReady()
         {
-            if (!UseLocalEquipmentBackend)
+            LocalGraphHub ??= new LocalGraphHub(GraphInstanceSlot.System);
+            LocalPackDataDict ??= new Dictionary<string, BasePackData>();
+            LocalGraphHub.SetPackDataDict(LocalPackDataDict);
+        }
+
+        public void EnsureLocalPackReady(string packId)
+        {
+            PackVfs.EnsurePackExists(this, packId);
+        }
+
+        public MaxCoreStateData CreateDefaultMaxCoreStateData()
+        {
+            float defaultHealth = Config != null && Config.Core != null ? Config.Core.MaxHealth : 100f;
+            float defaultSanity = RuntimeData != null && RuntimeData.MaxSanity > 0f ? RuntimeData.MaxSanity : 100f;
+
+            return new MaxCoreStateData
+            {
+                MaxHealth = defaultHealth,
+                MaxSanity = defaultSanity
+            };
+        }
+
+        public void ApplyMaxCoreState(MaxCoreStateData data, bool refillCurrent = true)
+        {
+            if (RuntimeData == null || data == null)
             {
                 return;
             }
 
-            LocalGraphHub ??= new LocalGraphHub(GraphInstanceSlot.System);
-            LocalPackDataDict ??= new Dictionary<string, BasePackData>();
-            LocalGraphHub.SetPackDataDict(LocalPackDataDict);
+            RuntimeData.MaxHealth = Mathf.Max(1f, data.MaxHealth);
+            RuntimeData.MaxSanity = Mathf.Max(1f, data.MaxSanity);
+            RuntimeData.CurrentHealth = refillCurrent
+                ? RuntimeData.MaxHealth
+                : Mathf.Min(RuntimeData.CurrentHealth, RuntimeData.MaxHealth);
+            RuntimeData.CurrentSanity = refillCurrent
+                ? RuntimeData.MaxSanity
+                : Mathf.Clamp(RuntimeData.CurrentSanity, 0f, RuntimeData.MaxSanity);
 
-            foreach (var pair in LocalPackDataDict)
+            SyncSanitySystems(refillCurrent);
+        }
+
+        public void SetCurrentSanity(float sanity)
+        {
+            if (RuntimeData == null)
             {
-                if (pair.Value != null && pair.Value.PackID == EquipmentPackVfs.EquipmentPackId)
-                {
-                    return;
-                }
+                return;
             }
 
-            var pack = MetaLib.GetPack<BasePackData>(EquipmentPackVfs.EquipmentPackId);
-            if (pack == null)
+            RuntimeData.CurrentSanity = Mathf.Clamp(sanity, 0f, CurrentMaxSanity);
+            SyncSanitySystems(false);
+        }
+
+        public void SetSanityNormalized(float normalizedValue)
+        {
+            SetCurrentSanity(Mathf.Clamp01(normalizedValue) * CurrentMaxSanity);
+        }
+
+        public void AddSanityDelta(float delta)
+        {
+            SetCurrentSanity(CurrentSanity + delta);
+        }
+
+        public void SetMaxSanityValue(float maxSanity, bool refillCurrent = true)
+        {
+            if (RuntimeData == null)
             {
-                throw new System.InvalidOperationException($"Failed to create local pack '{EquipmentPackVfs.EquipmentPackId}'.");
+                return;
             }
 
-            LocalGraphHub.Analyser.LoadVFSFromPack(pack);
-            LocalGraphHub.Analyser.RebuildIndex();
-            LocalGraphHub.Runner.OnPackDataDictLoaded(LocalPackDataDict);
+            RuntimeData.MaxSanity = Mathf.Max(1f, maxSanity);
+            RuntimeData.CurrentSanity = refillCurrent
+                ? RuntimeData.MaxSanity
+                : Mathf.Clamp(RuntimeData.CurrentSanity, 0f, RuntimeData.MaxSanity);
+            SyncSanitySystems(refillCurrent);
+        }
+
+        private void SyncSanitySystems(bool refillCurrent)
+        {
+            var sunlightSanity = GetComponent<SunlightSanitySystem>() ?? GetComponentInChildren<SunlightSanitySystem>(true);
+            if (sunlightSanity != null)
+            {
+                sunlightSanity.NotifySanityStateChanged();
+            }
+
+            if (EyesClosedSystemManager.Instance != null)
+            {
+                EyesClosedSystemManager.Instance.NotifySanityStateChanged();
+            }
         }
 
         #region IDamageable 接口实现
         public void RequestDamage(in DamageRequest request)
         {
+            // 闭眼格挡：拦截伤害，生成替身并对攻击者施加僵直
+            var eyesMgr = EyesClosedSystemManager.Instance;
+            var attackerController = request.ResolveAttackerController();
+            bool hasParryHandler = ParryHandler != null;
+            bool hasEyesManager = eyesMgr != null;
+            bool eyesClosed        = hasEyesManager && eyesMgr.IsEyesClosed;
+            bool isInPerfectWindow = hasEyesManager && eyesMgr.IsInPerfectParryWindow;
+
+            if (DebugParryTrace)
+            {
+                Debug.Log(
+                    $"[ParryTrace] incoming amount={request.Amount:F1} eyesClosed={eyesClosed} perfectWindow={isInPerfectWindow} " +
+                    $"hasEyesMgr={hasEyesManager} hasHandler={hasParryHandler} " +
+                    $"attacker={request.Attacker?.name ?? "null"} attackerCtrl={attackerController?.name ?? "null"} " +
+                    $"weapon={request.WeaponTransform?.name ?? "null"}",
+                    this);
+            }
+
+            if (hasParryHandler && isInPerfectWindow)
+            {
+                if (DebugParryTrace)
+                    Debug.Log("[ParryTrace] intercept damage and trigger PERFECT parry.", this);
+
+                eyesMgr.RewardPerfectParrySanity();
+                ParryHandler.TriggerPerfectParry(in request);
+                return;
+            }
+
+            if (hasParryHandler && eyesClosed)
+            {
+                if (DebugParryTrace)
+                    Debug.Log("[ParryTrace] intercept damage and trigger parry.", this);
+
+                eyesMgr.ConsumeParrySanity();
+                ParryHandler.TriggerParry(in request);
+                return;
+            }
+
+            if (DebugParryTrace)
+            {
+                if (!hasEyesManager)
+                    Debug.LogWarning("[ParryTrace] skipped: EyesClosedSystemManager.Instance is null.", this);
+                else if (!hasParryHandler)
+                    Debug.LogWarning("[ParryTrace] skipped: ParryHandler is missing on target.", this);
+                else
+                    Debug.Log("[ParryTrace] pass-through: eyes are not closed, damage goes to HealthArbiter.", this);
+            }
+
             var health = ArbiterPipeline?.Health;
             if (health == null) return;
 

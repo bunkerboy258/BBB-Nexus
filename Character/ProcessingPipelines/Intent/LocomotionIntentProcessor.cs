@@ -83,9 +83,16 @@ namespace BBBNexus
             bool isMoving = _data.MoveInput.sqrMagnitude > 0.01f;
 
             // 体力耗尽后的恢复阈值判定
-            if (_data.IsStaminaDepleted && _data.CurrentStamina > _config.Core.MaxStamina * _config.Core.StaminaRecoverThreshold)
+            if (_data.IsStaminaDepleted && _data.CurrentStamina > _data.MaxStamina * _config.Core.StaminaRecoverThreshold)
             {
                 _data.IsStaminaDepleted = false;
+            }
+
+            // 空中时冻结档位，CurrentLocomotionState 语义为"地面运动档位"，不应在空中被覆写
+            if (!_data.IsGrounded)
+            {
+                _data.WantToRun = _data.CurrentLocomotionState == LocomotionState.Sprint;
+                return;
             }
 
             // 基于输入与体力 推导当前运动档位

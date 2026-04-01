@@ -10,11 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fdc51c3aabc86bd4bbb7ec4ce97c3801, type: 3}
-  m_Name: Normal_CamPreset
+  m_Name: PistolDefault_CamExpress
   m_EditorClassIdentifier: 
-  TargetFov: 40
-  FollowOffset: {x: 0, y: 0, z: 0}
-  TrackedObjectOffset: {x: 0, y: 0, z: 0}
-  SensitivityScale: 0
-  FovSmoothTime: 0
-  OffsetSmoothTime: 0
+  TargetFov: 55
+  Damping: {x: 0.1, y: 0.2, z: 0.25}
+  ShoulderOffset: {x: 2.5, y: 0.05, z: 0}
+  VerticalArmLength: 0
+  CameraSide: 0.62
+  CameraDistance: 2.8
+  CameraRadius: 0.15
+  SensitivityScale: 1
+  FovSmoothTime: 0.12
+  OffsetSmoothTime: 0.15

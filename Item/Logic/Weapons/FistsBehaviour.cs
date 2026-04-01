@@ -7,7 +7,7 @@ namespace BBBNexus
 {
     public class FistsBehaviour : MonoBehaviour, IHoldableItem, IPoolable
     {
-        private const bool AttackTrace = true;
+        private const bool AttackTrace = false;
 
         private sealed class FistsAttackWindowContext
         {
@@ -15,6 +15,8 @@ namespace BBBNexus
             public BBBCharacterController Owner;
             public FistsAttackHand AttackHand;
             public int ComboIndex;
+            public float AlignmentWindowStartTime;
+            public float AlignmentWindowEndTime;
             public float WindowStartTime;
             public float WindowEndTime;
         }
@@ -90,6 +92,12 @@ namespace BBBNexus
         {
             if (_player == null || _config == null) return;
             if (_config.ComboSequence == null || _config.ComboSequence.Length == 0) return;
+
+            if (CurrentEquipSlot == EquipmentSlot.MainHand && _config.CameraPreset != null)
+            {
+                var camPreset = (ResolveIsSprinting(_player) ? _config.SprintCameraPreset : null) ?? _config.CameraPreset;
+                _player.RuntimeData.CameraExpression = camPreset.ToExpression();
+            }
 
             UpdateHitWindowState();
 
@@ -270,8 +278,8 @@ namespace BBBNexus
                 return;
             }
 
-            var exit = HasExitStance() ? _config.ExitStanceAnim : null;
-            if (exit != null)
+            var exit = GetExitTransition();
+            if (exit != null && UsesLockExit())
             {
                 _isExitingStance = true;
                 var req = new ActionRequest(exit.Clip, _config.ComboPriority, applyGravity: true) { Transition = exit };
@@ -281,6 +289,7 @@ namespace BBBNexus
             {
                 _player.AnimFacade?.ClearOverrideOnEndCallback();
                 _isExitingStance = false;
+                PlayVisualExitIfAny();
                 if (_restartQueued)
                 {
                     _restartQueued = false;
@@ -330,11 +339,14 @@ namespace BBBNexus
                 Owner = _player,
                 AttackHand = attackHand,
                 ComboIndex = currentComboIndex,
+                AlignmentWindowStartTime = _currentAttackStartTime,
+                AlignmentWindowEndTime = _currentAttackStartTime,
                 WindowStartTime = _currentAttackStartTime,
                 WindowEndTime = _currentAttackStartTime + actualDuration,
             };
 
             ApplyDamageWindowTiming(_activeAttackContext, transition, fadeInEndTime, actualDuration, currentComboIndex);
+            ApplyAlignmentWindowTiming(_activeAttackContext, transition, fadeInEndTime, actualDuration, currentComboIndex);
 
             if (CurrentEquipSlot == EquipmentSlot.MainHand)
             {
@@ -392,7 +404,6 @@ namespace BBBNexus
             _hitbox?.Deactivate();
             _isHitWindowOpen = false;
             _activeAttackContext = null;
-            Debug.Log($"[Fists] Deactivate hit window slot={CurrentEquipSlot} object={name}");
         }
 
         private void UpdateHitWindowState()
@@ -418,15 +429,9 @@ namespace BBBNexus
 
             _isHitWindowOpen = shouldBeActive;
             if (shouldBeActive)
-            {
                 _hitbox?.Activate(_activeAttackContext.SharedHitSet, true);
-                Debug.Log($"[Fists] Activate hit window slot={CurrentEquipSlot} combo={_activeAttackContext.ComboIndex} hand={_activeAttackContext.AttackHand} object={name}");
-            }
             else
-            {
                 _hitbox?.Deactivate();
-                Debug.Log($"[Fists] Deactivate hit window slot={CurrentEquipSlot} combo={_activeAttackContext.ComboIndex} hand={_activeAttackContext.AttackHand} object={name}");
-            }
         }
 
         private void ApplyDamageWindowTiming(
@@ -455,6 +460,36 @@ namespace BBBNexus
             float localEnd = Mathf.LerpUnclamped(dominantStart, dominantEnd, endNormalized);
             context.WindowStartTime = _currentAttackStartTime + localStart;
             context.WindowEndTime = _currentAttackStartTime + localEnd;
+        }
+
+        private void ApplyAlignmentWindowTiming(
+            FistsAttackWindowContext context,
+            ClipTransition transition,
+            float fadeInEndTime,
+            float actualDuration,
+            int comboIndex)
+        {
+            FistsAlignmentWindowSidecar sidecar = _config.GetAlignmentWindow(comboIndex);
+            if (!sidecar.Enabled)
+            {
+                context.AlignmentWindowStartTime = _currentAttackStartTime;
+                context.AlignmentWindowEndTime = _currentAttackStartTime;
+                return;
+            }
+
+            float dominantStart = Mathf.Max(0f, fadeInEndTime);
+            float dominantEnd = Mathf.Max(dominantStart, actualDuration);
+            float startNormalized = Mathf.Clamp01(sidecar.StartNormalized);
+            float endNormalized = Mathf.Clamp01(sidecar.EndNormalized);
+            if (endNormalized < startNormalized)
+            {
+                (startNormalized, endNormalized) = (endNormalized, startNormalized);
+            }
+
+            float localStart = Mathf.LerpUnclamped(dominantStart, dominantEnd, startNormalized);
+            float localEnd = Mathf.LerpUnclamped(dominantStart, dominantEnd, endNormalized);
+            context.AlignmentWindowStartTime = _currentAttackStartTime + localStart;
+            context.AlignmentWindowEndTime = _currentAttackStartTime + localEnd;
         }
 
         private FistsAttackHand GetCurrentAttackHand()
@@ -561,7 +596,38 @@ namespace BBBNexus
 
         private bool HasExitStance()
         {
-            return _config != null && _config.ExitStanceAnim != null && _config.ExitStanceAnim.Clip != null;
+            return GetExitTransition() != null;
+        }
+
+        private ClipTransition GetExitTransition()
+        {
+            if (_config == null)
+            {
+                return null;
+            }
+
+            if (_config.ExitStanceAnim != null && _config.ExitStanceAnim.Clip != null)
+            {
+                return _config.ExitStanceAnim;
+            }
+
+            return null;
+        }
+
+        private bool UsesLockExit()
+        {
+            return _config != null && _config.ExitUsesLock;
+        }
+
+        private void PlayVisualExitIfAny()
+        {
+            var visualExit = GetExitTransition();
+            if (visualExit == null)
+            {
+                return;
+            }
+
+            _player.AnimFacade?.PlayFullBodyActionTransition(visualExit);
         }
 
         private bool TryExecuteQueuedAttack()
@@ -612,5 +678,8 @@ namespace BBBNexus
         }
 
         public void OnDespawned() { }
+
+        private static bool ResolveIsSprinting(BBBCharacterController player)
+            => player.RuntimeData.CurrentLocomotionState == LocomotionState.Sprint;
     }
 }

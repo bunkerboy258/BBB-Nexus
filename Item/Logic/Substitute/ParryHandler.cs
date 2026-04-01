@@ -24,16 +24,36 @@ namespace BBBNexus
         [Tooltip("施加给攻击者的异常状态（被格挡/踉跄）")]
         public StatusEffectSO ParriedEffect;
 
+        [Tooltip("施加给攻击者的完美弹反状态（击倒/knockdown）")]
+        public StatusEffectSO PerfectParriedEffect;
+
         [Header("Debug")]
         public bool DebugLog = false;
 
         // ── 触发入口 ────────────────────────────────────────────────────
 
         /// <summary>
-        /// 由 BBBCharacterController.RequestDamage 在闭眼拦截时调用。
+        /// 由 BBBCharacterController.RequestDamage 在闭眼拦截时调用（普通弹反）。
         /// </summary>
-        public void TriggerParry(in DamageRequest req)
+        public void TriggerParry(in DamageRequest req) => ExecuteParry(in req, ParriedEffect, "parry");
+
+        /// <summary>
+        /// 由 BBBCharacterController.RequestDamage 在完美弹反窗口内调用（击倒）。
+        /// </summary>
+        public void TriggerPerfectParry(in DamageRequest req) => ExecuteParry(in req, PerfectParriedEffect, "perfect parry");
+
+        // ── 内部实现 ────────────────────────────────────────────────────
+
+        private void ExecuteParry(in DamageRequest req, StatusEffectSO effect, string label)
         {
+            var attackerController = req.ResolveAttackerController();
+
+            Debug.Log(
+                $"[ParryTrace] trigger {label} attacker={req.Attacker?.name ?? "null"} " +
+                $"attackerCtrl={attackerController?.name ?? "null"} weapon={req.WeaponTransform?.name ?? "null"} " +
+                $"hasSubstitute={SubstitutePrefab != null} hasEffect={effect != null}",
+                this);
+
             // ── Step 1: 烘焙当前姿势快照 ──
             Mesh bakedMesh = null;
             if (CharacterSMR != null)
@@ -54,12 +74,7 @@ namespace BBBNexus
 
                 if (follower != null)
                 {
-                    // 尝试获取攻击者的 BBBCharacterController（用于监听状态结束）
-                    BBBCharacterController attacker = null;
-                    if (req.Attacker != null)
-                        attacker = req.Attacker.GetComponent<BBBCharacterController>();
-
-                    follower.Init(bakedMesh, req.WeaponTransform, attacker);
+                    follower.Init(bakedMesh, req.WeaponTransform, attackerController);
                 }
                 else
                 {
@@ -73,24 +88,27 @@ namespace BBBNexus
             {
                 // 没有替身预制件时，释放已分配的 Mesh
                 if (bakedMesh != null) Destroy(bakedMesh);
-                Debug.LogWarning("[ParryHandler] SubstitutePrefab 未赋值，格挡无视觉表现。", this);
+                Debug.LogWarning($"[ParryHandler] SubstitutePrefab 未赋值，{label} 无视觉表现。", this);
             }
 
-            // ── Step 3: 对攻击者施加"被格挡"状态 ──
-            if (req.Attacker != null && ParriedEffect != null)
+            // ── Step 3: 对攻击者施加状态 ──
+            if (attackerController != null && effect != null)
             {
-                var attacker = req.Attacker.GetComponent<BBBCharacterController>();
-                if (attacker != null)
-                {
-                    attacker.StatusEffects.Apply(ParriedEffect);
+                attackerController.StatusEffects.Apply(effect);
+                Debug.Log($"[ParryTrace] applied status '{effect.DisplayName}' ({label}) to '{attackerController.name}'.", attackerController);
 
-                    if (DebugLog)
-                        Debug.Log($"[ParryHandler] 对 '{attacker.name}' 施加了：{ParriedEffect.DisplayName}。", attacker);
-                }
+                if (DebugLog)
+                    Debug.Log($"[ParryHandler] 对 '{attackerController.name}' 施加了：{effect.DisplayName}（{label}）。", attackerController);
+            }
+            else if (effect != null)
+            {
+                Debug.LogWarning(
+                    $"[ParryTrace] unable to resolve attacker controller, {label} status was not applied. " +
+                    $"Attacker={req.Attacker?.name} Weapon={req.WeaponTransform?.name}",
+                    this);
             }
 
-            if (DebugLog)
-                Debug.Log($"[ParryHandler] 格挡触发 — 攻击者={req.Attacker?.name} 武器={req.WeaponTransform?.name}", this);
+            Debug.Log($"[ParryTrace] {label} handler completed for attacker={req.Attacker?.name ?? "null"}.", this);
         }
     }
 }

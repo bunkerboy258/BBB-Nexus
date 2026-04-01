@@ -166,7 +166,7 @@ MonoBehaviour:
       _NormalizedTimes: []
       _Callbacks: []
       _Names: []
-    _Clip: {fileID: -203655887218126122, guid: 3d209279faff0b04db35b88eab6c88df, type: 3}
+    _Clip: {fileID: 3060610079319413300, guid: 29c578ff01d81fe4eac03651fc7cb351, type: 3}
     _NormalizedStartTime: NaN
   SprintLoopFwd_R:
     _FadeDuration: 0.25
@@ -175,7 +175,7 @@ MonoBehaviour:
       _NormalizedTimes: []
       _Callbacks: []
       _Names: []
-    _Clip: {fileID: -203655887218126122, guid: 3d209279faff0b04db35b88eab6c88df, type: 3}
+    _Clip: {fileID: 3060610079319413300, guid: 29c578ff01d81fe4eac03651fc7cb351, type: 3}
     _NormalizedStartTime: NaN
   WalkStopLeft:
     _FadeDuration: 1.8253334

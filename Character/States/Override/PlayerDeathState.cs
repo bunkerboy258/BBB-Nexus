@@ -38,7 +38,7 @@ namespace BBBNexus
             // 死亡 3 秒后 触发对象池回收(暂时硬编码)
             if (Time.time >= _deathTimeAt)
             {
-                TryRespawnViaPool();
+                TryFinishDeathFlow();
             }
         }
 
@@ -56,8 +56,16 @@ namespace BBBNexus
         /// 尝试通过对象池回收该角色实例（用于压力测试） 
         /// 如果不使用池则退避，由外部手动销毁。
         /// </summary>
-        private void TryRespawnViaPool()
+        private void TryFinishDeathFlow()
         {
+            if (player != null && player.CompareTag("Player") && PlayerRespawnService.Instance != null)
+            {
+                if (PlayerRespawnService.Instance.TryHandleDeath(player))
+                {
+                    return;
+                }
+            }
+
             if (SimpleObjectPoolSystem.Shared != null)
             {
                 SimpleObjectPoolSystem.Shared.Despawn(player.gameObject);

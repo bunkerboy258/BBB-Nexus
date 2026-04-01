@@ -29,9 +29,13 @@ namespace BBBNexus
 
         public PlayerRuntimeData(BBBCharacterController player)
         {
-            CurrentHealth = player.Config.Core.MaxHealth;
+            MaxHealth = player.Config.Core.MaxHealth;
+            CurrentHealth = MaxHealth;
             CameraTransform = player.PlayerCamera;
-            CurrentStamina = player.Config.Core.MaxStamina;
+            MaxStamina = player.Config.Core.MaxStamina;
+            CurrentStamina = MaxStamina;
+            MaxSanity = 100f;
+            CurrentSanity = MaxSanity;
             Override.Clear();
             StatusEffect.Clear();
             ActionControl.Clear();
@@ -46,6 +50,8 @@ namespace BBBNexus
         #region 核心生存状态
         /// <summary>当前血量</summary>
         public float CurrentHealth;
+        /// <summary>当前理论最大血量</summary>
+        public float MaxHealth;
         /// <summary>是否已死亡</summary>
         public bool IsDead;
         #endregion
@@ -173,8 +179,10 @@ namespace BBBNexus
 
         /// <summary>本帧是否进入下落状态</summary>
         public bool WantsToFall;
-        /// <summary>主要攻击意图（左键），由武器 Behaviour 读取并驱动连招/射击/攻击</summary>
+        /// <summary>主要攻击意图（左键，Buffer 边沿）：半自动武器使用，开火后由武器主动核销</summary>
         public bool WantsToPrimaryAction;
+        /// <summary>主要攻击持续按压（左键 Held）：全自动武器使用，持续为 true 期间持续射击</summary>
+        public bool IsPrimaryAttackHeld;
         /// <summary>次要攻击意图（右键），用于瞄准/格挡等</summary>
         public bool WantsToSecondaryAction;
 
@@ -270,6 +278,12 @@ namespace BBBNexus
         #region 体力与追踪状态
         /// <summary>当前体力值</summary>
         public float CurrentStamina;
+        /// <summary>当前理论最大体力值</summary>
+        public float MaxStamina;
+        /// <summary>当前理论最大理智值</summary>
+        public float MaxSanity;
+        /// <summary>当前理智值</summary>
+        public float CurrentSanity;
         /// <summary>体力枯竭标志</summary>
         public bool IsStaminaDepleted;
         /// <summary>本次空中是否已使用二段跳</summary>
@@ -330,6 +344,7 @@ namespace BBBNexus
             WantsLowVault = false;
             WantsHighVault = false;
             WantsToPrimaryAction = false;
+            IsPrimaryAttackHeld = false;
             WantsToSecondaryAction = false;
             WantsToInteract = false;
 

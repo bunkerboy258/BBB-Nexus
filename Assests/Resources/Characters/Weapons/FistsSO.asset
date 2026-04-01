@@ -67,6 +67,7 @@ MonoBehaviour:
     Speed: -1
     NormalizedTime: -1
     ForcePhaseSync: 0
+  CameraPreset: {fileID: 11400000, guid: 89e8d33dff96d5a43b0897094fd0232d, type: 2}
   VirtualOtherSlot:
     Enabled: 1
     TargetSlot: 2
@@ -83,13 +84,13 @@ MonoBehaviour:
     _NormalizedStartTime: 0
   ExitStanceAnim:
     _FadeDuration: 0.3255
-    _Speed: 1.6
+    _Speed: 2.5
     _Events:
       _NormalizedTimes:
       - 0.8
       _Callbacks: []
       _Names: []
-    _Clip: {fileID: -203655887218126122, guid: e342dc74c59df3d40ae5a64dca105a27, type: 3}
+    _Clip: {fileID: -203655887218126122, guid: 160eaeba12a17194ebb485d41c791bca, type: 3}
     _NormalizedStartTime: -0.39
   ComboSequence:
   - _FadeDuration: 0.46350005
@@ -136,6 +137,7 @@ MonoBehaviour:
   ComboWindowStart: 0.5
   ComboLateBuffer: 0.2
   ComboPriority: 25
+  SprintCameraPreset: {fileID: 11400000, guid: 7d284d21bb04e824aba09ad91963a1b8, type: 2}
   references:
     version: 2
     RefIds: []

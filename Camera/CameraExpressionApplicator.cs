@@ -9,101 +9,124 @@ namespace BBBNexus
     /// 相机表现力应用器。
     /// 持有场景中唯一的 CinemachineVirtualCamera，每帧从黑板读取
     /// PlayerRuntimeData.CameraExpression，用 SmoothDamp 将各参数平滑插值到目标值。
-    /// 无武器写入时自动回归 Inspector 默认值。
-    ///
-    /// 职责边界：
-    ///   - 只管"摄像机长什么样"（FOV / 跟随偏移 / 目标偏移）
-    ///   - 不管"镜头指向哪里"（那是 CameraLookAtDriver 的工作）
+    /// HasRequest = false 时自动回归 Start 时缓存的 Inspector 默认值。
+    /// Body 组件对应 Cinemachine3rdPersonFollow。
     /// </summary>
     public class CameraExpressionApplicator : MonoBehaviour
     {
         [Header("引用")]
         [SerializeField] private BBBCharacterController _player;
-
 #if BBBNEXUS_HAS_CINEMACHINE
         [SerializeField] private CinemachineVirtualCamera _vcam;
 #endif
 
-        [Header("平滑时间（秒）")]
-        [SerializeField] private float _fovSmoothTime          = 0.12f;
-        [SerializeField] private float _followSmoothTime       = 0.15f;
-        [SerializeField] private float _trackedOffsetSmoothTime = 0.15f;
+        [Header("默认平滑时间（秒）— 预设可覆写")]
+        [SerializeField] private float _fovSmoothTime    = 0.12f;
+        [SerializeField] private float _offsetSmoothTime = 0.15f;
 
-        // ── Inspector 默认值（Start 时缓存）────────────────────────────
-        private float   _defaultFov;
-        private Vector3 _defaultFollowOffset;
-        private Vector3 _defaultTrackedObjectOffset;
+        // ── 默认值（Start 时从 Inspector 快照）────────────────────────
+        private float   _defFov;
+        private Vector3 _defDamping;
+        private Vector3 _defShoulderOffset;
+        private float   _defVerticalArmLength;
+        private float   _defCameraSide;
+        private float   _defCameraDistance;
+        private float   _defCameraRadius;
 
-        // ── SmoothDamp 速度 ────────────────────────────────────────────
-        private float   _fovVelocity;
-        private Vector3 _followVelocity;
-        private Vector3 _trackedOffsetVelocity;
+        // ── SmoothDamp 中间值 ─────────────────────────────────────────
+        private float   _curFov;
+        private Vector3 _curDamping;
+        private Vector3 _curShoulderOffset;
+        private float   _curVerticalArmLength;
+        private float   _curCameraSide;
+        private float   _curCameraDistance;
+        private float   _curCameraRadius;
 
-        // ── 当前插值中间值（实际写入 vcam）────────────────────────────
-        private float   _currentFov;
-        private Vector3 _currentFollowOffset;
-        private Vector3 _currentTrackedObjectOffset;
+        // ── SmoothDamp 速度 ───────────────────────────────────────────
+        private float   _vFov;
+        private Vector3 _vDamping;
+        private Vector3 _vShoulder;
+        private float   _vVAL;
+        private float   _vCS;
+        private float   _vCD;
+        private float   _vCR;
 
 #if BBBNEXUS_HAS_CINEMACHINE
-        private CinemachineTransposer _transposer;
-        private CinemachineComposer   _composer;
+        private Cinemachine3rdPersonFollow _thirdPersonFollow;
 #endif
-
-        // ── 生命周期 ───────────────────────────────────────────────────
 
         private void Start()
         {
 #if BBBNEXUS_HAS_CINEMACHINE
             if (_vcam == null) return;
 
-            _transposer = _vcam.GetCinemachineComponent<CinemachineTransposer>();
-            _composer   = _vcam.GetCinemachineComponent<CinemachineComposer>();
+            _thirdPersonFollow = _vcam.GetCinemachineComponent<Cinemachine3rdPersonFollow>();
 
-            // 缓存 Inspector 配置好的基准值
-            _defaultFov                 = _vcam.m_Lens.FieldOfView;
-            _defaultFollowOffset        = _transposer != null ? _transposer.m_FollowOffset        : Vector3.zero;
-            _defaultTrackedObjectOffset = _composer   != null ? _composer.m_TrackedObjectOffset   : Vector3.zero;
+            // 快照 Inspector 默认值
+            _defFov = _vcam.m_Lens.FieldOfView;
 
-            // 以基准值初始化当前插值状态，避免第一帧从 zero 飞过来
-            _currentFov                 = _defaultFov;
-            _currentFollowOffset        = _defaultFollowOffset;
-            _currentTrackedObjectOffset = _defaultTrackedObjectOffset;
+            if (_thirdPersonFollow != null)
+            {
+                _defDamping           = _thirdPersonFollow.Damping;
+                _defShoulderOffset    = _thirdPersonFollow.ShoulderOffset;
+                _defVerticalArmLength = _thirdPersonFollow.VerticalArmLength;
+                _defCameraSide        = _thirdPersonFollow.CameraSide;
+                _defCameraDistance    = _thirdPersonFollow.CameraDistance;
+                _defCameraRadius      = _thirdPersonFollow.CameraRadius;
+            }
+
+            // 以默认值初始化插值中间值
+            _curFov               = _defFov;
+            _curDamping           = _defDamping;
+            _curShoulderOffset    = _defShoulderOffset;
+            _curVerticalArmLength = _defVerticalArmLength;
+            _curCameraSide        = _defCameraSide;
+            _curCameraDistance    = _defCameraDistance;
+            _curCameraRadius      = _defCameraRadius;
 #endif
         }
 
         private void Update()
         {
             if (_player == null) return;
-
 #if BBBNEXUS_HAS_CINEMACHINE
             if (_vcam == null) return;
 
-            var expr = _player.RuntimeData.CameraExpression;
+            var   e         = _player.RuntimeData.CameraExpression;
+            float dt        = Time.deltaTime;
+            float fovSmooth = (e.HasRequest && e.FovSmoothTime    > 0f) ? e.FovSmoothTime    : _fovSmoothTime;
+            float offSmooth = (e.HasRequest && e.OffsetSmoothTime > 0f) ? e.OffsetSmoothTime : _offsetSmoothTime;
 
-            // 没有武器请求 → 回归默认；有请求 → 使用请求值（≤0 / Zero 视为"不覆写此项"）
-            float   targetFov           = (expr.HasRequest && expr.TargetFov > 0f)           ? expr.TargetFov           : _defaultFov;
-            Vector3 targetFollowOffset  = (expr.HasRequest && expr.FollowOffset != Vector3.zero) ? expr.FollowOffset  : _defaultFollowOffset;
-            Vector3 targetTrackedOffset = (expr.HasRequest && expr.TrackedObjectOffset != Vector3.zero) ? expr.TrackedObjectOffset : _defaultTrackedObjectOffset;
+            // 目标值：有请求用预设，否则回归默认
+            float   tFov  = e.HasRequest ? e.TargetFov         : _defFov;
+            Vector3 tDamp = e.HasRequest ? e.Damping           : _defDamping;
+            Vector3 tShldr = e.HasRequest ? e.ShoulderOffset   : _defShoulderOffset;
+            float   tVAL  = e.HasRequest ? e.VerticalArmLength : _defVerticalArmLength;
+            float   tCS   = e.HasRequest ? e.CameraSide        : _defCameraSide;
+            float   tCD   = e.HasRequest ? e.CameraDistance    : _defCameraDistance;
+            float   tCR   = e.HasRequest ? e.CameraRadius      : _defCameraRadius;
 
-            // 预设可以覆写平滑时间；≤ 0 则回退到 Inspector 默认值
-            float fovSmooth    = (expr.HasRequest && expr.FovSmoothTime    > 0f) ? expr.FovSmoothTime    : _fovSmoothTime;
-            float offsetSmooth = (expr.HasRequest && expr.OffsetSmoothTime > 0f) ? expr.OffsetSmoothTime : _followSmoothTime;
-
-            float dt = Time.deltaTime;
-
-            _currentFov = Mathf.SmoothDamp(
-                _currentFov, targetFov, ref _fovVelocity, fovSmooth, float.MaxValue, dt);
-
-            _currentFollowOffset = Vector3.SmoothDamp(
-                _currentFollowOffset, targetFollowOffset, ref _followVelocity, offsetSmooth, float.MaxValue, dt);
-
-            _currentTrackedObjectOffset = Vector3.SmoothDamp(
-                _currentTrackedObjectOffset, targetTrackedOffset, ref _trackedOffsetVelocity, offsetSmooth, float.MaxValue, dt);
+            // SmoothDamp
+            _curFov            = Mathf.SmoothDamp(_curFov,            tFov,  ref _vFov,     fovSmooth, float.MaxValue, dt);
+            _curDamping        = Vector3.SmoothDamp(_curDamping,       tDamp, ref _vDamping, offSmooth, float.MaxValue, dt);
+            _curShoulderOffset = Vector3.SmoothDamp(_curShoulderOffset, tShldr, ref _vShoulder, offSmooth, float.MaxValue, dt);
+            _curVerticalArmLength = Mathf.SmoothDamp(_curVerticalArmLength, tVAL, ref _vVAL, offSmooth, float.MaxValue, dt);
+            _curCameraSide     = Mathf.SmoothDamp(_curCameraSide,     tCS,   ref _vCS,     offSmooth, float.MaxValue, dt);
+            _curCameraDistance = Mathf.SmoothDamp(_curCameraDistance, tCD,   ref _vCD,     offSmooth, float.MaxValue, dt);
+            _curCameraRadius   = Mathf.SmoothDamp(_curCameraRadius,   tCR,   ref _vCR,     offSmooth, float.MaxValue, dt);
 
             // 写入 VirtualCamera
-            _vcam.m_Lens.FieldOfView = _currentFov;
-            if (_transposer != null) _transposer.m_FollowOffset        = _currentFollowOffset;
-            if (_composer   != null) _composer.m_TrackedObjectOffset   = _currentTrackedObjectOffset;
+            _vcam.m_Lens.FieldOfView = _curFov;
+
+            if (_thirdPersonFollow != null)
+            {
+                _thirdPersonFollow.Damping           = _curDamping;
+                _thirdPersonFollow.ShoulderOffset    = _curShoulderOffset;
+                _thirdPersonFollow.VerticalArmLength = _curVerticalArmLength;
+                _thirdPersonFollow.CameraSide        = _curCameraSide;
+                _thirdPersonFollow.CameraDistance    = _curCameraDistance;
+                _thirdPersonFollow.CameraRadius      = _curCameraRadius;
+            }
 #endif
         }
     }

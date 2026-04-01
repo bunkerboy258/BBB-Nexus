@@ -20,8 +20,8 @@ namespace BBBNexus
             // 2. 获取下半身状态 如果还在 Unavailable 的触发条件中 继续保持不可用
             var playerBaseState = player.StateMachine.CurrentState;
 
-            // 如果还在 Vault Fall Roll 中 不能退出 Unavailable
-            if (playerBaseState is PlayerVaultState || playerBaseState is PlayerFallState || playerBaseState is PlayerRollState)
+            // 如果还在 Vault Roll 中 不能退出 Unavailable（Fall 不锁，允许持枪下落）
+            if (playerBaseState is PlayerVaultState || playerBaseState is PlayerRollState)
             {
                 return false;
             }

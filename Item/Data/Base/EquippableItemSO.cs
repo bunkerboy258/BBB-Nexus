@@ -41,7 +41,7 @@ namespace BBBNexus
         public EquipmentSlot EquipSlot = EquipmentSlot.MainHand;
 
         public Vector3 HoldPositionOffset;
-        public Quaternion HoldRotationOffset;
+        public Quaternion HoldRotationOffset = Quaternion.identity;
 
         [Header("--- 上半身层控制 ---")]
         [Tooltip("装备此物品时上半身动画层的目标权重。拳头/默认状态填 0，持枪/持剑等需要独立上半身姿势填 1")]

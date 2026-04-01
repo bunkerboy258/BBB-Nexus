@@ -32,6 +32,8 @@ namespace BBBNexus
                 return;
             }
 
+            _data.IsPrimaryAttackHeld = input.PrimaryAttackHeld;
+
             if (input.PrimaryAttackPressed)
             {
                 _data.WantsToPrimaryAction = true;

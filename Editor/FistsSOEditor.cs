@@ -10,12 +10,16 @@ namespace BBBNexus.Editor
         private const float WindowBarHeight = 14f;
         private static readonly Color DamageFillColor = new(0.85f, 0.18f, 0.18f, 0.85f);
         private static readonly Color DamageFillDisabledColor = new(0.35f, 0.18f, 0.18f, 0.4f);
+        private static readonly Color AlignmentFillColor = new(0.18f, 0.55f, 0.92f, 0.85f);
+        private static readonly Color AlignmentFillDisabledColor = new(0.18f, 0.28f, 0.35f, 0.4f);
 
         private SerializedProperty _enterStanceAnim;
         private SerializedProperty _exitStanceAnim;
+        private SerializedProperty _exitUsesLock;
         private SerializedProperty _comboSequence;
         private SerializedProperty _comboAttackHands;
         private SerializedProperty _comboDamageWindows;
+        private SerializedProperty _comboAlignmentWindows;
         private SerializedProperty _comboWindowStart;
         private SerializedProperty _comboLateBuffer;
         private SerializedProperty _comboPriority;
@@ -24,9 +28,11 @@ namespace BBBNexus.Editor
         {
             _enterStanceAnim = serializedObject.FindProperty("EnterStanceAnim");
             _exitStanceAnim = serializedObject.FindProperty("ExitStanceAnim");
+            _exitUsesLock = serializedObject.FindProperty("ExitUsesLock");
             _comboSequence = serializedObject.FindProperty("ComboSequence");
             _comboAttackHands = serializedObject.FindProperty("ComboAttackHands");
             _comboDamageWindows = serializedObject.FindProperty("ComboDamageWindows");
+            _comboAlignmentWindows = serializedObject.FindProperty("ComboAlignmentWindows");
             _comboWindowStart = serializedObject.FindProperty("ComboWindowStart");
             _comboLateBuffer = serializedObject.FindProperty("ComboLateBuffer");
             _comboPriority = serializedObject.FindProperty("ComboPriority");
@@ -55,9 +61,11 @@ namespace BBBNexus.Editor
                 "m_Script",
                 "EnterStanceAnim",
                 "ExitStanceAnim",
+                "ExitUsesLock",
                 "ComboSequence",
                 "ComboAttackHands",
                 "ComboDamageWindows",
+                "ComboAlignmentWindows",
                 "ComboWindowStart",
                 "ComboLateBuffer",
                 "ComboPriority");
@@ -66,6 +74,7 @@ namespace BBBNexus.Editor
             EditorGUILayout.LabelField("Combo Setup", EditorStyles.boldLabel);
             EditorGUILayout.PropertyField(_enterStanceAnim);
             EditorGUILayout.PropertyField(_exitStanceAnim);
+            EditorGUILayout.PropertyField(_exitUsesLock);
             EditorGUILayout.PropertyField(_comboWindowStart);
             EditorGUILayout.PropertyField(_comboLateBuffer);
             EditorGUILayout.PropertyField(_comboPriority);
@@ -78,7 +87,7 @@ namespace BBBNexus.Editor
 
         private void DrawComboArrays()
         {
-            if (_comboSequence == null || _comboAttackHands == null || _comboDamageWindows == null)
+            if (_comboSequence == null || _comboAttackHands == null || _comboDamageWindows == null || _comboAlignmentWindows == null)
                 return;
 
             int targetSize = Mathf.Max(0, EditorGUILayout.IntField("Combo Count", _comboSequence.arraySize));
@@ -87,11 +96,13 @@ namespace BBBNexus.Editor
                 _comboSequence.arraySize = targetSize;
                 SyncParallelArray(_comboAttackHands, targetSize, InitializeHandSlot);
                 SyncParallelArray(_comboDamageWindows, targetSize, InitializeDamageWindowSlot);
+                SyncParallelArray(_comboAlignmentWindows, targetSize, InitializeAlignmentWindowSlot);
             }
             else
             {
                 SyncParallelArray(_comboAttackHands, targetSize, InitializeHandSlot);
                 SyncParallelArray(_comboDamageWindows, targetSize, InitializeDamageWindowSlot);
+                SyncParallelArray(_comboAlignmentWindows, targetSize, InitializeAlignmentWindowSlot);
             }
 
             for (int i = 0; i < _comboSequence.arraySize; i++)
@@ -99,6 +110,7 @@ namespace BBBNexus.Editor
                 SerializedProperty sequence = _comboSequence.GetArrayElementAtIndex(i);
                 SerializedProperty hand = _comboAttackHands.GetArrayElementAtIndex(i);
                 SerializedProperty window = _comboDamageWindows.GetArrayElementAtIndex(i);
+                SerializedProperty alignmentWindow = _comboAlignmentWindows.GetArrayElementAtIndex(i);
                 EnsureStableKey(sequence);
 
                 EditorGUILayout.BeginVertical(EditorStyles.helpBox);
@@ -108,9 +120,19 @@ namespace BBBNexus.Editor
                     window.FindPropertyRelative("Enabled").boolValue,
                     window.FindPropertyRelative("StartNormalized").floatValue,
                     window.FindPropertyRelative("EndNormalized").floatValue);
+                FistsComboTransition.SetAlignmentOverlay(
+                    FistsComboTransition.GetPropertyKey(sequence),
+                    alignmentWindow.FindPropertyRelative("Enabled").boolValue,
+                    alignmentWindow.FindPropertyRelative("StartNormalized").floatValue,
+                    alignmentWindow.FindPropertyRelative("EndNormalized").floatValue);
                 EditorGUILayout.PropertyField(sequence, new GUIContent("Transition"), true);
                 EditorGUILayout.PropertyField(hand, new GUIContent("Attack Hand"));
                 DrawDamageWindowBar(window);
+                DrawWindowBar(
+                    alignmentWindow,
+                    "PreAttack Alignment Window",
+                    AlignmentFillColor,
+                    AlignmentFillDisabledColor);
                 EditorGUILayout.EndVertical();
                 EditorGUILayout.Space(4f);
             }
@@ -141,6 +163,13 @@ namespace BBBNexus.Editor
             element.FindPropertyRelative("EndNormalized").floatValue = 0.45f;
         }
 
+        private static void InitializeAlignmentWindowSlot(SerializedProperty element, int _)
+        {
+            element.FindPropertyRelative("Enabled").boolValue = false;
+            element.FindPropertyRelative("StartNormalized").floatValue = 0f;
+            element.FindPropertyRelative("EndNormalized").floatValue = 0.25f;
+        }
+
         private static void EnsureStableKey(SerializedProperty sequence)
         {
             SerializedProperty key = sequence.FindPropertyRelative("_StableKey");
@@ -152,6 +181,15 @@ namespace BBBNexus.Editor
 
         private static void DrawDamageWindowBar(SerializedProperty window)
         {
+            DrawWindowBar(window, "Damage Window Sidecar", DamageFillColor, DamageFillDisabledColor);
+        }
+
+        private static void DrawWindowBar(
+            SerializedProperty window,
+            string label,
+            Color enabledColor,
+            Color disabledColor)
+        {
             SerializedProperty enabled = window.FindPropertyRelative("Enabled");
             SerializedProperty start = window.FindPropertyRelative("StartNormalized");
             SerializedProperty end = window.FindPropertyRelative("EndNormalized");
@@ -159,7 +197,7 @@ namespace BBBNexus.Editor
             Rect headerRect = EditorGUILayout.GetControlRect(false, EditorGUIUtility.singleLineHeight);
             Rect barRect = Rect.zero;
 
-            enabled.boolValue = EditorGUI.ToggleLeft(headerRect, "Damage Window Sidecar", enabled.boolValue);
+            enabled.boolValue = EditorGUI.ToggleLeft(headerRect, label, enabled.boolValue);
 
             if (!enabled.boolValue)
                 return;
@@ -180,8 +218,8 @@ namespace BBBNexus.Editor
             float fillEnd = Mathf.Lerp(barRect.x + 1f, barRect.xMax - 1f, endValue);
             Rect fillRect = new Rect(fillStart, barRect.y + 1f, Mathf.Max(2f, fillEnd - fillStart), barRect.height - 2f);
             Color fillColor = enabled.boolValue
-                ? DamageFillColor
-                : DamageFillDisabledColor;
+                ? enabledColor
+                : disabledColor;
             EditorGUI.DrawRect(fillRect, fillColor);
 
             EditorGUI.MinMaxSlider(barRect, GUIContent.none, ref startValue, ref endValue, 0f, 1f);

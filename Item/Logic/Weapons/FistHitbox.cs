@@ -63,10 +63,7 @@ namespace BBBNexus
 
         private void PerformScan()
         {
-            _scanner?.Scan(Damage, static (other, damageable, request) =>
-            {
-                Debug.Log($"[FistHitbox] 命中！目标：{other.name}, 伤害：{request.Amount}, IDamageable 类型：{damageable.GetType().Name}");
-            });
+            _scanner?.Scan(Damage);
         }
 
         private void OnDrawGizmos()
