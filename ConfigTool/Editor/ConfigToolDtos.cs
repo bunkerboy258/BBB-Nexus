@@ -59,6 +59,12 @@ namespace BBBNexus
     }
 
     [Serializable]
+    internal sealed class InitializeAttackGeometryRequest
+    {
+        public string path;
+    }
+
+    [Serializable]
     internal sealed class RenameAssetRequest
     {
         public string path;
@@ -188,6 +194,16 @@ namespace BBBNexus
         public string assetPath;
         public string assetType;
         public string menuName;
+    }
+
+    [Serializable]
+    internal sealed class InitializeAttackGeometryResponse
+    {
+        public string assetPath;
+        public string assetType;
+        public string geometryId;
+        public string geometryAssetPath;
+        public string geometryResourcePath;
     }
 
     [Serializable]

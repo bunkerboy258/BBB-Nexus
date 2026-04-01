@@ -99,6 +99,14 @@ namespace BBBNexus
         [Tooltip("冲刺时的相机预设。null = 沿用 EquippableItemSO.CameraPreset")]
         public CameraExpressionSO SprintCameraPreset;
 
+        [Header("近战自动锁定")]
+        [Tooltip("前摇对齐时使用的最大转向角速度（度/秒）。")]
+        public float AutoTargetTurnSpeed = 540f;
+
+        [Header("攻击几何定义")]
+        [Tooltip("Attack Clip Geometry Definition 的 MetaLib ID。留空时回退到 <资产名>_AttackSweep。")]
+        public string AttackGeometryId;
+
         public FistsAttackHand GetAttackHand(int comboIndex)
         {
             if (ComboAttackHands != null && comboIndex >= 0 && comboIndex < ComboAttackHands.Length)
@@ -139,6 +147,21 @@ namespace BBBNexus
             }
 
             return FistsAlignmentWindowSidecar.Default;
+        }
+
+        public string GetAttackGeometryId()
+        {
+            if (!string.IsNullOrWhiteSpace(AttackGeometryId))
+            {
+                return AttackGeometryId.Trim();
+            }
+
+            return $"{name}_AttackSweep";
+        }
+
+        public string GetAttackGeometryResourcePath()
+        {
+            return $"AttackClipGeometry/{GetAttackGeometryId()}";
         }
     }
 }

@@ -264,6 +264,37 @@ namespace BBBNexus
             };
         }
 
+        public static InitializeAttackGeometryResponse InitializeAttackGeometry(string rawPath)
+        {
+            var assetPath = NormalizeAssetPath(rawPath);
+            var asset = AssetDatabase.LoadAssetAtPath<ScriptableObject>(assetPath);
+            if (asset == null)
+            {
+                throw new InvalidOperationException($"ScriptableObject not found: {assetPath}");
+            }
+
+            switch (asset)
+            {
+                case FistsSO fists:
+                    string resourcePath = fists.GetAttackGeometryResourcePath();
+                    AttackClipGeometryDefinition definition = AttackClipGeometryTemplateFactory.CreateForFists(fists);
+                    var geometryId = fists.GetAttackGeometryId();
+                    AttackClipGeometryLibrary.WriteDefinitionAndRegister(geometryId, definition, $"{fists.name} Attack Sweep");
+                    return new InitializeAttackGeometryResponse
+                    {
+                        assetPath = assetPath,
+                        assetType = asset.GetType().FullName,
+                        geometryId = geometryId,
+                        geometryAssetPath = AttackClipGeometryLibrary.ToAssetPath(geometryId),
+                        geometryResourcePath = resourcePath
+                    };
+
+                default:
+                    throw new InvalidOperationException(
+                        $"Attack geometry init is not supported for asset type: {asset.GetType().FullName}");
+            }
+        }
+
         public static RenameAssetResponse RenameAsset(string rawPath, string newName)
         {
             var assetPath = NormalizeAssetPath(rawPath);

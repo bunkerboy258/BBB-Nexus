@@ -92,6 +92,7 @@ MonoBehaviour:
       _Names: []
     _Clip: {fileID: -203655887218126122, guid: 160eaeba12a17194ebb485d41c791bca, type: 3}
     _NormalizedStartTime: -0.39
+  ExitUsesLock: 0
   ComboSequence:
   - _FadeDuration: 0.46350005
     _Speed: 1.06
@@ -134,10 +135,22 @@ MonoBehaviour:
   - Enabled: 1
     StartNormalized: 0.32237545
     EndNormalized: 0.59809136
+  ComboAlignmentWindows:
+  - Enabled: 0
+    StartNormalized: 0
+    EndNormalized: 0.25
+  - Enabled: 0
+    StartNormalized: 0
+    EndNormalized: 0.25
+  - Enabled: 0
+    StartNormalized: 0
+    EndNormalized: 0.25
   ComboWindowStart: 0.5
   ComboLateBuffer: 0.2
   ComboPriority: 25
   SprintCameraPreset: {fileID: 11400000, guid: 7d284d21bb04e824aba09ad91963a1b8, type: 2}
+  AutoTargetTurnSpeed: 540
+  AttackGeometryResourcePath: 
   references:
     version: 2
     RefIds: []

@@ -12,6 +12,13 @@ namespace BBBNexus
     /// </summary>
     public class FistHitbox : MonoBehaviour
     {
+        private enum AttackGeometryRenderMode
+        {
+            None = 0,
+            SingleClip = 1,
+            UnifiedAll = 2,
+        }
+
         [Header("Damage")]
         public float Damage = 10f;
 
@@ -19,9 +26,13 @@ namespace BBBNexus
         [SerializeField] private bool _drawGizmo = true;
         [SerializeField] private Color _inactiveGizmoColor = new Color(0.78f, 0.78f, 0.78f, 0f);
         [SerializeField] private Color _activeGizmoColor = new Color(1f, 0.2f, 0.2f, 0.14f);
+        [SerializeField] private AttackGeometryRenderMode _attackGeometryRenderMode = AttackGeometryRenderMode.UnifiedAll;
+        [SerializeField] private int _singleGeometryClipIndex = 0;
+        [SerializeField] private string _attackGeometryIdOverride;
 
         private Collider _hitCollider;
         private MeleeHitScanner _scanner;
+        private string _runtimeAttackGeometryId;
 
         private void Awake()
         {
@@ -51,6 +62,24 @@ namespace BBBNexus
         {
             _scanner?.EndWindow();
             enabled = false;
+        }
+
+        public bool TryGetQueryBox(out Vector3 center, out Vector3 halfExtents, out Quaternion rotation)
+        {
+            if (_scanner == null)
+            {
+                center = default;
+                halfExtents = default;
+                rotation = Quaternion.identity;
+                return false;
+            }
+
+            return _scanner.TryGetQueryBox(out center, out halfExtents, out rotation);
+        }
+
+        public void SetAttackGeometryId(string geometryId)
+        {
+            _runtimeAttackGeometryId = geometryId;
         }
 
         private void FixedUpdate()
@@ -143,6 +172,8 @@ namespace BBBNexus
 
             Gizmos.matrix = previousMatrix;
             Gizmos.color = previousColor;
+
+            DrawAttackGeometryGizmo(selected);
         }
 
         private static void DrawCapsuleApprox(CapsuleCollider capsule, Color color)
@@ -166,6 +197,47 @@ namespace BBBNexus
 
             Gizmos.color = new Color(color.r, color.g, color.b, Mathf.Min(1f, color.a + 0.2f));
             Gizmos.DrawWireCube(capsule.center, size);
+        }
+
+        private void DrawAttackGeometryGizmo(bool selected)
+        {
+            if (_attackGeometryRenderMode == AttackGeometryRenderMode.None)
+                return;
+
+            string geometryId = ResolveAttackGeometryId();
+            if (string.IsNullOrWhiteSpace(geometryId))
+                return;
+
+            AttackClipGeometryDefinition definition = AttackClipGeometryLibrary.LoadOrNull(geometryId);
+            if (definition == null)
+                return;
+
+            Transform root = transform.root != null ? transform.root : transform;
+            switch (_attackGeometryRenderMode)
+            {
+                case AttackGeometryRenderMode.SingleClip:
+                    AttackClipGeometryGizmoRenderer.DrawSingle(root, definition.GetClip(_singleGeometryClipIndex), selected);
+                    break;
+
+                case AttackGeometryRenderMode.UnifiedAll:
+                    AttackClipGeometryGizmoRenderer.DrawUnified(root, definition, selected);
+                    break;
+            }
+        }
+
+        private string ResolveAttackGeometryId()
+        {
+            if (!string.IsNullOrWhiteSpace(_runtimeAttackGeometryId))
+            {
+                return _runtimeAttackGeometryId.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(_attackGeometryIdOverride))
+            {
+                return _attackGeometryIdOverride.Trim();
+            }
+
+            return null;
         }
     }
 }

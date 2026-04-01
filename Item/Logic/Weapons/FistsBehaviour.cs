@@ -8,6 +8,8 @@ namespace BBBNexus
     public class FistsBehaviour : MonoBehaviour, IHoldableItem, IPoolable
     {
         private const bool AttackTrace = false;
+        private const int AutoTargetMaxOverlapCount = 32;
+        private static readonly Collider[] AutoTargetOverlaps = new Collider[AutoTargetMaxOverlapCount];
 
         private sealed class FistsAttackWindowContext
         {
@@ -19,6 +21,24 @@ namespace BBBNexus
             public float AlignmentWindowEndTime;
             public float WindowStartTime;
             public float WindowEndTime;
+        }
+
+        private readonly struct AutoTargetCandidate
+        {
+            public readonly Transform TargetTransform;
+            public readonly float Cost;
+            public readonly float Distance;
+            public readonly float TargetYaw;
+            public readonly float StepDistance;
+
+            public AutoTargetCandidate(Transform targetTransform, float cost, float distance, float targetYaw, float stepDistance)
+            {
+                TargetTransform = targetTransform;
+                Cost = cost;
+                Distance = distance;
+                TargetYaw = targetYaw;
+                StepDistance = stepDistance;
+            }
         }
 
         private BBBCharacterController _player;
@@ -33,6 +53,7 @@ namespace BBBNexus
         private float _ignoreAttackUntil;
         private FistsAttackWindowContext _activeAttackContext;
         private bool _isHitWindowOpen;
+        private Transform _autoTargetTransform;
 
         private int _comboIndex;
         private bool _isEnteringStance;
@@ -69,6 +90,7 @@ namespace BBBNexus
             {
                 _hitbox.SetOwner(player);
                 _hitbox.Deactivate();
+                _hitbox.SetAttackGeometryId(_config != null ? _config.GetAttackGeometryId() : null);
 
                 if (CurrentEquipSlot == EquipmentSlot.OffHand)
                 {
@@ -100,6 +122,7 @@ namespace BBBNexus
             }
 
             UpdateHitWindowState();
+            UpdateAutoTargeting();
 
             ref readonly ProcessedInputData input = ref _player.InputPipeline.Current.currentFrameData.Processed;
             bool wantsAttack = _player.RuntimeData.WantsToPrimaryAction;
@@ -391,6 +414,7 @@ namespace BBBNexus
             _currentStanceStartTime = 0f;
             _comboWindowOpenTime = 0f;
             _comboWindowCloseTime = 0f;
+            _autoTargetTransform = null;
             CloseHitWindow();
 
             if (CurrentEquipSlot == EquipmentSlot.MainHand)
@@ -404,6 +428,7 @@ namespace BBBNexus
             _hitbox?.Deactivate();
             _isHitWindowOpen = false;
             _activeAttackContext = null;
+            _autoTargetTransform = null;
         }
 
         private void UpdateHitWindowState()
@@ -432,6 +457,248 @@ namespace BBBNexus
                 _hitbox?.Activate(_activeAttackContext.SharedHitSet, true);
             else
                 _hitbox?.Deactivate();
+        }
+
+        private void UpdateAutoTargeting()
+        {
+            if (_player == null || _config == null || _activeAttackContext == null)
+            {
+                _autoTargetTransform = null;
+                return;
+            }
+
+            float now = Time.time;
+            if (now < _activeAttackContext.AlignmentWindowStartTime || now > _activeAttackContext.AlignmentWindowEndTime)
+            {
+                _autoTargetTransform = null;
+                return;
+            }
+
+            float remainingTime = Mathf.Max(0f, _activeAttackContext.AlignmentWindowEndTime - now);
+            if (remainingTime <= 0f || _config.AutoTargetTurnSpeed <= 0f)
+            {
+                _autoTargetTransform = null;
+                return;
+            }
+
+            AttackClipGeometryClipDefinition attackClipGeometry = GetCurrentAttackClipGeometry();
+            float searchRange = ComputeAutoTargetSearchRange(attackClipGeometry);
+            if (searchRange <= 0f)
+            {
+                _autoTargetTransform = null;
+                return;
+            }
+
+            float maxStepDistance = ComputeMaxStepDistance(remainingTime);
+            if (!TryFindBestAutoTargetCandidate(_player, attackClipGeometry, searchRange, remainingTime, _config.AutoTargetTurnSpeed, maxStepDistance, out var candidate))
+            {
+                _autoTargetTransform = null;
+                return;
+            }
+
+            _autoTargetTransform = candidate.TargetTransform;
+            float angleDelta = Mathf.Abs(Mathf.DeltaAngle(_player.transform.eulerAngles.y, candidate.TargetYaw));
+            float smoothTime = _config.AutoTargetTurnSpeed > 0f
+                ? Mathf.Clamp(angleDelta / _config.AutoTargetTurnSpeed, 0.01f, remainingTime)
+                : 0.01f;
+            _player.MotionDriver.RequestYaw(candidate.TargetYaw, smoothTime);
+            ApplyStepCompensation(candidate, remainingTime);
+        }
+
+        private AttackClipGeometryClipDefinition GetCurrentAttackClipGeometry()
+        {
+            if (_config == null || _activeAttackContext == null)
+            {
+                return null;
+            }
+
+            AttackClipGeometryDefinition definition = AttackClipGeometryLibrary.LoadOrNull(_config.GetAttackGeometryId());
+            return definition?.GetClip(_activeAttackContext.ComboIndex);
+        }
+
+        private float ComputeAutoTargetSearchRange(AttackClipGeometryClipDefinition attackClipGeometry)
+        {
+            if (attackClipGeometry != null)
+            {
+                float geometryReach = AttackHitPredictionSolver.EstimateHorizontalReach(attackClipGeometry);
+                float controllerPadding = _player.CharController != null ? Mathf.Max(_player.CharController.radius, 0.2f) : 0.2f;
+                return Mathf.Max(geometryReach + controllerPadding, 0.5f);
+            }
+
+            if (_hitbox != null && _hitbox.TryGetQueryBox(out Vector3 center, out Vector3 halfExtents, out _))
+            {
+                float ownerToCenter = Vector3.Distance(_player.transform.position, center);
+                float hitboxReach = halfExtents.magnitude;
+                float controllerPadding = _player.CharController != null ? Mathf.Max(_player.CharController.radius, 0.2f) : 0.2f;
+                return ownerToCenter + hitboxReach + controllerPadding;
+            }
+
+            return _player.CharController != null
+                ? Mathf.Max(1f, _player.CharController.radius + 1f)
+                : 1f;
+        }
+
+        private float ComputeMaxStepDistance(float remainingAlignmentTime)
+        {
+            if (_player == null || _config == null || remainingAlignmentTime <= 0f)
+            {
+                return 0f;
+            }
+
+            float stepSpeed = ResolveCurrentStepSpeed();
+            return Mathf.Max(0f, remainingAlignmentTime * stepSpeed);
+        }
+
+        private float ResolveCurrentStepSpeed()
+        {
+            if (_player == null || _player.Config == null || _player.Config.Core == null)
+            {
+                return 0f;
+            }
+
+            bool isTactical = _player.RuntimeData != null && _player.RuntimeData.IsTacticalStance;
+            LocomotionState locomotionState = _player.RuntimeData != null
+                ? _player.RuntimeData.CurrentLocomotionState
+                : LocomotionState.Idle;
+
+            if (isTactical && _player.Config.TacticalMotionBase != null)
+            {
+                return locomotionState switch
+                {
+                    LocomotionState.Walk => _player.Config.TacticalMotionBase.AimWalkSpeed,
+                    LocomotionState.Jog => _player.Config.TacticalMotionBase.AimJogSpeed,
+                    LocomotionState.Sprint => _player.Config.TacticalMotionBase.AimSprintSpeed,
+                    _ => _player.Config.TacticalMotionBase.AimWalkSpeed,
+                };
+            }
+
+            return locomotionState switch
+            {
+                LocomotionState.Walk => _player.Config.Core.WalkSpeed,
+                LocomotionState.Jog => _player.Config.Core.JogSpeed,
+                LocomotionState.Sprint => _player.Config.Core.SprintSpeed,
+                _ => _player.Config.Core.JogSpeed,
+            };
+        }
+
+        private void ApplyStepCompensation(in AutoTargetCandidate candidate, float remainingAlignmentTime)
+        {
+            if (_player?.MotionDriver == null || remainingAlignmentTime <= 0f || candidate.StepDistance <= 0f)
+            {
+                return;
+            }
+
+            float stepThisFrame = Mathf.Min(
+                candidate.StepDistance,
+                candidate.StepDistance * Mathf.Clamp01(Time.deltaTime / remainingAlignmentTime));
+
+            if (stepThisFrame <= 0.0001f)
+            {
+                return;
+            }
+
+            Vector3 displacement = Quaternion.Euler(0f, candidate.TargetYaw, 0f) * Vector3.forward * stepThisFrame;
+            _player.MotionDriver.RequestHorizontalDisplacement(displacement);
+        }
+
+        private static bool TryFindBestAutoTargetCandidate(
+            BBBCharacterController owner,
+            AttackClipGeometryClipDefinition attackClipGeometry,
+            float searchRange,
+            float remainingAlignmentTime,
+            float turnSpeed,
+            float maxStepDistance,
+            out AutoTargetCandidate candidate)
+        {
+            candidate = default;
+            if (owner == null)
+            {
+                return false;
+            }
+
+            Vector3 origin = owner.transform.position;
+            int count = Physics.OverlapSphereNonAlloc(origin, searchRange, AutoTargetOverlaps, ~0, QueryTriggerInteraction.Collide);
+            if (count <= 0)
+            {
+                return false;
+            }
+
+            var seenRoots = new HashSet<Transform>();
+            bool found = false;
+            float bestCost = float.MaxValue;
+            float bestDistance = float.MaxValue;
+            AutoTargetCandidate best = default;
+
+            for (int i = 0; i < count; i++)
+            {
+                Collider other = AutoTargetOverlaps[i];
+                AutoTargetOverlaps[i] = null;
+                if (other == null || other.transform.IsChildOf(owner.transform))
+                {
+                    continue;
+                }
+
+                var damageable = other.GetComponentInParent<IDamageable>();
+                if (damageable == null)
+                {
+                    continue;
+                }
+
+                Transform root = other.transform.root;
+                if (root == null || !seenRoots.Add(root))
+                {
+                    continue;
+                }
+
+                Vector3 targetPoint = other.bounds.center;
+                Vector3 toTarget = targetPoint - origin;
+                toTarget.y = 0f;
+                float distance = toTarget.magnitude;
+                if (distance <= 0.001f || distance > searchRange)
+                {
+                    continue;
+                }
+
+                if (attackClipGeometry == null)
+                {
+                    Vector3 direction = toTarget / distance;
+                    float targetYaw = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
+                    float angleCost = Mathf.Abs(Mathf.DeltaAngle(owner.transform.eulerAngles.y, targetYaw)) * 0.02f;
+                    if (!found || angleCost < bestCost - 0.0001f || (Mathf.Abs(angleCost - bestCost) <= 0.0001f && distance < bestDistance))
+                    {
+                        found = true;
+                        bestCost = angleCost;
+                        bestDistance = distance;
+                        best = new AutoTargetCandidate(root, angleCost, distance, targetYaw, 0f);
+                    }
+
+                    continue;
+                }
+
+                var solveInput = new AttackHitPredictionSolver.SolveInput(
+                    attackClipGeometry,
+                    owner.transform,
+                    other.bounds,
+                    remainingAlignmentTime,
+                    turnSpeed,
+                    maxStepDistance);
+
+                if (!AttackHitPredictionSolver.TrySolve(in solveInput, out var solveResult))
+                {
+                    continue;
+                }
+
+                if (!found || solveResult.BestCost < bestCost - 0.0001f || (Mathf.Abs(solveResult.BestCost - bestCost) <= 0.0001f && distance < bestDistance))
+                {
+                    found = true;
+                    bestCost = solveResult.BestCost;
+                    bestDistance = distance;
+                    best = new AutoTargetCandidate(root, solveResult.BestCost, distance, solveResult.BestWorldYaw, solveResult.BestStepDistance);
+                }
+            }
+
+            candidate = best;
+            return found;
         }
 
         private void ApplyDamageWindowTiming(

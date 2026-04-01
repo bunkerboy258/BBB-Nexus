@@ -31,6 +31,9 @@ namespace BBBNexus
     /// </summary>
     public class MotionDriver
     {
+        private const int CharacterBlockMaxOverlapCount = 16;
+        private static readonly Collider[] CharacterBlockOverlaps = new Collider[CharacterBlockMaxOverlapCount];
+
         // 注：在最新版本 主要优化了Unity的底层开销(eulerAngles/velocity/materialized quaternion) 并保证每帧重力只积分一次
         #region Dependencies
         private readonly BBBCharacterController _player;
@@ -138,6 +141,12 @@ namespace BBBNexus
                 _data.RequestedTargetYaw = targetYaw;
                 _data.RequestedYawSmoothTime = smoothTime;
             }
+        }
+
+        public void RequestHorizontalDisplacement(Vector3 displacement)
+        {
+            displacement.y = 0f;
+            _data.RequestedHorizontalDisplacement += displacement;
         }
 
         public void UpdateGravityOnly()
@@ -263,6 +272,13 @@ namespace BBBNexus
 
         private void ExecuteMovement(Vector3 horizontalVelocity)
         {
+            Vector3 requestedDisplacement = ConsumeRequestedHorizontalDisplacement();
+            if (requestedDisplacement.sqrMagnitude > 0.0001f && Time.deltaTime > 0.000001f)
+            {
+                horizontalVelocity += requestedDisplacement / Time.deltaTime;
+            }
+
+            horizontalVelocity = ResolveCharacterBlocking(horizontalVelocity);
             Vector3 vv = GetGravityThisFrame();
             _cc.Move((horizontalVelocity + vv) * Time.deltaTime);
             _data.CurrentSpeed = _cc.velocity.magnitude;
@@ -426,6 +442,13 @@ namespace BBBNexus
             return true;
         }
 
+        private Vector3 ConsumeRequestedHorizontalDisplacement()
+        {
+            Vector3 displacement = _data.RequestedHorizontalDisplacement;
+            _data.RequestedHorizontalDisplacement = Vector3.zero;
+            return displacement;
+        }
+
         private void ApplySmoothYaw(float targetYaw, float smoothTime)
         {
             // 用 CurrentYaw 做权威 yaw
@@ -517,6 +540,70 @@ namespace BBBNexus
             _data.RotationVelocity = 0f;
             _data.CurrentYaw = _transform.eulerAngles.y;
             _curve.IsInitialized = false;
+        }
+
+        private Vector3 ResolveCharacterBlocking(Vector3 horizontalVelocity)
+        {
+            if (_cc == null || horizontalVelocity.sqrMagnitude <= 0.0001f)
+            {
+                return horizontalVelocity;
+            }
+
+            float moveDistance = horizontalVelocity.magnitude * Time.deltaTime;
+            if (moveDistance <= 0.0001f)
+            {
+                return horizontalVelocity;
+            }
+
+            Vector3 center = _transform.TransformPoint(_cc.center);
+            float queryRadius = Mathf.Max(_cc.radius + moveDistance + 0.08f, 0.2f);
+            int count = Physics.OverlapSphereNonAlloc(center, queryRadius, CharacterBlockOverlaps, ~0, QueryTriggerInteraction.Ignore);
+            if (count <= 0)
+            {
+                return horizontalVelocity;
+            }
+
+            Vector3 adjustedVelocity = horizontalVelocity;
+            for (int i = 0; i < count; i++)
+            {
+                Collider other = CharacterBlockOverlaps[i];
+                CharacterBlockOverlaps[i] = null;
+                if (other == null || other.transform.IsChildOf(_transform))
+                {
+                    continue;
+                }
+
+                var otherCharacter = other.GetComponentInParent<BBBCharacterController>();
+                if (otherCharacter == null || otherCharacter == _player || otherCharacter.CharController == null)
+                {
+                    continue;
+                }
+
+                Vector3 toOther = otherCharacter.transform.position - _transform.position;
+                toOther.y = 0f;
+                float sqrDistance = toOther.sqrMagnitude;
+                if (sqrDistance <= 0.0001f)
+                {
+                    continue;
+                }
+
+                Vector3 toOtherDir = toOther.normalized;
+                float inwardSpeed = Vector3.Dot(adjustedVelocity, toOtherDir);
+                if (inwardSpeed <= 0f)
+                {
+                    continue;
+                }
+
+                float blockDistance = Mathf.Max(0.1f, _cc.radius) + Mathf.Max(0.1f, otherCharacter.CharController.radius) + 0.05f;
+                if (Mathf.Sqrt(sqrDistance) > blockDistance)
+                {
+                    continue;
+                }
+
+                adjustedVelocity -= toOtherDir * inwardSpeed;
+            }
+
+            return adjustedVelocity;
         }
 
         #endregion

@@ -82,6 +82,8 @@ namespace BBBNexus
         public float RequestedTargetYaw = float.NaN;
         /// <summary>RequestedTargetYaw 对应的平滑时间。0 = 立即到位</summary>
         public float RequestedYawSmoothTime;
+        /// <summary>外部请求的瞬时水平位移（世界空间，单位米）。MotionDriver 每帧消费后清除。</summary>
+        public Vector3 RequestedHorizontalDisplacement;
         #endregion
 
         #region 物理与地面状态

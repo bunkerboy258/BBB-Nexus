@@ -223,6 +223,13 @@ namespace BBBNexus
                         return JsonUtility.ToJson(ConfigToolAssetService.CreateScriptableObject(dto.type, dto.path));
                     });
 
+                case "/assets/init-attack-geometry":
+                    return RunBody(request, body =>
+                    {
+                        var dto = JsonUtility.FromJson<InitializeAttackGeometryRequest>(body);
+                        return JsonUtility.ToJson(ConfigToolAssetService.InitializeAttackGeometry(dto.path));
+                    });
+
                 case "/assets/rename":
                     return RunBody(request, body =>
                     {

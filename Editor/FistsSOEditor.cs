@@ -1,4 +1,6 @@
-﻿using UnityEditor;
+using System.IO;
+using Newtonsoft.Json;
+using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
 
@@ -23,6 +25,7 @@ namespace BBBNexus.Editor
         private SerializedProperty _comboWindowStart;
         private SerializedProperty _comboLateBuffer;
         private SerializedProperty _comboPriority;
+        private SerializedProperty _attackGeometryId;
 
         private void OnEnable()
         {
@@ -36,6 +39,7 @@ namespace BBBNexus.Editor
             _comboWindowStart = serializedObject.FindProperty("ComboWindowStart");
             _comboLateBuffer = serializedObject.FindProperty("ComboLateBuffer");
             _comboPriority = serializedObject.FindProperty("ComboPriority");
+            _attackGeometryId = serializedObject.FindProperty("AttackGeometryId");
             Undo.undoRedoPerformed += HandleUndoRedo;
         }
 
@@ -68,7 +72,8 @@ namespace BBBNexus.Editor
                 "ComboAlignmentWindows",
                 "ComboWindowStart",
                 "ComboLateBuffer",
-                "ComboPriority");
+                "ComboPriority",
+                "AttackGeometryId");
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Combo Setup", EditorStyles.boldLabel);
@@ -78,6 +83,8 @@ namespace BBBNexus.Editor
             EditorGUILayout.PropertyField(_comboWindowStart);
             EditorGUILayout.PropertyField(_comboLateBuffer);
             EditorGUILayout.PropertyField(_comboPriority);
+            EditorGUILayout.PropertyField(_attackGeometryId);
+            DrawAttackGeometryActions();
 
             EditorGUILayout.Space();
             DrawComboArrays();
@@ -237,6 +244,42 @@ namespace BBBNexus.Editor
             GUIStyle miniRight = new GUIStyle(mini) { alignment = TextAnchor.MiddleRight };
             GUI.Label(leftLabelRect, $"{Mathf.RoundToInt(startValue * 100f)}%", mini);
             GUI.Label(rightLabelRect, $"{Mathf.RoundToInt(endValue * 100f)}%", miniRight);
+        }
+
+        private void DrawAttackGeometryActions()
+        {
+            using (new EditorGUILayout.HorizontalScope())
+            {
+                if (GUILayout.Button("写入几何模板 JSON"))
+                {
+                    WriteAttackGeometryTemplateJson();
+                }
+
+                if (GUILayout.Button("清空几何缓存"))
+                {
+                    AttackClipGeometryLibrary.ClearCache();
+                    Repaint();
+                    InternalEditorUtility.RepaintAllViews();
+                }
+            }
+        }
+
+        private void WriteAttackGeometryTemplateJson()
+        {
+            if (target is not FistsSO fists)
+            {
+                return;
+            }
+
+            string geometryId = fists.GetAttackGeometryId();
+            var definition = BuildTemplateDefinition(fists);
+            AttackClipGeometryLibrary.WriteDefinitionAndRegister(geometryId, definition, $"{fists.name} Attack Sweep");
+            Debug.Log($"[FistsSOEditor] Wrote attack geometry template: {AttackClipGeometryLibrary.ToAssetPath(geometryId)}");
+        }
+
+        private static AttackClipGeometryDefinition BuildTemplateDefinition(FistsSO fists)
+        {
+            return AttackClipGeometryTemplateFactory.CreateForFists(fists);
         }
     }
 }
