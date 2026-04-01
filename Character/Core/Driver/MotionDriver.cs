@@ -152,8 +152,16 @@ namespace BBBNexus
         public void UpdateGravityOnly()
         {
             ConsumeYawRequest();
+            // 即使只做重力，也要消费并阻挡水平位移请求（攻击对齐等），防止撞入其他角色
+            Vector3 hv = Vector3.zero;
+            Vector3 requestedDisplacement = ConsumeRequestedHorizontalDisplacement();
+            if (requestedDisplacement.sqrMagnitude > 0.0001f && Time.deltaTime > 0.000001f)
+            {
+                hv = requestedDisplacement / Time.deltaTime;
+            }
+            hv = ResolveCharacterBlocking(hv);
             Vector3 vv = GetGravityThisFrame();
-            _cc.Move(vv * Time.deltaTime);
+            _cc.Move((hv + vv) * Time.deltaTime);
             _data.CurrentSpeed = _cc.velocity.magnitude;
         }
 
@@ -257,6 +265,10 @@ namespace BBBNexus
 
             float rotVelY = _warp.Data.LocalRotationY.Evaluate(normalizedTime);
 
+            // Warp 也需要防撞：只阻挡水平分量，保留垂直
+            Vector3 warpHorizontal = new Vector3(finalVelocity.x, 0f, finalVelocity.z);
+            warpHorizontal = ResolveCharacterBlocking(warpHorizontal);
+            finalVelocity = new Vector3(warpHorizontal.x, finalVelocity.y, warpHorizontal.z);
             _cc.Move(finalVelocity * Time.deltaTime);
             if (Mathf.Abs(rotVelY) > 0.0001f)
                 _transform.Rotate(0f, rotVelY * Time.deltaTime, 0f, Space.World);
@@ -278,7 +290,10 @@ namespace BBBNexus
                 horizontalVelocity += requestedDisplacement / Time.deltaTime;
             }
 
+            // 统一出口：所有水平速度在 Move 前都要做角色间防碰撞，
+            // 墙壁与地形仍由 CharacterController 原生碰撞负责。
             horizontalVelocity = ResolveCharacterBlocking(horizontalVelocity);
+
             Vector3 vv = GetGravityThisFrame();
             _cc.Move((horizontalVelocity + vv) * Time.deltaTime);
             _data.CurrentSpeed = _cc.velocity.magnitude;

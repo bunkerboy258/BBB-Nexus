@@ -310,6 +310,10 @@ namespace BBBNexus
             }
             else
             {
+                // VisualExit 的语义是“纯视觉收尾，不保留动作锁”。
+                // 所以进入 visual exit 的瞬间就应该释放 ActionControl / Override，
+                // 而不是等 visual clip 播完才释放，否则它本质上还是 lock exit。
+                _player.ArbiterPipeline?.Action?.CancelActiveAction(stopAnimation: false);
                 _player.AnimFacade?.ClearOverrideOnEndCallback();
                 _isExitingStance = false;
                 PlayVisualExitIfAny();
@@ -891,10 +895,16 @@ namespace BBBNexus
             var visualExit = GetExitTransition();
             if (visualExit == null)
             {
+                _player?.AnimFacade?.StopFullBodyAction();
                 return;
             }
 
             _player.AnimFacade?.PlayFullBodyActionTransition(visualExit);
+            _player.AnimFacade?.SetOnEndCallback(() =>
+            {
+                _player?.AnimFacade?.StopFullBodyAction();
+                _player?.AnimFacade?.ClearOnEndCallback(0);
+            }, 0);
         }
 
         private bool TryExecuteQueuedAttack()

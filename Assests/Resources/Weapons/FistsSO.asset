@@ -136,13 +136,13 @@ MonoBehaviour:
     StartNormalized: 0.32237545
     EndNormalized: 0.59809136
   ComboAlignmentWindows:
-  - Enabled: 0
+  - Enabled: 1
     StartNormalized: 0
-    EndNormalized: 0.25
-  - Enabled: 0
+    EndNormalized: 0.24151644
+  - Enabled: 1
     StartNormalized: 0
-    EndNormalized: 0.25
-  - Enabled: 0
+    EndNormalized: 0.24999999
+  - Enabled: 1
     StartNormalized: 0
     EndNormalized: 0.25
   ComboWindowStart: 0.5
@@ -150,7 +150,7 @@ MonoBehaviour:
   ComboPriority: 25
   SprintCameraPreset: {fileID: 11400000, guid: 7d284d21bb04e824aba09ad91963a1b8, type: 2}
   AutoTargetTurnSpeed: 540
-  AttackGeometryResourcePath: 
+  AttackGeometryId: 
   references:
     version: 2
     RefIds: []
