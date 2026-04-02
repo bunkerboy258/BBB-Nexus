@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fbdde6f2413620344a353ed65943708e, type: 3}
-  m_Name: ZombieFistsSO
+  m_Name: ZombieFists
   m_EditorClassIdentifier: 
-  ItemID: 24219c90-4992-49ba-a700-8ca69b336ec1
+  ItemID: ZombieFists
   DisplayName: Zombie Fists
   Icon: {fileID: 0}
   Description: Zombie melee combo using the shared fists hitbox pipeline.
@@ -67,10 +67,39 @@ MonoBehaviour:
     Speed: -1
     NormalizedTime: -1
     ForcePhaseSync: 0
+  CameraPreset: {fileID: 0}
   VirtualOtherSlot:
     Enabled: 1
     TargetSlot: 2
-    ItemId: ZombieFistsSO
+    ItemId: ZombieFists
+  EquipSounds:
+  - {fileID: 8300000, guid: 9e30c13965a36024280ee460e175fea2, type: 3}
+  - {fileID: 8300000, guid: 420556c91096cd44a914a9c0211c8c7d, type: 3}
+  UnEquipSounds: []
+  MeleeAudio:
+    EnterStanceSounds:
+    - {fileID: 8300000, guid: 8f611ba075fbdec44bc8b17c4713ed3f, type: 3}
+    - {fileID: 8300000, guid: 5d2faa914f32a72499531fbbdc6f4a5c, type: 3}
+    - {fileID: 8300000, guid: 3c76d5fdd7c0a21449e106e66a188a6c, type: 3}
+    ComboSwingSounds: []
+    HitSounds:
+    - {fileID: 8300000, guid: b5dd1682e1527704fbabee0208e5ec26, type: 3}
+    - {fileID: 8300000, guid: aaea79465f40b924fbb6bb338a1905da, type: 3}
+    - {fileID: 8300000, guid: 9e91f6b4d22885d4482f895857833f5a, type: 3}
+    - {fileID: 8300000, guid: fbd73e619dcf48e40b55eaebee619403, type: 3}
+    - {fileID: 8300000, guid: 41df8b407c9267e438aaf92bab360832, type: 3}
+    - {fileID: 8300000, guid: e21813588667a1e44b73b11304818ef1, type: 3}
+    - {fileID: 8300000, guid: 493cec6d161d6994d8bb05a79ba7affb, type: 3}
+    - {fileID: 8300000, guid: 772244e7c1ba34c4e82bcea2b0d1d214, type: 3}
+    ExitStanceSounds:
+    - {fileID: 8300000, guid: 8fbdda83ee795ad489bd0c05cbbf4a81, type: 3}
+    - {fileID: 8300000, guid: 7de28999b358ec547aad1a64ac01b20b, type: 3}
+  RangedAudio:
+    EnterAimSounds: []
+    ExitAimSounds: []
+    ReloadSounds: []
+    ShootSounds: []
+    ProjectileHitSounds: []
   EnterStanceAnim:
     _FadeDuration: 0.25
     _Speed: 1
@@ -89,6 +118,7 @@ MonoBehaviour:
       _Names: []
     _Clip: {fileID: 0}
     _NormalizedStartTime: NaN
+  ExitUsesLock: 0
   ComboSequence:
   - _FadeDuration: 1.4363335
     _Speed: 2
@@ -129,9 +159,22 @@ MonoBehaviour:
   - Enabled: 1
     StartNormalized: 0.36
     EndNormalized: 0.66
+  ComboAlignmentWindows:
+  - Enabled: 0
+    StartNormalized: 0
+    EndNormalized: 0.25
+  - Enabled: 0
+    StartNormalized: 0
+    EndNormalized: 0.25
+  - Enabled: 0
+    StartNormalized: 0
+    EndNormalized: 0.25
   ComboWindowStart: 0.42
   ComboLateBuffer: 0.15
   ComboPriority: 30
+  SprintCameraPreset: {fileID: 0}
+  AutoTargetTurnSpeed: 540
+  AttackGeometryId: 
   references:
     version: 2
     RefIds: []

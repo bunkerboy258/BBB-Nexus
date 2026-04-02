@@ -37,6 +37,9 @@ namespace BBBNexus
         public ClipTransition ReloadAnim;
         public AnimPlayOptions ReloadAnimOptions = AnimPlayOptions.UpperBodyDefault;
 
+        [Tooltip("该枪消耗的背包弹药类型。弹匣状态仍保留在 .ammo，备用弹药改走 inventory/.item。")]
+        public AmmoItemSO AmmoItem;
+
         // 如果你有专门的瞄准动画、换弹动画，统统配在这里
         // public ClipTransition AimIdleAnim;
     }

@@ -27,26 +27,8 @@ namespace BBBNexus
         [SerializeField] private LayerMask _occlusionMask = ~0;
 
         [Header("--- 理智规则 ---")]
-        [Tooltip("闭眼时每秒扣除的理智量")]
-        [SerializeField] private float _eyesClosedDrainRate = 4f;
-
-        [Tooltip("睁眼且暴露在阳光下时每秒扣除的理智量")]
-        [SerializeField] private float _sunDrainRate = 12f;
-
-        [Tooltip("睁眼且未暴晒时，第一阶段每秒恢复的理智量")]
-        [SerializeField] private float _recoverRateStage1 = 3f;
-
-        [Tooltip("睁眼且未暴晒时，第二阶段每秒恢复的理智量")]
-        [SerializeField] private float _recoverRateStage2 = 7f;
-
-        [Tooltip("睁眼且未暴晒时，第三阶段每秒恢复的理智量")]
-        [SerializeField] private float _recoverRateStage3 = 12f;
-
-        [Tooltip("从睁眼恢复开始，第一阶段持续时长")]
-        [SerializeField] private float _recoverStage1Duration = 0.8f;
-
-        [Tooltip("从睁眼恢复开始，第二阶段持续时长")]
-        [SerializeField] private float _recoverStage2Duration = 2.0f;
+        [Tooltip("理智数值配置 SO，留空时使用内置默认值")]
+        [SerializeField] private SanityConfigSO _sanityConfig;
 
         [Header("--- 事件 ---")]
         [Tooltip("理智归零时触发（仅触发一次，直到理智恢复）")]
@@ -66,10 +48,11 @@ namespace BBBNexus
 
         private void Awake()
         {
+            if (_sanityConfig == null)
+                _defaultConfig = ScriptableObject.CreateInstance<SanityConfigSO>();
+
             if (_character == null)
-            {
                 _character = BBBCharacterController.PlayerInstance;
-            }
 
             if (_sunLight == null)
                 TryFindSun();
@@ -97,12 +80,12 @@ namespace BBBNexus
             if (IsEyesClosed)
             {
                 _openRecoveryTimer = 0f;
-                ApplySanityDelta(-_eyesClosedDrainRate * Time.deltaTime);
+                ApplySanityDelta(-Cfg.EyesClosedDrainRate * Time.deltaTime);
             }
             else if (IsExposedToSun)
             {
                 _openRecoveryTimer = 0f;
-                ApplySanityDelta(-_sunDrainRate * Time.deltaTime);
+                ApplySanityDelta(-Cfg.SunDrainRate * Time.deltaTime);
             }
             else
             {
@@ -132,19 +115,19 @@ namespace BBBNexus
             return transform.position + Vector3.up * _rayOriginHeightOffset;
         }
 
+        // 兜底默认值（仅在 _sanityConfig 未赋值时使用，在 Awake 中创建）
+        private SanityConfigSO _defaultConfig;
+        private SanityConfigSO Cfg => _sanityConfig != null ? _sanityConfig : _defaultConfig;
+
         private float GetOpenRecoveryRate(float openDuration)
         {
-            if (openDuration < _recoverStage1Duration)
-            {
-                return _recoverRateStage1;
-            }
+            if (openDuration < Cfg.RecoverStage1Duration)
+                return Cfg.RecoverRateStage1;
 
-            if (openDuration < _recoverStage2Duration)
-            {
-                return _recoverRateStage2;
-            }
+            if (openDuration < Cfg.RecoverStage2Duration)
+                return Cfg.RecoverRateStage2;
 
-            return _recoverRateStage3;
+            return Cfg.RecoverRateStage3;
         }
 
         private void ApplySanityDelta(float delta)

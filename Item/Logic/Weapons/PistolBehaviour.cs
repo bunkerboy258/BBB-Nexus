@@ -3,7 +3,7 @@ using UnityEngine;
 namespace BBBNexus
 {
     // 手枪行为：装备后维持上半身枪姿；右键时申请 Aim 全身状态；Aim 时允许持续开火。
-    public class PistolBehaviour : MonoBehaviour, IHoldableItem, IPoolable
+    public class PistolBehaviour : MonoBehaviour, IHoldableItem, IPoolable, IManualReloadable
     {
         private const float DefaultHitScanRange = 80f;
         private const float DefaultDamageAmount = 10f;
@@ -32,9 +32,10 @@ namespace BBBNexus
         public EquipmentSlot CurrentEquipSlot { get; set; }
         public bool HasCachedAmmo => _hasCachedAmmo;
         public int CurrentMagazine => _hasCachedAmmo && _cachedAmmoState != null ? _cachedAmmoState.CurrentMagazine : 0;
-        public int ReserveAmmo => _hasCachedAmmo && _cachedAmmoState != null ? _cachedAmmoState.ReserveAmmo : 0;
+        public int ReserveAmmo => ResolveReserveAmmo();
         public bool IsReloading => _cachedReloadState != null && _cachedReloadState.IsReloading;
         public float ReloadEndTime => _cachedReloadState != null ? _cachedReloadState.ReloadEndTime : 0f;
+        public bool CanManualReload => CanStartReload();
 
         public void Initialize(ItemInstance instanceData)
         {
@@ -80,6 +81,7 @@ namespace BBBNexus
             if ((_player.CharacterArbiter != null && _player.CharacterArbiter.IsUnderStatusControl()) ||
                 (_player.CharacterArbiter != null && _player.CharacterArbiter.IsActionBlocked()))
             {
+                CancelReload(false);
                 return;
             }
 
@@ -148,19 +150,23 @@ namespace BBBNexus
                     : _player.RuntimeData.WantsToPrimaryAction;
 
                 if (wantsToFire)
+                {
+                    CancelReload(false);
                     TryFire();
+                }
             }
 
             // 检查换弹是否完成喵~
             if (_hasCachedAmmo && _cachedReloadState.IsReloading && Time.time >= _cachedReloadState.ReloadEndTime)
             {
-                CompleteReload();
+                CompleteReloadCycle();
             }
         }
 
         public void OnForceUnequip()
         {
             // 卸载时保存状态喵~
+            CancelReload(false);
             SaveAmmoState();
             SaveReloadState();
 
@@ -185,16 +191,14 @@ namespace BBBNexus
 
         private void TryFire()
         {
-            // 检查弹药喵~
-            if (!_hasCachedAmmo || _cachedAmmoState.CurrentMagazine <= 0)
+            // 检查是否正在换弹喵~
+            if (_cachedReloadState.IsReloading)
             {
-                // 弹匣为空，尝试自动换弹喵~
-                TryReload();
                 return;
             }
 
-            // 检查是否正在换弹喵~
-            if (_cachedReloadState.IsReloading)
+            // 检查弹药喵~
+            if (!_hasCachedAmmo || _cachedAmmoState.CurrentMagazine <= 0)
             {
                 return;
             }
@@ -211,9 +215,9 @@ namespace BBBNexus
 
             _lastFireTime = Time.time;
 
-            if (_config.ShootSound != null && _muzzle != null)
+            if (_muzzle != null)
             {
-                AudioSource.PlayClipAtPoint(_config.ShootSound, _muzzle.position);
+                WeaponAudioUtil.PlayAt(_config.RangedAudio.ShootSounds, _muzzle.position);
             }
 
             if (_config.MuzzleVFXPrefab != null && _muzzle != null)
@@ -294,10 +298,7 @@ namespace BBBNexus
                         damageable.RequestDamage(in request);
                     }
 
-                    if (_config.ProjectileHitSound != null)
-                    {
-                        AudioSource.PlayClipAtPoint(_config.ProjectileHitSound, hit.point);
-                    }
+                    WeaponAudioUtil.PlayAt(_config.RangedAudio.ProjectileHitSounds, hit.point);
                 }
             }
 
@@ -380,8 +381,8 @@ namespace BBBNexus
                 // 首次装备，初始化弹药状态
                 _cachedAmmoState = new AmmoStateData
                 {
-                    CurrentMagazine = _config.MagazineSize,
-                    ReserveAmmo = 9999, // 无限备用弹
+                    CurrentMagazine = 0,
+                    ReserveAmmo = 0,
                     ShotsFired = 0
                 };
                 _hasCachedAmmo = true;
@@ -422,58 +423,95 @@ namespace BBBNexus
         /// <summary>
         /// 尝试换弹喵~
         /// </summary>
-        private void TryReload()
+        public bool RequestManualReload()
+        {
+            return TryReloadInternal();
+        }
+
+        private bool TryReloadInternal()
         {
             if (_player == null || _config == null || !_hasCachedAmmo)
-                return;
+                return false;
 
             // 检查是否可以换弹
             if (_cachedReloadState.IsReloading)
-                return;
+                return false;
 
             // 检查弹匣是否已满
             if (_cachedAmmoState.CurrentMagazine >= _config.MagazineSize)
-                return;
+                return false;
 
-            // 确定换弹时间（战术换弹 or 普通换弹）喵~
-            float reloadTime = _cachedAmmoState.CurrentMagazine > 0
-                ? _config.TacticalReloadTime
-                : _config.ReloadTime;
+            // 背包里没有对应弹药时不允许换弹
+            if (ReserveAmmo <= 0)
+                return false;
 
-            // 开始换弹喵~
-            _cachedReloadState.IsReloading = true;
-            _cachedReloadState.ReloadStartTime = Time.time;
-            _cachedReloadState.ReloadEndTime = Time.time + reloadTime;
-            SaveReloadState();
-
-            // 播放换弹动画
-            if (_config.ReloadAnim != null)
-            {
-                _player.AnimFacade.PlayTransition(_config.ReloadAnim, _config.ReloadAnimOptions);
-            }
+            StartReloadCycle();
+            return _cachedReloadState.IsReloading;
         }
 
         /// <summary>
-        /// 完成换弹喵~
+        /// 完成单发装填，并在需要时继续下一段换弹喵~
         /// </summary>
-        private void CompleteReload()
+        private void CompleteReloadCycle()
         {
             if (!_hasCachedAmmo) return;
 
-            // 完成换弹
-            _cachedReloadState.IsReloading = false;
-            _cachedReloadState.ReloadStartTime = 0f;
-            _cachedReloadState.ReloadEndTime = 0f;
-            _cachedAmmoState.CurrentMagazine = _config.MagazineSize;
-
-            SaveReloadState();
-            SaveAmmoState();
-
-            // 换弹完成后恢复待机动画
-            if (_config.ReloadAnim != null && _player != null)
+            bool loadedOneRound = TryConsumeReserveAmmo(1);
+            if (loadedOneRound)
             {
-                _player.AnimFacade.PlayTransition(_config.EquipIdleAnim, _config.EquipIdleAnimOptions);
+                _cachedAmmoState.CurrentMagazine += 1;
             }
+
+            _cachedAmmoState.ReserveAmmo = ReserveAmmo;
+            SaveAmmoState();
+            if (loadedOneRound && CanContinueReload())
+            {
+                StartReloadCycle();
+                return;
+            }
+
+            CancelReload(true);
+        }
+
+        private int ResolveReserveAmmo()
+        {
+            if (_player == null || _config == null)
+            {
+                return _hasCachedAmmo && _cachedAmmoState != null ? _cachedAmmoState.ReserveAmmo : 0;
+            }
+
+            if (_config.AmmoItem == null || string.IsNullOrWhiteSpace(_config.AmmoItem.ItemID))
+            {
+                return _hasCachedAmmo && _cachedAmmoState != null ? _cachedAmmoState.ReserveAmmo : 0;
+            }
+
+            return ItemPackVfs.GetItemCount(_config.AmmoItem.ItemID, _player);
+        }
+
+        private bool TryConsumeReserveAmmo(int amount)
+        {
+            if (amount <= 0)
+            {
+                return true;
+            }
+
+            if (_player == null || _config == null)
+            {
+                return false;
+            }
+
+            if (_config.AmmoItem == null || string.IsNullOrWhiteSpace(_config.AmmoItem.ItemID))
+            {
+                if (_cachedAmmoState == null || _cachedAmmoState.ReserveAmmo < amount)
+                {
+                    return false;
+                }
+
+                _cachedAmmoState.ReserveAmmo -= amount;
+                return true;
+            }
+
+            return ItemPackVfs.TryConsumeItem(_config.AmmoItem.ItemID, amount, _player);
         }
 
         public void OnSpawned()
@@ -481,6 +519,76 @@ namespace BBBNexus
             _isEquipping = false;
             _wasAiming = false;
             _lastFireTime = 0f;
+        }
+
+        private bool CanStartReload()
+        {
+            if (_player == null || _config == null || !_hasCachedAmmo || _cachedReloadState == null)
+            {
+                return false;
+            }
+
+            if (_cachedReloadState.IsReloading)
+            {
+                return false;
+            }
+
+            if (_cachedAmmoState == null || _cachedAmmoState.CurrentMagazine >= _config.MagazineSize)
+            {
+                return false;
+            }
+
+            return ReserveAmmo > 0;
+        }
+
+        private bool CanContinueReload()
+        {
+            if (!_hasCachedAmmo || _cachedAmmoState == null || _config == null)
+            {
+                return false;
+            }
+
+            if (_cachedAmmoState.CurrentMagazine >= _config.MagazineSize)
+            {
+                return false;
+            }
+
+            return ReserveAmmo > 0;
+        }
+
+        private void StartReloadCycle()
+        {
+            float reloadTime = _cachedAmmoState.CurrentMagazine > 0
+                ? _config.TacticalReloadTime
+                : _config.ReloadTime;
+
+            _cachedReloadState.IsReloading = true;
+            _cachedReloadState.ReloadStartTime = Time.time;
+            _cachedReloadState.ReloadEndTime = Time.time + reloadTime;
+            SaveReloadState();
+
+            if (_config.ReloadAnim != null && _config.ReloadAnim.Clip != null)
+            {
+                _player.AnimFacade.PlayTransition(_config.ReloadAnim, _config.ReloadAnimOptions);
+            }
+        }
+
+        private void CancelReload(bool restoreIdle)
+        {
+            if (_cachedReloadState == null || !_cachedReloadState.IsReloading)
+            {
+                return;
+            }
+
+            _cachedReloadState.IsReloading = false;
+            _cachedReloadState.ReloadStartTime = 0f;
+            _cachedReloadState.ReloadEndTime = 0f;
+            SaveReloadState();
+
+            if (restoreIdle && _config != null && _config.EquipIdleAnim != null && _player != null)
+            {
+                _player.AnimFacade.PlayTransition(_config.EquipIdleAnim, _config.EquipIdleAnimOptions);
+            }
         }
 
         public void OnDespawned() { }

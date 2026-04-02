@@ -93,6 +93,8 @@ namespace BBBNexus
                 so.CameraSide        = tpf.CameraSide;
                 so.CameraDistance    = tpf.CameraDistance;
                 so.CameraRadius      = tpf.CameraRadius;
+                so.DampingIntoCollision = tpf.DampingIntoCollision;
+                so.DampingFromCollision = tpf.DampingFromCollision;
             }
         }
 
@@ -109,6 +111,8 @@ namespace BBBNexus
                 tpf.CameraSide        = so.CameraSide;
                 tpf.CameraDistance    = so.CameraDistance;
                 tpf.CameraRadius      = so.CameraRadius;
+                tpf.DampingIntoCollision = so.DampingIntoCollision;
+                tpf.DampingFromCollision = so.DampingFromCollision;
             }
         }
 #endif

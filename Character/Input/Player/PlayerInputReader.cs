@@ -43,14 +43,30 @@ namespace BBBNexus
         public InputActionReference expression7Action;
         public InputActionReference expression8Action;
 
-        [Header("额外动作输入引用")]
-        public InputActionReference extraAction1Action;  // 闭眼 Q 键
-        public InputActionReference extraAction2Action;  // 预留
-        public InputActionReference extraAction3Action;  // 预留
-        public InputActionReference extraAction4Action;  // 预留
+        [Header("游戏专属动作输入引用")]
+        [Tooltip("切换闭眼（tap）→ ExtraAction1JustPressed")]
+        public InputActionReference toggleEyesAction;
+        [Tooltip("按住闭眼（hold）→ ExtraAction1Held")]
+        public InputActionReference holdEyesAction;
+        [Tooltip("换弹 R 键 → ExtraAction2JustPressed")]
+        public InputActionReference reloadAction;
+        [Tooltip("使用道具 F 键 → ExtraAction3JustPressed")]
+        public InputActionReference useItemAction;
+        [Tooltip("打开背包 Tab 键 → InventoryJustPressed")]
+        public InputActionReference inventoryAction;
+        [Tooltip("预留 → ExtraAction4JustPressed")]
+        public InputActionReference extraAction4Action;
         #endregion
 
-        private void OnEnable() => ToggleActions(true);
+        private InputAction _resolvedReloadFallback;   // 兜底：从 asset 里找 "Reload"
+        private InputAction _resolvedUseItemFallback;  // 兜底：从 asset 里找 "UseItem"
+
+        private void OnEnable()
+        {
+            ResolveFallbackActions();
+            ToggleActions(true);
+        }
+
         private void OnDisable() => ToggleActions(false);
 
         public override void FetchRawInput(ref RawInputData rawData)
@@ -105,10 +121,17 @@ namespace BBBNexus
             rawData.Expression7JustPressed = expression7Action != null && expression7Action.action.WasPressedThisFrame();
             rawData.Expression8JustPressed = expression8Action != null && expression8Action.action.WasPressedThisFrame();
 
-            rawData.ExtraAction1JustPressed = extraAction1Action != null && extraAction1Action.action.WasPressedThisFrame();
-            rawData.ExtraAction2JustPressed = extraAction2Action != null && extraAction2Action.action.WasPressedThisFrame();
-            rawData.ExtraAction3JustPressed = extraAction3Action != null && extraAction3Action.action.WasPressedThisFrame();
+            rawData.ToggleEyesJustPressed   = toggleEyesAction  != null && toggleEyesAction.action.WasPressedThisFrame();
+            rawData.HoldEyesHeld            = holdEyesAction    != null && holdEyesAction.action.IsPressed();
+            rawData.ReloadJustPressed       = WasPressedThisFrame(reloadAction,  _resolvedReloadFallback);
+            rawData.UseItemJustPressed      = WasPressedThisFrame(useItemAction, _resolvedUseItemFallback);
+            rawData.InventoryJustPressed    = inventoryAction   != null && inventoryAction.action.WasPressedThisFrame();
             rawData.ExtraAction4JustPressed = extraAction4Action != null && extraAction4Action.action.WasPressedThisFrame();
+
+            if (rawData.InventoryJustPressed)
+            {
+                Debug.Log($"[InventoryTrace] frame={Time.frameCount} InventoryJustPressed=true actionBound={inventoryAction != null}", this);
+            }
 
             rawData.Number1JustPressed = number1Action != null && number1Action.action.WasPressedThisFrame();
             rawData.Number2JustPressed = number2Action != null && number2Action.action.WasPressedThisFrame();
@@ -127,6 +150,8 @@ namespace BBBNexus
 
         private void ToggleActions(bool enable)
         {
+            ResolveFallbackActions();
+
             InputActionReference[] all = {
                 moveAction, lookAction, jumpAction, sprintAction, walkAction,
                 aimAction, dodgeAction, rollAction,
@@ -134,7 +159,7 @@ namespace BBBNexus
                 number1Action, number2Action, number3Action, number4Action, number5Action,
                 expression1Action, expression2Action, expression3Action, expression4Action,
                 expression5Action, expression6Action, expression7Action, expression8Action,
-                extraAction1Action, extraAction2Action, extraAction3Action, extraAction4Action
+                toggleEyesAction, holdEyesAction, reloadAction, useItemAction, inventoryAction, extraAction4Action
             };
 
             foreach (var ar in all)
@@ -142,6 +167,66 @@ namespace BBBNexus
                 if (ar == null) continue;
                 if (enable) ar.action.Enable();
                 else ar.action.Disable();
+            }
+
+            ToggleResolvedAction(_resolvedReloadFallback,  reloadAction,   enable);
+            ToggleResolvedAction(_resolvedUseItemFallback, useItemAction,  enable);
+        }
+
+        private void ResolveFallbackActions()
+        {
+            var asset = ResolveAnyBoundAsset();
+            _resolvedReloadFallback  = asset != null ? asset.FindAction("Reload",   throwIfNotFound: false) : null;
+            _resolvedUseItemFallback = asset != null ? asset.FindAction("UseItem",  throwIfNotFound: false) : null;
+        }
+
+        private InputActionAsset ResolveAnyBoundAsset()
+        {
+            InputActionReference[] all = {
+                moveAction, lookAction, jumpAction, sprintAction, walkAction,
+                aimAction, dodgeAction, rollAction, interactAction,
+                primaryAttackAction, secondaryAttackAction,
+                toggleEyesAction, holdEyesAction, reloadAction, useItemAction, inventoryAction, extraAction4Action
+            };
+
+            foreach (var actionRef in all)
+            {
+                var asset = actionRef?.action?.actionMap?.asset;
+                if (asset != null)
+                {
+                    return asset;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool WasPressedThisFrame(InputActionReference actionRef, InputAction fallbackAction)
+        {
+            if (actionRef != null && actionRef.action != null && actionRef.action.WasPressedThisFrame())
+            {
+                return true;
+            }
+
+            return fallbackAction != null &&
+                   fallbackAction != actionRef?.action &&
+                   fallbackAction.WasPressedThisFrame();
+        }
+
+        private static void ToggleResolvedAction(InputAction action, InputActionReference boundReference, bool enable)
+        {
+            if (action == null || action == boundReference?.action)
+            {
+                return;
+            }
+
+            if (enable)
+            {
+                action.Enable();
+            }
+            else
+            {
+                action.Disable();
             }
         }
     }

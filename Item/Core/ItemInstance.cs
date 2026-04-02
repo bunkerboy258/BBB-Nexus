@@ -19,9 +19,14 @@ namespace BBBNexus
         // 构造函数 接收静态配置与初始数量 生成一个内存中的独立实例 
         // 每次构造都会分配新的 InstanceID 即使配置相同 
         public ItemInstance(ItemDefinitionSO baseData, int amount = 1)
+            : this(baseData, Guid.NewGuid().ToString(), amount)
+        {
+        }
+
+        public ItemInstance(ItemDefinitionSO baseData, string instanceId, int amount = 1)
         {
             // 使用 GUID 保证全局唯一性 即使在不同场景或会话中也不会重复 
-            InstanceID = Guid.NewGuid().ToString();
+            InstanceID = string.IsNullOrWhiteSpace(instanceId) ? Guid.NewGuid().ToString() : instanceId;
             // 保存配置引用 后续所有查询都通过这个引用获取数据 
             BaseData = baseData;
             // 初始化堆叠数量 

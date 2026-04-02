@@ -9,9 +9,9 @@ namespace BBBNexus
     {
         private readonly Transform _emitter;
         private readonly AudioSource _source;
-        private readonly AudioSO _audio;
+        private readonly LocomotionAudioSO _audio;
 
-        public AudioDriver(Transform emitter, AudioSource source, AudioSO audio)
+        public AudioDriver(Transform emitter, AudioSource source, LocomotionAudioSO audio)
         {
             _emitter = emitter;
             _source = source;

@@ -155,8 +155,7 @@ namespace BBBNexus
             float clipLen = request.Clip.length;
             _attackFallbackEndTime = Time.time + Mathf.Max(0.05f, clipLen + AttackFallbackExtraTime);
 
-            if (_config.SwingSound != null)
-                AudioSource.PlayClipAtPoint(_config.SwingSound, transform.position);
+            WeaponAudioUtil.PlayAt(_config.MeleeAudio.HitSounds, transform.position);
 
             _player.RequestOverride(request, flushImmediately: true);
         }

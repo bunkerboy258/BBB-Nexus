@@ -22,84 +22,158 @@ namespace BBBNexus
     /// </summary>
     public class ExtraActionController
     {
+        private const string DefaultQuickHealItemId = "BloodVial";
+
+        private readonly BBBCharacterController _player;
         private readonly PlayerRuntimeData _runtimeData;
         private readonly EyesClosedSystemManager _eyesClosedManager;
 
         // 状态追踪（边沿检测）
-        private bool _lastExtraAction1;
-        private bool _lastExtraAction2;
-        private bool _lastExtraAction3;
+        private bool _lastToggleEyes;
+        private bool _lastReload;
+        private bool _lastUseItem;
+        private bool _lastOpenInventory;
         private bool _lastExtraAction4;
 
-        public ExtraActionController(PlayerRuntimeData runtimeData, EyesClosedSystemManager eyesClosedManager)
+        public ExtraActionController(BBBCharacterController player, PlayerRuntimeData runtimeData, EyesClosedSystemManager eyesClosedManager)
         {
+            _player = player;
             _runtimeData = runtimeData;
             _eyesClosedManager = eyesClosedManager;
         }
 
         public void Update()
         {
-            // 检测 ExtraAction1-4 的边沿触发（从 false 到 true 的跳变）
-            ProcessExtraAction1();
-            ProcessExtraAction2();
-            ProcessExtraAction3();
+            ProcessToggleEyes();
+            ProcessReload();
+            ProcessUseItem();
+            ProcessOpenInventory();
             ProcessExtraAction4();
         }
 
-        /// <summary>
-        /// ExtraAction1：闭眼交互（Toggle 状态）
-        /// </summary>
-        private void ProcessExtraAction1()
+        private void ProcessToggleEyes()
         {
-            bool currentIntent = _runtimeData.WantsExtraAction1;
-            if (currentIntent && !_lastExtraAction1)
-            {
-                // Toggle 闭眼状态
+            bool currentIntent = _runtimeData.WantsToggleEyes;
+            if (currentIntent && !_lastToggleEyes)
                 _eyesClosedManager?.ForceSetEyesClosed(!_eyesClosedManager.IsEyesClosed);
-            }
-            _lastExtraAction1 = currentIntent;
+            _lastToggleEyes = currentIntent;
         }
 
-        /// <summary>
-        /// ExtraAction2：预留扩展
-        /// </summary>
-        private void ProcessExtraAction2()
+        private void ProcessReload()
         {
-            bool currentIntent = _runtimeData.WantsExtraAction2;
-            if (currentIntent && !_lastExtraAction2)
-            {
-                // TODO: 未来扩展其他额外动作
-                Debug.Log("[ExtraActionController] ExtraAction2 触发（预留）");
-            }
-            _lastExtraAction2 = currentIntent;
+            bool currentIntent = _runtimeData.WantsReload;
+            if (currentIntent && !_lastReload)
+                TryManualReload();
+            _lastReload = currentIntent;
         }
 
-        /// <summary>
-        /// ExtraAction3：预留扩展
-        /// </summary>
-        private void ProcessExtraAction3()
+        private void ProcessUseItem()
         {
-            bool currentIntent = _runtimeData.WantsExtraAction3;
-            if (currentIntent && !_lastExtraAction3)
-            {
-                // TODO: 未来扩展其他额外动作
-                Debug.Log("[ExtraActionController] ExtraAction3 触发（预留）");
-            }
-            _lastExtraAction3 = currentIntent;
+            bool currentIntent = _runtimeData.WantsUseItem;
+            if (currentIntent && !_lastUseItem)
+                TryUseQuickHeal();
+            _lastUseItem = currentIntent;
         }
 
-        /// <summary>
-        /// ExtraAction4：预留扩展
-        /// </summary>
+        private void ProcessOpenInventory()
+        {
+            bool currentIntent = _runtimeData.WantsOpenInventory;
+            if (currentIntent && !_lastOpenInventory)
+            {
+                Debug.Log($"[InventoryTrace] frame={Time.frameCount} ProcessOpenInventory edge overlayPresent={_player?.InventoryOverlay != null} isOpen={_player?.InventoryOverlay?.IsOpen ?? false}", _player);
+                _player?.InventoryOverlay?.Toggle();
+            }
+            _lastOpenInventory = currentIntent;
+        }
+
         private void ProcessExtraAction4()
         {
             bool currentIntent = _runtimeData.WantsExtraAction4;
             if (currentIntent && !_lastExtraAction4)
-            {
-                // TODO: 未来扩展其他额外动作
                 Debug.Log("[ExtraActionController] ExtraAction4 触发（预留）");
-            }
             _lastExtraAction4 = currentIntent;
+        }
+
+        private void TryManualReload()
+        {
+            if (_player?.EquipmentDriver?.CurrentItemDirector is not IManualReloadable reloadable)
+            {
+                return;
+            }
+
+            if (!reloadable.CanManualReload)
+            {
+                return;
+            }
+
+            reloadable.RequestManualReload();
+        }
+
+        private void TryUseQuickHeal()
+        {
+            if (_player == null || _runtimeData == null || _runtimeData.IsDead)
+            {
+                return;
+            }
+
+            var healItem = ResolveQuickHealItem();
+            if (healItem == null)
+            {
+                Debug.LogWarning($"[ExtraActionController] 未找到快捷治疗物 '{DefaultQuickHealItemId}'。", _player);
+                return;
+            }
+
+            if (!healItem.AllowUseAtFullHealth && _runtimeData.CurrentHealth >= _runtimeData.MaxHealth - 0.01f)
+            {
+                ShowMessage(healItem.FullHealthMessageTitle, healItem.FullHealthMessageBody);
+                return;
+            }
+
+            if (!ItemPackVfs.TryConsumeItem(healItem.ItemID, 1, _player))
+            {
+                ShowMessage(healItem.EmptyMessageTitle, healItem.EmptyMessageBody);
+                return;
+            }
+
+            if (!_player.TryHeal(healItem.HealAmount))
+            {
+                ItemPackVfs.TryAddItem(healItem.ItemID, 1, _player);
+            }
+        }
+
+        private HealingItemSO ResolveQuickHealItem()
+        {
+            if (_player != null && _player.QuickHealItem != null)
+            {
+                return _player.QuickHealItem;
+            }
+
+            var item = MetaLib.GetObject<HealingItemSO>(DefaultQuickHealItemId);
+            if (item != null)
+            {
+                return item;
+            }
+
+            var resources = Resources.LoadAll<HealingItemSO>(string.Empty);
+            for (var i = 0; i < resources.Length; i++)
+            {
+                if (resources[i] != null && resources[i].ItemID == DefaultQuickHealItemId)
+                {
+                    return resources[i];
+                }
+            }
+
+            return null;
+        }
+
+        private void ShowMessage(string title, string body)
+        {
+            if (_player?.ReadingOverlay == null)
+            {
+                return;
+            }
+
+            _player.ReadingOverlay.Show(title, body);
         }
     }
 }

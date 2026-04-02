@@ -56,6 +56,13 @@ namespace BBBNexus
         {
             if (_data.IsDead || _head == _tail) return;
 
+            // 盾牌本帧已拦截：清空伤害队列，人不受伤
+            if (_player.IsShieldBlockedThisFrame)
+            {
+                _head = _tail;
+                return;
+            }
+
             while (_head != _tail)
             {
                 ref var req = ref _damageQueue[_head];
@@ -105,6 +112,19 @@ namespace BBBNexus
                 var death = _player.StateRegistry.GetState<PlayerDeathState>();
                 _player.StateMachine.ChangeState(death);
             }
+        }
+
+        public bool TryHeal(float amount)
+        {
+            if (_data.IsDead || amount <= 0f)
+            {
+                return false;
+            }
+
+            float before = _data.CurrentHealth;
+            float maxHealth = Mathf.Max(1f, _data.MaxHealth);
+            _data.CurrentHealth = Mathf.Clamp(_data.CurrentHealth + amount, 0f, maxHealth);
+            return _data.CurrentHealth > before;
         }
     }
 }

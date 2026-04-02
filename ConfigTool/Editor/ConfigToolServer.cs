@@ -210,6 +210,20 @@ namespace BBBNexus
                         return JsonUtility.ToJson(ConfigToolAssetService.FindClips(dto.query));
                     });
 
+                case "/audio-clips/find":
+                    return RunBody(request, body =>
+                    {
+                        var dto = JsonUtility.FromJson<FindClipRequest>(body);
+                        return JsonUtility.ToJson(ConfigToolAssetService.FindAudioClips(dto.query));
+                    });
+
+                case "/audio-clips/browse":
+                    return RunBody(request, body =>
+                    {
+                        var dto = JsonUtility.FromJson<AudioBrowseRequest>(body);
+                        return JsonUtility.ToJson(ConfigToolAssetService.BrowseAudioClips(dto.folder));
+                    });
+
                 case "/so-types/list":
                     return RunBody(request, _ =>
                     {

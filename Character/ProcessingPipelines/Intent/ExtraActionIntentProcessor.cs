@@ -28,24 +28,29 @@
         /// </summary>
         public void Update(in ProcessedInputData input)
         {
-            // 检测 ExtraAction1-4 输入
-            // 每个动作独立处理，互不覆盖
-            if (input.ExtraAction1Pressed)
+            if (input.ToggleEyesPressed)
             {
-                _data.WantsExtraAction1 = true;
-                _input?.ConsumeExtraAction1Pressed();
+                _data.WantsToggleEyes = true;
+                _input?.ConsumeToggleEyesPressed();
             }
 
-            if (input.ExtraAction2Pressed)
+            if (input.ReloadPressed)
             {
-                _data.WantsExtraAction2 = true;
-                _input?.ConsumeExtraAction2Pressed();
+                _data.WantsReload = true;
+                _input?.ConsumeReloadPressed();
             }
 
-            if (input.ExtraAction3Pressed)
+            if (input.UseItemPressed)
             {
-                _data.WantsExtraAction3 = true;
-                _input?.ConsumeExtraAction3Pressed();
+                _data.WantsUseItem = true;
+                _input?.ConsumeUseItemPressed();
+            }
+
+            if (input.InventoryPressed)
+            {
+                _data.WantsOpenInventory = true;
+                UnityEngine.Debug.Log($"[InventoryTrace] frame={UnityEngine.Time.frameCount} WantsOpenInventory=true");
+                _input?.ConsumeInventoryPressed();
             }
 
             if (input.ExtraAction4Pressed)

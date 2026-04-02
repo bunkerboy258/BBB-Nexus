@@ -13,10 +13,22 @@ MonoBehaviour:
   m_Name: Audio.ai
   m_EditorClassIdentifier: 
   _entries:
-  - Event: 5
+  - Event: 1
     Clips:
-    - {fileID: 8300000, guid: 77aacfe7153bf1546a516c8f004e61bc, type: 3}
+    - {fileID: 8300000, guid: 72f526a6a9890f643a88e85a61c86c8a, type: 3}
+    - {fileID: 8300000, guid: 186de84b3207156479abe98f4958fed0, type: 3}
+    - {fileID: 8300000, guid: 14e8a8d2158bec840b56c54f5266e692, type: 3}
+    - {fileID: 8300000, guid: dd1af302b8902684d9381de1f2d3a5af, type: 3}
+    - {fileID: 8300000, guid: 274649b0e221539409070ebf6c18918b, type: 3}
+  - Event: 2
+    Clips:
+    - {fileID: 8300000, guid: a0e8a5e3248bd49c69888a772b3e8bb4, type: 3}
+    - {fileID: 8300000, guid: 38ce07e9ee203413aaa455275afcf516, type: 3}
+  - Event: 6
+    Clips:
+    - {fileID: 8300000, guid: 533eb084e91004ad5aadaa657cd7151f, type: 3}
+    - {fileID: 8300000, guid: 8eb1d125e75d149949e6344d13c8cee6, type: 3}
   - Event: 7
     Clips:
-    - {fileID: 8300000, guid: 77d421828d1de5f469b0e110b2fcbfd9, type: 3}
-    - {fileID: 8300000, guid: e82a0a7cd2d3391438652bb683381702, type: 3}
+    - {fileID: 8300000, guid: 847c6131d1f3146dba5fbd3b153c7167, type: 3}
+    - {fileID: 8300000, guid: 129860d01a27e46b2bc582c0562ae76f, type: 3}

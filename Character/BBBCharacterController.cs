@@ -38,6 +38,7 @@ namespace BBBNexus
         [Header("--- 核心配置 ---")]
         public PlayerSO Config;
         public Transform PlayerCamera;
+        public HealingItemSO QuickHealItem;
 
         [Header("--- 表现与挂点 ---")]
         public Transform MainhandWeaponContainer;   // 主手（右手）武器容器
@@ -86,10 +87,13 @@ namespace BBBNexus
         public FacialController FacialController { get; private set; }
         public IKController IkController { get; private set; }
         public PlayerInventoryController InventoryController { get; private set; }
+        public PlayerInventoryOverlay InventoryOverlay { get; private set; }
         public ActionController ActionController { get; private set; }
         public AudioController AudioController { get; private set; }
         public ExtraActionController ExtraActionController { get; private set; }
         public ParryHandler ParryHandler { get; private set; }
+        public PlayerInteractionSensor InteractionSensor { get; private set; }
+        public ReadingMessageOverlay ReadingOverlay { get; private set; }
 
         // 驱动器与外观层系统
         public AnimancerComponent Animancer { get; private set; }
@@ -121,6 +125,11 @@ namespace BBBNexus
         public float CurrentHealthForBar => RuntimeData != null ? RuntimeData.CurrentHealth : 0f;
         public float MaxHealthForBar => CurrentMaxHealth;
 
+        private int _shieldBlockedFrame = -1;
+        /// <summary>盾牌被击中时调用，标记本帧已拦截，HealthArbiter 将跳过伤害队列</summary>
+        public void NotifyShieldBlocked() => _shieldBlockedFrame = UnityEngine.Time.frameCount;
+        public bool IsShieldBlockedThisFrame => _shieldBlockedFrame == UnityEngine.Time.frameCount;
+
         //调试用缓存
         private PlayerBaseState _lastState;
         public event System.Action OnEquipmentChanged;
@@ -147,6 +156,8 @@ namespace BBBNexus
             RightFootBone=Animator.GetBoneTransform(HumanBodyBones.RightFoot);
             HeadBone=Animator.GetBoneTransform(HumanBodyBones.Head);
             _debugOverlayRenderers = GetComponentsInChildren<Renderer>(true);
+            InteractionSensor = GetComponentInChildren<PlayerInteractionSensor>(true);
+            ReadingOverlay = GetComponentInChildren<ReadingMessageOverlay>(true);
 
             // 统一的面板依赖注入检查 失败直接抛出异常
             try
@@ -215,6 +226,21 @@ namespace BBBNexus
 
             // 实例化子分层控制器
             InventoryController = new PlayerInventoryController(this);
+            InventoryOverlay = GetComponent<PlayerInventoryOverlay>();
+            if (InventoryOverlay == null && CompareTag("Player"))
+            {
+                InventoryOverlay = gameObject.AddComponent<PlayerInventoryOverlay>();
+                Debug.Log("[InventoryTrace] PlayerInventoryOverlay auto-added to player root.", this);
+            }
+            else if (InventoryOverlay == null)
+            {
+                Debug.LogWarning($"[InventoryTrace] InventoryOverlay not created because tag is '{tag}', expected 'Player'.", this);
+            }
+            InventoryOverlay?.Initialize(this);
+            if (InventoryOverlay != null)
+            {
+                Debug.Log("[InventoryTrace] InventoryOverlay initialized.", this);
+            }
             UpperBodyCtrl = new UpperBodyController(this);
             FacialController = new FacialController(this);
             IkController = new IKController(this);
@@ -223,7 +249,7 @@ namespace BBBNexus
 
             // 额外动作控制器（需要 EyesClosedSystemManager 引用）
             var eyesClosedManager = FindObjectOfType<EyesClosedSystemManager>();
-            ExtraActionController = new ExtraActionController(RuntimeData, eyesClosedManager);
+            ExtraActionController = new ExtraActionController(this, RuntimeData, eyesClosedManager);
 
             // 替身格挡处理器（可选，优先同物体，其次回退到子物体）
             ParryHandler = GetComponent<ParryHandler>();
@@ -321,6 +347,7 @@ namespace BBBNexus
             {
                 RuntimeData.CurrentItem = null;
                 RuntimeData.CurrentAimReference = null;
+                RuntimeData.IsInventoryOpen = false;
                 RuntimeData.StatusEffect.Clear();
                 RuntimeData.ActionControl.Clear();
                 RuntimeData.StatusControl.Clear();
@@ -344,6 +371,7 @@ namespace BBBNexus
 
         private void OnDisable()
         {
+            InventoryOverlay?.Close();
             if (ReferenceEquals(PlayerInstance, this))
             {
                 PlayerInstance = null;
@@ -374,6 +402,7 @@ namespace BBBNexus
             MainProcessorPipeline.UpdateIntentProcessors();
 
             LocalGraphHub?.Tick();
+            InteractionSensor?.Tick();
 
             InventoryController.Update();
 
@@ -741,24 +770,26 @@ namespace BBBNexus
 
         private void RestoreEquippedItemsFromPack()
         {
-            if (!EquipmentPackVfs.TryGetOtherSlotItemId(EquipmentSlot.MainHand, out var mainhandItemId, this))
+            EquipIdData mainhandData = null;
+            if (!EquipmentPackVfs.TryGetOtherSlotData(EquipmentSlot.MainHand, out mainhandData, this))
             {
                 if (TryGetFirstAvailableMainSlotIndex(out var defaultMainSlotIndex) &&
                     EquipmentPackVfs.SwapMainHandWithMainSlot(defaultMainSlotIndex, this) &&
-                    EquipmentPackVfs.TryGetOtherSlotItemId(EquipmentSlot.MainHand, out var swappedMainhandItemId, this))
+                    EquipmentPackVfs.TryGetOtherSlotData(EquipmentSlot.MainHand, out var swappedMainhandData, this))
                 {
-                    mainhandItemId = swappedMainhandItemId;
+                    mainhandData = swappedMainhandData;
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(mainhandItemId))
+            if (!string.IsNullOrWhiteSpace(mainhandData?.Id))
             {
-                EquipmentManager.EquipById(this, mainhandItemId, EquipmentSlot.MainHand);
+                EquipmentManager.EquipById(this, mainhandData.Id, EquipmentSlot.MainHand, instanceId: mainhandData.InstanceId);
             }
 
-            if (EquipmentPackVfs.TryGetOtherSlotItemId(EquipmentSlot.OffHand, out var offhandItemId, this))
+            if (EquipmentPackVfs.TryGetOtherSlotData(EquipmentSlot.OffHand, out var offhandData, this) &&
+                !string.IsNullOrWhiteSpace(offhandData?.Id))
             {
-                EquipmentManager.EquipById(this, offhandItemId, EquipmentSlot.OffHand);
+                EquipmentManager.EquipById(this, offhandData.Id, EquipmentSlot.OffHand, instanceId: offhandData.InstanceId);
             }
         }
 
@@ -851,6 +882,16 @@ namespace BBBNexus
         public void AddSanityDelta(float delta)
         {
             SetCurrentSanity(CurrentSanity + delta);
+        }
+
+        public bool TryHeal(float amount)
+        {
+            if (amount <= 0f)
+            {
+                return false;
+            }
+
+            return ArbiterPipeline?.Health != null && ArbiterPipeline.Health.TryHeal(amount);
         }
 
         public void SetMaxSanityValue(float maxSanity, bool refillCurrent = true)

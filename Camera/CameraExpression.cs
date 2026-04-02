@@ -20,6 +20,15 @@ namespace BBBNexus
         public float CameraSide;
         public float CameraDistance;
         public float CameraRadius;
+        public float DampingIntoCollision;
+        public float DampingFromCollision;
+        public bool EnableAdaptiveShoulder;
+        public float ShoulderClearanceMultiplier;
+        public float ShoulderShrinkSmoothTime;
+        public float ShoulderRecoverSmoothTime;
+        public float ShoulderProbeRadius;
+        public float MinShoulderScale;
+        public float ShoulderScaleDeadZone;
 
         // ── 输入 ──────────────────────────────────────────────────────
         public float SensitivityScale;
@@ -38,6 +47,15 @@ namespace BBBNexus
             CameraSide        = 0f;
             CameraDistance    = 0f;
             CameraRadius      = 0f;
+            DampingIntoCollision = 0f;
+            DampingFromCollision = 0f;
+            EnableAdaptiveShoulder = false;
+            ShoulderClearanceMultiplier = 0f;
+            ShoulderShrinkSmoothTime = 0f;
+            ShoulderRecoverSmoothTime = 0f;
+            ShoulderProbeRadius = 0f;
+            MinShoulderScale = 0f;
+            ShoulderScaleDeadZone = 0f;
             SensitivityScale  = 0f;
             FovSmoothTime     = 0f;
             OffsetSmoothTime  = 0f;

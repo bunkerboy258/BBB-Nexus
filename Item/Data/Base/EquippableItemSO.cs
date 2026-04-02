@@ -68,5 +68,19 @@ namespace BBBNexus
         [Tooltip("主武器可声明一个 virtualpack 联动槽。装备主手时，系统会把 virtualpack 的另一半搬到对应 otherslot；切走主手时再搬回。")]
         public VirtualOtherSlotLink VirtualOtherSlot;
 
+        [Header("--- 通用音效 ---")]
+        [Tooltip("切换武器/拔出时的音效（随机选一个）")]
+        public AudioClip[] EquipSounds;
+
+        [Tooltip("收起武器时的音效（随机选一个）")]
+        public AudioClip[] UnEquipSounds;
+
+        [Header("--- 武器音效配置（按需填写）---")]
+        [Tooltip("近战音效配置。拳头/剑等近战武器填写此项。")]
+        public MeleeAudioProfile MeleeAudio;
+
+        [Tooltip("远程音效配置。枪械等远程武器填写此项。混合武器可同时填写两项。")]
+        public RangedAudioProfile RangedAudio;
+
     }
 }

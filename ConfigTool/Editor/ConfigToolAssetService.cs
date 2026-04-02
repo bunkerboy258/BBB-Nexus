@@ -192,6 +192,125 @@ namespace BBBNexus
             };
         }
 
+        public static ClipListResponse FindAudioClips(string query)
+        {
+            var normalizedQuery = (query ?? "").Trim();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var clips = new List<AssetRefDto>();
+
+            foreach (var guid in AssetDatabase.FindAssets("t:AudioClip"))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                if (string.IsNullOrEmpty(path))
+                {
+                    continue;
+                }
+
+                var audioClip = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+                if (audioClip == null)
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrEmpty(normalizedQuery) &&
+                    audioClip.name.IndexOf(normalizedQuery, StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    continue;
+                }
+
+                if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(audioClip, out string clipGuid, out long localFileId))
+                {
+                    continue;
+                }
+
+                var key = clipGuid + ":" + localFileId;
+                if (!seen.Add(key))
+                {
+                    continue;
+                }
+
+                clips.Add(new AssetRefDto
+                {
+                    name = audioClip.name,
+                    type = nameof(AudioClip),
+                    guid = clipGuid,
+                    localFileId = localFileId,
+                    assetPath = path
+                });
+            }
+
+            return new ClipListResponse
+            {
+                clips = clips
+                    .OrderBy(c => c.name, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(c => c.assetPath, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(c => c.localFileId)
+                    .ToArray()
+            };
+        }
+
+        public static AudioBrowseResponse BrowseAudioClips(string folder)
+        {
+            var normalizedFolder = (folder ?? "").Trim().Replace('\\', '/');
+            var grouped = new SortedDictionary<string, List<AudioClipDto>>(StringComparer.OrdinalIgnoreCase);
+            int total = 0;
+
+            foreach (var guid in AssetDatabase.FindAssets("t:AudioClip"))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                if (string.IsNullOrEmpty(path)) continue;
+
+                if (!string.IsNullOrEmpty(normalizedFolder) &&
+                    !path.Replace('\\', '/').StartsWith(normalizedFolder, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+                if (clip == null) continue;
+
+                if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(clip, out string clipGuid, out long localFileId))
+                    continue;
+
+                var dir = Path.GetDirectoryName(path)?.Replace('\\', '/') ?? "";
+
+                if (!grouped.TryGetValue(dir, out var list))
+                {
+                    list = new List<AudioClipDto>();
+                    grouped[dir] = list;
+                }
+
+                list.Add(new AudioClipDto
+                {
+                    name = clip.name,
+                    assetPath = path,
+                    guid = clipGuid,
+                    localFileId = localFileId,
+                    duration = clip.length,
+                    channels = clip.channels,
+                    frequency = clip.frequency
+                });
+                total++;
+            }
+
+            var folders = new List<AudioFolderDto>();
+            foreach (var kv in grouped)
+            {
+                kv.Value.Sort((a, b) => string.Compare(a.name, b.name, StringComparison.OrdinalIgnoreCase));
+                folders.Add(new AudioFolderDto
+                {
+                    folder = kv.Key,
+                    clips = kv.Value.ToArray()
+                });
+            }
+
+            return new AudioBrowseResponse
+            {
+                totalCount = total,
+                folders = folders.ToArray()
+            };
+        }
+
         public static ScriptableObjectTypeListResponse ListScriptableObjectTypes()
         {
             var types = TypeCache.GetTypesDerivedFrom<ScriptableObject>()
@@ -568,12 +687,19 @@ namespace BBBNexus
             for (var i = 0; i < property.arraySize; i++)
             {
                 var element = property.GetArrayElementAtIndex(i);
-                items.Add(new ListElementDto
+                var dto = new ListElementDto
                 {
                     index = i,
                     type = element.propertyType.ToString(),
                     value = ReadValue(element)
-                });
+                };
+                if (element.propertyType == SerializedPropertyType.ObjectReference &&
+                    element.objectReferenceValue != null)
+                {
+                    dto.name = element.objectReferenceValue.name;
+                    dto.assetPath = AssetDatabase.GetAssetPath(element.objectReferenceValue);
+                }
+                items.Add(dto);
             }
 
             return new ListFieldResponse
@@ -974,6 +1100,13 @@ namespace BBBNexus
             {
                 var expectedType = ResolveListElementType(assetType, fieldPath);
                 element.objectReferenceValue = IsNullLiteral(rawValue) ? null : FindSingleAsset(rawValue, expectedType);
+                return;
+            }
+
+            // Struct/Generic elements: empty value means "just insert with defaults"
+            if (element.propertyType == SerializedPropertyType.Generic &&
+                string.IsNullOrEmpty((rawValue ?? "").Trim()))
+            {
                 return;
             }
 

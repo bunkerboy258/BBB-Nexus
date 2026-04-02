@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f7de8af0badb9224c975457117fbfca2, type: 3}
-  m_Name: PistolSO
+  m_Name: Pistol
   m_EditorClassIdentifier: 
-  ItemID: b82efd64-fd53-46c1-ad66-49d084454188
+  ItemID: Pistol
   DisplayName: Pistol
   Icon: {fileID: 0}
   Description: One-handed pistol. Enters aim state on right click and keeps an upper-body
@@ -73,6 +73,30 @@ MonoBehaviour:
     Enabled: 0
     TargetSlot: 0
     ItemId: 
+  EquipSounds:
+  - {fileID: 8300000, guid: 32d4b1811dda14a6cb9e059ee8ad17d2, type: 3}
+  - {fileID: 8300000, guid: 19f89c6e740e7447f9e12a8310d3e973, type: 3}
+  UnEquipSounds:
+  - {fileID: 8300000, guid: 2c5292ba5cf254919a6b9e2b18e04f49, type: 3}
+  MeleeAudio:
+    EnterStanceSounds: []
+    ComboSwingSounds: []
+    HitSounds: []
+    ExitStanceSounds: []
+  RangedAudio:
+    EnterAimSounds:
+    - {fileID: 8300000, guid: 4e1ff8faed12a475eba9be0e46072269, type: 3}
+    ExitAimSounds:
+    - {fileID: 8300000, guid: 7478151cf36724a7dada558f746c3633, type: 3}
+    ReloadSounds: []
+    ShootSounds:
+    - {fileID: 8300000, guid: e206a564e54303e4792eefa02841b330, type: 3}
+    ProjectileHitSounds:
+    - {fileID: 8300000, guid: b5dd1682e1527704fbabee0208e5ec26, type: 3}
+    - {fileID: 8300000, guid: aaea79465f40b924fbb6bb338a1905da, type: 3}
+    - {fileID: 8300000, guid: 9e91f6b4d22885d4482f895857833f5a, type: 3}
+    - {fileID: 8300000, guid: fbd73e619dcf48e40b55eaebee619403, type: 3}
+    - {fileID: 8300000, guid: 41df8b407c9267e438aaf92bab360832, type: 3}
   EnablesAimState: 1
   UseAimCorrection: 1
   AimAnim:
@@ -92,6 +116,25 @@ MonoBehaviour:
     ForcePhaseSync: 0
   MaxAmmo: 12
   FireRate: 0.1
+  MagazineSize: 12
+  ReloadTime: 1.5
+  TacticalReloadTime: 1.2
+  ReloadAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 3060610079319413300, guid: 77c6382f3e4663b4a84f271db29dea44, type: 3}
+    _NormalizedStartTime: NaN
+  ReloadAnimOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  AmmoItem: {fileID: 11400000, guid: eb7e4d1319877564cae643c6031bb08c, type: 2}
   EquipEndTime: 0.35
   ProjectilePrefab: {fileID: 0}
   ProjectileSpeed: 24
@@ -100,8 +143,6 @@ MonoBehaviour:
   HitScanRange: 80
   DamageAmount: 10
   TracerDuration: 0.06
-  ShootSound: {fileID: 0}
-  ProjectileHitSound: {fileID: 0}
   MuzzleVFXPrefab: {fileID: 0}
   RecoilPitchAngle: 1.4
   RecoilYawAngle: 0.8

@@ -12,4 +12,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 388c0b6f233e1db45a3ea847e9a922af, type: 3}
   m_Name: Audio.zombie
   m_EditorClassIdentifier: 
-  _entries: []
+  _entries:
+  - Event: 1
+    Clips:
+    - {fileID: 8300000, guid: 85016e0f2b01da248b9663dd49a161b0, type: 3}
+    - {fileID: 8300000, guid: 1a91fcd19acf1e54bba0945d9f390849, type: 3}
+    - {fileID: 8300000, guid: 29841e7d5bbfb5b419c9ad16ca8bc4c1, type: 3}
+    - {fileID: 8300000, guid: 67c8b33e424ccdc4486edf538ab91c5a, type: 3}
+  - Event: 6
+    Clips:
+    - {fileID: 8300000, guid: 05ae1d9a2e157974dbc9be54f55ca3d5, type: 3}
+    - {fileID: 8300000, guid: 8e28f65d372ded442a834cf2fd79cb1c, type: 3}
+    - {fileID: 8300000, guid: 64d72f053d56af44399416ea5d1fb4a6, type: 3}
+    - {fileID: 8300000, guid: 39079be9c5bae704b8dba01df2d6bd4e, type: 3}
+    - {fileID: 8300000, guid: 98adac156ef91b64db5475e28522ee69, type: 3}
+    - {fileID: 8300000, guid: 7c7992b229041594088b38a40dad4ba4, type: 3}
+  - Event: 7
+    Clips:
+    - {fileID: 8300000, guid: 7c09f3f5eefd90b4593fde07c204ad5b, type: 3}
+    - {fileID: 8300000, guid: 04176a9a9702a284fadf8ccec5b79b09, type: 3}
+    - {fileID: 8300000, guid: 4186ff9a010d06a4eab5e55adffbb879, type: 3}
+  - Event: 8
+    Clips:
+    - {fileID: 8300000, guid: 21bc20d7d3b18a64dbd84d11b021fe03, type: 3}
+    - {fileID: 8300000, guid: 5587d352ee162994da8fc970e4a3f555, type: 3}

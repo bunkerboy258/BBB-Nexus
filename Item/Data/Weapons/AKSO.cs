@@ -23,13 +23,6 @@ namespace BBBNexus
         [Tooltip("射击间隔 (秒)。如果未设置将回退到父类的 FireRate")]
         public float ShootInterval = 0.1f;
 
-        [Tooltip("射击时播放的音效 (会在射击位置播放)")]
-        public AudioClip ShootSound;
-
-        [Header("--- Projectile Impact ---")]
-        [Tooltip("子弹撞击时播放的音效 (SimpleProjectile will use this if assigned)")]
-        public AudioClip ProjectileHitSound;
-
         [Header("--- Muzzle VFX ---")]
         [Tooltip("枪口火焰/火花的预制体 (会在装备时实例化到 muzzle 下并保持停用)")]
         public GameObject MuzzleVFXPrefab;

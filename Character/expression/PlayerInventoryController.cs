@@ -114,13 +114,14 @@ namespace BBBNexus
 
             if (EquipmentPackVfs.SwapMainHandWithMainSlot(slotIndex + 1, _player))
             {
-                if (!EquipmentPackVfs.TryGetOtherSlotItemId(EquipmentSlot.MainHand, out var mainhandItemId, _player))
+                if (!EquipmentPackVfs.TryGetOtherSlotData(EquipmentSlot.MainHand, out var mainhandData, _player) ||
+                    string.IsNullOrWhiteSpace(mainhandData?.Id))
                 {
                     ConsumeHotbarKey(slotIndex);
                     return;
                 }
 
-                var instance = EquipmentManager.EquipById(_player, mainhandItemId, EquipmentSlot.MainHand);
+                var instance = EquipmentManager.EquipById(_player, mainhandData.Id, EquipmentSlot.MainHand, instanceId: mainhandData.InstanceId);
                 if (instance != null)
                 {
                     _player.RuntimeData.CurrentItem = instance;

@@ -32,13 +32,6 @@ namespace BBBNexus
         [Tooltip("曳光弹可见时长（秒）")]
         public float TracerDuration = 0.06f;
 
-        [Tooltip("射击时播放的音效")]
-        public AudioClip ShootSound;
-
-        [Header("--- Projectile Impact ---")]
-        [Tooltip("子弹撞击时播放的音效")]
-        public AudioClip ProjectileHitSound;
-
         [Header("--- Muzzle VFX ---")]
         [Tooltip("枪口火焰/火花的预制体")]
         public GameObject MuzzleVFXPrefab;

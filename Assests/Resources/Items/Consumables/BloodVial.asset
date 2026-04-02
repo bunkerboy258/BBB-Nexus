@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3db0e267884353e42b2211e198440328, type: 3}
+  m_Name: BloodVial
+  m_EditorClassIdentifier: 
+  ItemID: BloodVial
+  DisplayName: "\u8840\u836F"
+  Icon: {fileID: 0}
+  Description: "\u6062\u590D\u5C11\u91CF\u751F\u547D\u503C\u7684\u8840\u74F6\u3002"
+  MaxStack: 20
+  HealAmount: 35
+  AllowUseAtFullHealth: 0
+  EmptyMessageTitle: "\u6CA1\u6709\u8840\u836F"
+  EmptyMessageBody: "\u4F60\u5DF2\u7ECF\u6CA1\u6709\u53EF\u7528\u7684\u8840\u836F\u4E86\u3002"
+  FullHealthMessageTitle: "\u751F\u547D\u503C\u5DF2\u6EE1"
+  FullHealthMessageBody: "\u73B0\u5728\u8FD8\u4E0D\u9700\u8981\u4F7F\u7528\u8840\u836F\u3002"

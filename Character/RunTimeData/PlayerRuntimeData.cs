@@ -205,13 +205,17 @@ namespace BBBNexus
         /// <summary>表情 8 意图（预留）</summary>
         public bool WantsExpression8;
 
-        /// <summary>额外动作 1 意图（如闭眼）</summary>
-        public bool WantsExtraAction1;
-        /// <summary>额外动作 2 意图（预留）</summary>
-        public bool WantsExtraAction2;
-        /// <summary>额外动作 3 意图（预留）</summary>
-        public bool WantsExtraAction3;
-        /// <summary>额外动作 4 意图（预留）</summary>
+        /// <summary>切换闭眼意图（tap）</summary>
+        public bool WantsToggleEyes;
+        /// <summary>换弹意图</summary>
+        public bool WantsReload;
+        /// <summary>使用道具意图</summary>
+        public bool WantsUseItem;
+        /// <summary>打开背包意图</summary>
+        public bool WantsOpenInventory;
+        /// <summary>背包面板是否处于打开状态。持久状态，不参与每帧 ResetIntent。</summary>
+        public bool IsInventoryOpen;
+        /// <summary>额外动作 4 意图（通用预留）</summary>
         public bool WantsExtraAction4;
 
         /// <summary>情境交互意图（E 键）：开门/开箱/爬梯子等，由 ActionController 读取</summary>
@@ -330,6 +334,12 @@ namespace BBBNexus
                 Arbitration.BlockInventory = true;
                 Arbitration.BlockAction = true;
             }
+
+            if (IsInventoryOpen)
+            {
+                Arbitration.BlockInput = true;
+                Arbitration.BlockAction = true;
+            }
         }
 
         /// <summary>
@@ -359,10 +369,11 @@ namespace BBBNexus
             WantsExpression7 = false;
             WantsExpression8 = false;
 
-            WantsExtraAction1 = false;
-            WantsExtraAction2 = false;
-            WantsExtraAction3 = false;
-            WantsExtraAction4 = false;
+            WantsToggleEyes    = false;
+            WantsReload        = false;
+            WantsUseItem       = false;
+            WantsOpenInventory = false;
+            WantsExtraAction4  = false;
 
             // 表情事件：在 LateUpdate 清理（FacialController 在 Update 消费）
             FacialEventRequest = PlayerFacialEvent.None;

@@ -37,11 +37,11 @@ namespace BBBNexus
             WriteEquipIdFile(GetMainSlotOccupierVirtualPath(), MainSlotOccupierId, owner);
         }
 
-        public static void SetMainSlotItem(int index, string itemId, BBBCharacterController owner)
+        public static void SetMainSlotItem(int index, string itemId, BBBCharacterController owner, string instanceId = null)
         {
             if (owner == null) throw new InvalidOperationException("owner cannot be null.");
             EnsureLayout(owner);
-            WriteEquipIdFile($"{MainSlotDir}/{GetMainSlotFileName(index)}.equipid", itemId, owner);
+            WriteEquipIdFile($"{MainSlotDir}/{GetMainSlotFileName(index)}.equipid", itemId, owner, instanceId);
         }
 
         public static void ClearMainSlotItem(int index, BBBCharacterController owner)
@@ -51,11 +51,11 @@ namespace BBBNexus
             DeletePath($"{MainSlotDir}/{GetMainSlotFileName(index)}.equipid", owner);
         }
 
-        public static void SetOtherSlot(EquipmentSlot slot, string itemId, BBBCharacterController owner)
+        public static void SetOtherSlot(EquipmentSlot slot, string itemId, BBBCharacterController owner, string instanceId = null)
         {
             if (owner == null) throw new InvalidOperationException("owner cannot be null.");
             EnsureLayout(owner);
-            WriteEquipIdFile($"{OtherSlotDir}/{GetOtherSlotFileName(slot)}.equipid", itemId, owner);
+            WriteEquipIdFile($"{OtherSlotDir}/{GetOtherSlotFileName(slot)}.equipid", itemId, owner, instanceId);
         }
 
         public static void ClearOtherSlot(EquipmentSlot slot, BBBCharacterController owner)
@@ -65,11 +65,11 @@ namespace BBBNexus
             DeletePath($"{OtherSlotDir}/{GetOtherSlotFileName(slot)}.equipid", owner);
         }
 
-        public static void SetHideSlot(EquipmentSlot slot, string itemId, BBBCharacterController owner)
+        public static void SetHideSlot(EquipmentSlot slot, string itemId, BBBCharacterController owner, string instanceId = null)
         {
             if (owner == null) throw new InvalidOperationException("owner cannot be null.");
             EnsureLayout(owner);
-            WriteEquipIdFile($"{HidePackDir}/{GetOtherSlotFileName(slot)}.equipid", itemId, owner);
+            WriteEquipIdFile($"{HidePackDir}/{GetOtherSlotFileName(slot)}.equipid", itemId, owner, instanceId);
         }
 
         public static void ClearHideSlot(EquipmentSlot slot, BBBCharacterController owner)
@@ -79,14 +79,23 @@ namespace BBBNexus
             DeletePath($"{HidePackDir}/{GetOtherSlotFileName(slot)}.equipid", owner);
         }
 
-        public static string BuildEquipIdJson(string itemId)
+        public static string BuildEquipIdJson(string itemId, string instanceId = null)
         {
             if (string.IsNullOrWhiteSpace(itemId))
             {
                 throw new ArgumentException("Item id cannot be empty.", nameof(itemId));
             }
 
-            return JsonConvert.SerializeObject(new EquipIdData { Id = itemId }, Formatting.Indented);
+            return JsonConvert.SerializeObject(new EquipIdData { Id = itemId, InstanceId = instanceId }, Formatting.Indented);
+        }
+
+        public static bool TryGetOtherSlotData(EquipmentSlot slot, out EquipIdData data, BBBCharacterController owner)
+        {
+            data = null;
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+
+            EnsureLayout(owner);
+            return TryReadEquipIdData($"{OtherSlotDir}/{GetOtherSlotFileName(slot)}.equipid", out data, owner);
         }
 
         public static bool TryGetOtherSlotItemId(EquipmentSlot slot, out string itemId, BBBCharacterController owner)
@@ -95,7 +104,22 @@ namespace BBBNexus
             if (owner == null) throw new InvalidOperationException("owner cannot be null.");
             
             EnsureLayout(owner);
-            return TryReadEquipIdFile($"{OtherSlotDir}/{GetOtherSlotFileName(slot)}.equipid", out itemId, owner);
+            if (!TryGetOtherSlotData(slot, out var data, owner))
+            {
+                return false;
+            }
+
+            itemId = data.Id;
+            return true;
+        }
+
+        public static bool TryGetMainSlotData(int index, out EquipIdData data, BBBCharacterController owner)
+        {
+            data = null;
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+
+            EnsureLayout(owner);
+            return TryReadEquipIdData($"{MainSlotDir}/{GetMainSlotFileName(index)}.equipid", out data, owner);
         }
 
         public static bool TryGetMainSlotItemId(int index, out string itemId, BBBCharacterController owner)
@@ -104,7 +128,22 @@ namespace BBBNexus
             if (owner == null) throw new InvalidOperationException("owner cannot be null.");
             
             EnsureLayout(owner);
-            return TryReadEquipIdFile($"{MainSlotDir}/{GetMainSlotFileName(index)}.equipid", out itemId, owner);
+            if (!TryGetMainSlotData(index, out var data, owner))
+            {
+                return false;
+            }
+
+            itemId = data.Id;
+            return true;
+        }
+
+        public static bool TryGetHideSlotData(EquipmentSlot slot, out EquipIdData data, BBBCharacterController owner)
+        {
+            data = null;
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+
+            EnsureLayout(owner);
+            return TryReadEquipIdData($"{HidePackDir}/{GetOtherSlotFileName(slot)}.equipid", out data, owner);
         }
 
         public static bool TryGetHideSlotItemId(EquipmentSlot slot, out string itemId, BBBCharacterController owner)
@@ -113,14 +152,20 @@ namespace BBBNexus
             if (owner == null) throw new InvalidOperationException("owner cannot be null.");
             
             EnsureLayout(owner);
-            return TryReadEquipIdFile($"{HidePackDir}/{GetOtherSlotFileName(slot)}.equipid", out itemId, owner);
+            if (!TryGetHideSlotData(slot, out var data, owner))
+            {
+                return false;
+            }
+
+            itemId = data.Id;
+            return true;
         }
 
-        public static void SetVirtualSlot(string ownerItemId, EquipmentSlot slot, string itemId, BBBCharacterController owner)
+        public static void SetVirtualSlot(string ownerItemId, EquipmentSlot slot, string itemId, BBBCharacterController owner, string instanceId = null)
         {
             if (owner == null) throw new InvalidOperationException("owner cannot be null.");
             EnsureLayout(owner);
-            WriteEquipIdFile(BuildVirtualSlotPath(ownerItemId, slot), itemId, owner);
+            WriteEquipIdFile(BuildVirtualSlotPath(ownerItemId, slot), itemId, owner, instanceId);
         }
 
         public static void ClearVirtualSlot(string ownerItemId, EquipmentSlot slot, BBBCharacterController owner)
@@ -129,25 +174,51 @@ namespace BBBNexus
             DeletePath(BuildVirtualSlotPath(ownerItemId, slot), owner);
         }
 
+        public static bool TryGetVirtualSlotData(string ownerItemId, EquipmentSlot slot, out EquipIdData data, BBBCharacterController owner)
+        {
+            data = null;
+            if (owner == null) throw new InvalidOperationException("owner cannot be null.");
+
+            return TryReadEquipIdData(BuildVirtualSlotPath(ownerItemId, slot), out data, owner);
+        }
+
         public static bool TryGetVirtualSlotItemId(string ownerItemId, EquipmentSlot slot, out string itemId, BBBCharacterController owner)
         {
             itemId = null;
             if (owner == null) throw new InvalidOperationException("owner cannot be null.");
-            
-            return TryReadEquipIdFile(BuildVirtualSlotPath(ownerItemId, slot), out itemId, owner);
+
+            if (!TryGetVirtualSlotData(ownerItemId, slot, out var data, owner))
+            {
+                return false;
+            }
+
+            itemId = data.Id;
+            return true;
         }
 
-        public static bool TryTakeVirtualSlotItemId(string ownerItemId, EquipmentSlot slot, out string itemId, BBBCharacterController owner)
+        public static bool TryTakeVirtualSlotData(string ownerItemId, EquipmentSlot slot, out EquipIdData data, BBBCharacterController owner)
         {
-            itemId = null;
+            data = null;
             if (owner == null) throw new InvalidOperationException("owner cannot be null.");
             
-            if (!TryGetVirtualSlotItemId(ownerItemId, slot, out itemId, owner))
+            if (!TryGetVirtualSlotData(ownerItemId, slot, out data, owner))
             {
                 return false;
             }
 
             ClearVirtualSlot(ownerItemId, slot, owner);
+            return true;
+        }
+
+        public static bool TryTakeVirtualSlotItemId(string ownerItemId, EquipmentSlot slot, out string itemId, BBBCharacterController owner)
+        {
+            itemId = null;
+            if (!TryTakeVirtualSlotData(ownerItemId, slot, out var data, owner))
+            {
+                return false;
+            }
+
+            itemId = data.Id;
             return true;
         }
 
@@ -177,14 +248,15 @@ namespace BBBNexus
             
             EnsureLayout(owner);
 
-            if (!TryGetMainSlotItemId(index, out var targetItemId, owner) ||
-                string.IsNullOrWhiteSpace(targetItemId) ||
-                string.Equals(targetItemId, MainSlotOccupierId, StringComparison.Ordinal))
+            if (!TryGetMainSlotData(index, out var targetData, owner) ||
+                string.IsNullOrWhiteSpace(targetData?.Id) ||
+                string.Equals(targetData.Id, MainSlotOccupierId, StringComparison.Ordinal))
             {
                 return false;
             }
 
-            TryGetOtherSlotItemId(EquipmentSlot.MainHand, out var currentMainhandItemId, owner);
+            TryGetOtherSlotData(EquipmentSlot.MainHand, out var currentMainhandData, owner);
+            var currentMainhandItemId = currentMainhandData?.Id;
             var hasOccupiedIndex = TryGetOccupiedMainSlotIndex(out var occupiedIndex, owner);
 
             if (!string.IsNullOrWhiteSpace(currentMainhandItemId) && !hasOccupiedIndex)
@@ -199,11 +271,11 @@ namespace BBBNexus
             }
 
             SetMainSlotItem(index, MainSlotOccupierId, owner);
-            SetOtherSlot(EquipmentSlot.MainHand, targetItemId, owner);
+            SetOtherSlot(EquipmentSlot.MainHand, targetData.Id, owner, targetData.InstanceId);
 
             if (!string.IsNullOrWhiteSpace(currentMainhandItemId) && occupiedIndex > 0 && occupiedIndex != index)
             {
-                SetMainSlotItem(occupiedIndex, currentMainhandItemId, owner);
+                SetMainSlotItem(occupiedIndex, currentMainhandItemId, owner, currentMainhandData?.InstanceId);
             }
 
             return true;
@@ -215,8 +287,8 @@ namespace BBBNexus
             
             EnsureLayout(owner);
 
-            if (!TryGetOtherSlotItemId(EquipmentSlot.MainHand, out var currentMainhandItemId, owner) ||
-                string.IsNullOrWhiteSpace(currentMainhandItemId))
+            if (!TryGetOtherSlotData(EquipmentSlot.MainHand, out var currentMainhandData, owner) ||
+                string.IsNullOrWhiteSpace(currentMainhandData?.Id))
             {
                 return false;
             }
@@ -226,7 +298,7 @@ namespace BBBNexus
                 return false;
             }
 
-            SetMainSlotItem(occupiedIndex, currentMainhandItemId, owner);
+            SetMainSlotItem(occupiedIndex, currentMainhandData.Id, owner, currentMainhandData.InstanceId);
             ClearOtherSlot(EquipmentSlot.MainHand, owner);
             return true;
         }
@@ -237,27 +309,27 @@ namespace BBBNexus
             
             EnsureLayout(owner);
 
-            TryReadEquipIdFile(leftPath, out var leftItemId, owner);
-            TryReadEquipIdFile(rightPath, out var rightItemId, owner);
+            TryReadEquipIdData(leftPath, out var leftData, owner);
+            TryReadEquipIdData(rightPath, out var rightData, owner);
 
-            WriteOrDeleteEquipIdFile(leftPath, string.IsNullOrWhiteSpace(rightItemId) ? emptyFallbackForLeft : rightItemId, owner);
-            WriteOrDeleteEquipIdFile(rightPath, leftItemId, owner);
+            WriteOrDeleteEquipIdFile(leftPath, string.IsNullOrWhiteSpace(rightData?.Id) ? emptyFallbackForLeft : rightData.Id, owner, rightData?.InstanceId);
+            WriteOrDeleteEquipIdFile(rightPath, leftData?.Id, owner, leftData?.InstanceId);
         }
 
         // =========================================================
         // 内部辅助方法喵~
         // =========================================================
 
-        private static void WriteEquipIdFile(string path, string itemId, BBBCharacterController owner)
+        private static void WriteEquipIdFile(string path, string itemId, BBBCharacterController owner, string instanceId = null)
         {
             var analyser = PackVfs.GetAnalyser(owner, EquipmentPackId);
-            if (!analyser.WriteFile(EquipmentPackId, path, BuildEquipIdJson(itemId), PackAccessSubjects.SystemMin))
+            if (!analyser.WriteFile(EquipmentPackId, path, BuildEquipIdJson(itemId, instanceId), PackAccessSubjects.SystemMin))
             {
                 throw new InvalidOperationException($"Failed to write equipment VFS file: {path}");
             }
         }
 
-        private static void WriteOrDeleteEquipIdFile(string path, string itemId, BBBCharacterController owner)
+        private static void WriteOrDeleteEquipIdFile(string path, string itemId, BBBCharacterController owner, string instanceId = null)
         {
             if (string.IsNullOrWhiteSpace(itemId))
             {
@@ -265,7 +337,7 @@ namespace BBBNexus
                 return;
             }
 
-            WriteEquipIdFile(path, itemId, owner);
+            WriteEquipIdFile(path, itemId, owner, instanceId);
         }
 
         private static void DeletePath(string path, BBBCharacterController owner)
@@ -274,9 +346,9 @@ namespace BBBNexus
             analyser.Delete(EquipmentPackId, path, PackAccessSubjects.SystemMin);
         }
 
-        private static bool TryReadEquipIdFile(string path, out string itemId, BBBCharacterController owner)
+        private static bool TryReadEquipIdData(string path, out EquipIdData data, BBBCharacterController owner)
         {
-            itemId = null;
+            data = null;
             var analyser = PackVfs.GetAnalyser(owner, EquipmentPackId);
             var node = analyser.GetNode(EquipmentPackId, path, PackAccessSubjects.SystemMin) as VFSNodeData;
             if (node == null || string.IsNullOrWhiteSpace(node.DataJson))
@@ -284,13 +356,11 @@ namespace BBBNexus
                 return false;
             }
 
-            var data = JsonConvert.DeserializeObject<EquipIdData>(node.DataJson);
+            data = JsonConvert.DeserializeObject<EquipIdData>(node.DataJson);
             if (data == null || string.IsNullOrWhiteSpace(data.Id))
             {
                 return false;
             }
-
-            itemId = data.Id;
             return true;
         }
 

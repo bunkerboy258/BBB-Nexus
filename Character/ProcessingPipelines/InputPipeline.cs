@@ -165,9 +165,11 @@ namespace BBBNexus
             currentFrame.Processed.Expression7BufferTimer = UpdateBuffer(lastProc.Expression7BufferTimer, _rawData.Expression7JustPressed);
             currentFrame.Processed.Expression8BufferTimer = UpdateBuffer(lastProc.Expression8BufferTimer, _rawData.Expression8JustPressed);
 
-            currentFrame.Processed.ExtraAction1BufferTimer = UpdateBuffer(lastProc.ExtraAction1BufferTimer, _rawData.ExtraAction1JustPressed);
-            currentFrame.Processed.ExtraAction2BufferTimer = UpdateBuffer(lastProc.ExtraAction2BufferTimer, _rawData.ExtraAction2JustPressed);
-            currentFrame.Processed.ExtraAction3BufferTimer = UpdateBuffer(lastProc.ExtraAction3BufferTimer, _rawData.ExtraAction3JustPressed);
+            currentFrame.Processed.HoldEyesHeld         = _rawData.HoldEyesHeld;
+            currentFrame.Processed.ToggleEyesBufferTimer = UpdateBuffer(lastProc.ToggleEyesBufferTimer, _rawData.ToggleEyesJustPressed);
+            currentFrame.Processed.ReloadBufferTimer     = UpdateBuffer(lastProc.ReloadBufferTimer,     _rawData.ReloadJustPressed);
+            currentFrame.Processed.UseItemBufferTimer    = UpdateBuffer(lastProc.UseItemBufferTimer,    _rawData.UseItemJustPressed);
+            currentFrame.Processed.InventoryBufferTimer  = UpdateBuffer(lastProc.InventoryBufferTimer,  _rawData.InventoryJustPressed);
             currentFrame.Processed.ExtraAction4BufferTimer = UpdateBuffer(lastProc.ExtraAction4BufferTimer, _rawData.ExtraAction4JustPressed);
 
             currentFrame.Processed.Number1BufferTimer = UpdateBuffer(lastProc.Number1BufferTimer, _rawData.Number1JustPressed);
@@ -199,9 +201,10 @@ namespace BBBNexus
         public void ConsumeExpression7Pressed() { var f = _inputData.currentFrameData; f.Processed.Expression7BufferTimer = 0f; _inputData.currentFrameData = f; }
         public void ConsumeExpression8Pressed() { var f = _inputData.currentFrameData; f.Processed.Expression8BufferTimer = 0f; _inputData.currentFrameData = f; }
 
-        public void ConsumeExtraAction1Pressed() { var f = _inputData.currentFrameData; f.Processed.ExtraAction1BufferTimer = 0f; _inputData.currentFrameData = f; }
-        public void ConsumeExtraAction2Pressed() { var f = _inputData.currentFrameData; f.Processed.ExtraAction2BufferTimer = 0f; _inputData.currentFrameData = f; }
-        public void ConsumeExtraAction3Pressed() { var f = _inputData.currentFrameData; f.Processed.ExtraAction3BufferTimer = 0f; _inputData.currentFrameData = f; }
+        public void ConsumeToggleEyesPressed() { var f = _inputData.currentFrameData; f.Processed.ToggleEyesBufferTimer = 0f; _inputData.currentFrameData = f; }
+        public void ConsumeReloadPressed()     { var f = _inputData.currentFrameData; f.Processed.ReloadBufferTimer     = 0f; _inputData.currentFrameData = f; }
+        public void ConsumeUseItemPressed()    { var f = _inputData.currentFrameData; f.Processed.UseItemBufferTimer    = 0f; _inputData.currentFrameData = f; }
+        public void ConsumeInventoryPressed()  { var f = _inputData.currentFrameData; f.Processed.InventoryBufferTimer  = 0f; _inputData.currentFrameData = f; }
         public void ConsumeExtraAction4Pressed() { var f = _inputData.currentFrameData; f.Processed.ExtraAction4BufferTimer = 0f; _inputData.currentFrameData = f; }
 
         public void ConsumeNumber1Pressed() { var f = _inputData.currentFrameData; f.Processed.Number1BufferTimer = 0f; _inputData.currentFrameData = f; }

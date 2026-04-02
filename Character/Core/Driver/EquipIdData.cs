@@ -10,5 +10,6 @@ namespace BBBNexus
     public class EquipIdData
     {
         public string Id;
+        public string InstanceId;
     }
 }

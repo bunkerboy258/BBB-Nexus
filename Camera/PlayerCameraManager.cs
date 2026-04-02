@@ -85,18 +85,26 @@ namespace BBBNexus
         {
             if (_player == null) return;
 
-            // ESC 切换鼠标锁定状态：按下解锁，再次点击窗口重新锁定
-            if (HideCursorOnPlay)
+            if (_player.RuntimeData != null && _player.RuntimeData.IsInventoryOpen)
             {
-                if (Input.GetKeyDown(KeyCode.Escape))
+                Cursor.visible = true;
+                Cursor.lockState = CursorLockMode.None;
+            }
+            else
+            {
+                // ESC 切换鼠标锁定状态：按下解锁，再次点击窗口重新锁定
+                if (HideCursorOnPlay)
                 {
-                    Cursor.visible = true;
-                    Cursor.lockState = CursorLockMode.None;
-                }
-                else if (Input.GetMouseButtonDown(0) && Cursor.lockState == CursorLockMode.None)
-                {
-                    Cursor.visible = false;
-                    Cursor.lockState = CursorLock;
+                    if (Input.GetKeyDown(KeyCode.Escape))
+                    {
+                        Cursor.visible = true;
+                        Cursor.lockState = CursorLockMode.None;
+                    }
+                    else if (Input.GetMouseButtonDown(0) && Cursor.lockState == CursorLockMode.None)
+                    {
+                        Cursor.visible = false;
+                        Cursor.lockState = CursorLock;
+                    }
                 }
             }
 

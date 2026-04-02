@@ -10,14 +10,16 @@ namespace BBBNexus
     {
         private readonly struct VirtualLinkPlan
         {
-            public VirtualLinkPlan(EquipmentSlot targetSlot, string itemId)
+            public VirtualLinkPlan(EquipmentSlot targetSlot, string itemId, string instanceId)
             {
                 TargetSlot = targetSlot;
                 ItemId = itemId;
+                InstanceId = instanceId;
             }
 
             public EquipmentSlot TargetSlot { get; }
             public string ItemId { get; }
+            public string InstanceId { get; }
         }
 
         public static EquippableItemSO ResolveItemSO(string globalId)
@@ -37,7 +39,7 @@ namespace BBBNexus
             return item;
         }
 
-        public static ItemInstance CreateInstance(EquippableItemSO itemSo, int amount = 1)
+        public static ItemInstance CreateInstance(EquippableItemSO itemSo, int amount = 1, string instanceId = null)
         {
             if (itemSo == null)
             {
@@ -45,10 +47,10 @@ namespace BBBNexus
                 return null;
             }
 
-            return new ItemInstance(itemSo, amount);
+            return new ItemInstance(itemSo, instanceId, amount);
         }
 
-        public static ItemInstance EquipById(BBBCharacterController player, string globalId, EquipmentSlot slot, int amount = 1)
+        public static ItemInstance EquipById(BBBCharacterController player, string globalId, EquipmentSlot slot, int amount = 1, string instanceId = null)
         {
             var itemSo = ResolveItemSO(globalId);
             if (itemSo == null)
@@ -56,10 +58,10 @@ namespace BBBNexus
                 return null;
             }
 
-            return Equip(player, itemSo, slot, amount);
+            return Equip(player, itemSo, slot, amount, instanceId);
         }
 
-        public static ItemInstance Equip(BBBCharacterController player, EquippableItemSO itemSo, EquipmentSlot slot, int amount = 1)
+        public static ItemInstance Equip(BBBCharacterController player, EquippableItemSO itemSo, EquipmentSlot slot, int amount = 1, string instanceId = null)
         {
             if (player == null)
             {
@@ -92,7 +94,7 @@ namespace BBBNexus
                 mainhandLinkPlan = PrepareMainhandLinkedOtherSlot(player, itemSo);
             }
 
-            var instance = CreateInstance(itemSo, amount);
+            var instance = CreateInstance(itemSo, amount, instanceId);
             if (instance == null)
             {
                 return null;
@@ -103,7 +105,7 @@ namespace BBBNexus
             if (mainhandLinkPlan.HasValue)
             {
                 var plan = mainhandLinkPlan.Value;
-                EquipById(player, plan.ItemId, plan.TargetSlot);
+                EquipById(player, plan.ItemId, plan.TargetSlot, instanceId: plan.InstanceId);
             }
 
             if (slot == EquipmentSlot.MainHand)
@@ -150,22 +152,24 @@ namespace BBBNexus
                 return null;
             }
 
-            if (EquipmentPackVfs.TryGetOtherSlotItemId(targetSlot, out var occupiedItemId, player) &&
-                !string.IsNullOrWhiteSpace(occupiedItemId) &&
-                !string.Equals(occupiedItemId, linkedItemId, System.StringComparison.Ordinal))
+            if (EquipmentPackVfs.TryGetOtherSlotData(targetSlot, out var occupiedData, player) &&
+                !string.IsNullOrWhiteSpace(occupiedData?.Id) &&
+                !string.Equals(occupiedData.Id, linkedItemId, System.StringComparison.Ordinal))
             {
-                EquipmentPackVfs.SetHideSlot(targetSlot, occupiedItemId, player);
+                EquipmentPackVfs.SetHideSlot(targetSlot, occupiedData.Id, player, occupiedData.InstanceId);
                 EquipmentPackVfs.ClearOtherSlot(targetSlot, player);
             }
 
-            if (EquipmentPackVfs.TryTakeVirtualSlotItemId(mainhandSo.name, targetSlot, out var virtualItemId, player) &&
-                !string.IsNullOrWhiteSpace(virtualItemId))
+            if (EquipmentPackVfs.TryTakeVirtualSlotData(mainhandSo.name, targetSlot, out var virtualData, player) &&
+                !string.IsNullOrWhiteSpace(virtualData?.Id))
             {
-                linkedItemId = virtualItemId;
+                linkedItemId = virtualData.Id;
+                EquipmentPackVfs.SetOtherSlot(targetSlot, linkedItemId, player, virtualData.InstanceId);
+                return new VirtualLinkPlan(targetSlot, linkedItemId, virtualData.InstanceId);
             }
 
             EquipmentPackVfs.SetOtherSlot(targetSlot, linkedItemId, player);
-            return new VirtualLinkPlan(targetSlot, linkedItemId);
+            return new VirtualLinkPlan(targetSlot, linkedItemId, null);
         }
 
         private static void ReleaseMainhandLinkedOtherSlot(BBBCharacterController player)
@@ -176,10 +180,10 @@ namespace BBBNexus
                 return;
             }
 
-            if (EquipmentPackVfs.TryGetOtherSlotItemId(targetSlot, out var equippedLinkedItemId, player) &&
-                !string.IsNullOrWhiteSpace(equippedLinkedItemId))
+            if (EquipmentPackVfs.TryGetOtherSlotData(targetSlot, out var equippedLinkedData, player) &&
+                !string.IsNullOrWhiteSpace(equippedLinkedData?.Id))
             {
-                EquipmentPackVfs.SetVirtualSlot(currentMainhandSo.name, targetSlot, equippedLinkedItemId, player);
+                EquipmentPackVfs.SetVirtualSlot(currentMainhandSo.name, targetSlot, equippedLinkedData.Id, player, equippedLinkedData.InstanceId);
                 EquipmentPackVfs.ClearOtherSlot(targetSlot, player);
             }
 
@@ -196,12 +200,12 @@ namespace BBBNexus
                     break;
             }
 
-            if (EquipmentPackVfs.TryGetHideSlotItemId(targetSlot, out var hiddenItemId, player) &&
-                !string.IsNullOrWhiteSpace(hiddenItemId))
+            if (EquipmentPackVfs.TryGetHideSlotData(targetSlot, out var hiddenData, player) &&
+                !string.IsNullOrWhiteSpace(hiddenData?.Id))
             {
-                EquipmentPackVfs.SetOtherSlot(targetSlot, hiddenItemId, player);
+                EquipmentPackVfs.SetOtherSlot(targetSlot, hiddenData.Id, player, hiddenData.InstanceId);
                 EquipmentPackVfs.ClearHideSlot(targetSlot, player);
-                EquipById(player, hiddenItemId, targetSlot);
+                EquipById(player, hiddenData.Id, targetSlot, instanceId: hiddenData.InstanceId);
             }
         }
 

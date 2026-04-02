@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4da9da1e38fc9fe40b54f69f95b7541d, type: 3}
-  m_Name: SwordSO
+  m_Name: Sword
   m_EditorClassIdentifier: 
   ItemID: 33574716-c7f9-4b4a-a1c8-795601d8287e
   DisplayName: 
@@ -18,8 +18,10 @@ MonoBehaviour:
   Description: 
   MaxStack: 1
   Prefab: {fileID: 3799667671227751388, guid: 76657f852aceaca49af3c3f0ad6721d7, type: 3}
+  EquipSlot: 1
   HoldPositionOffset: {x: 0.298, y: 0.0677, z: -0.0191}
   HoldRotationOffset: {x: 0, y: 0, z: 0.70710677, w: 0.70710677}
+  UpperBodyLayerWeight: 1
   EquipAnim:
     _FadeDuration: 0.25
     _Speed: 1
@@ -65,6 +67,39 @@ MonoBehaviour:
     Speed: -1
     NormalizedTime: -1
     ForcePhaseSync: 0
+  CameraPreset: {fileID: 0}
+  VirtualOtherSlot:
+    Enabled: 0
+    TargetSlot: 0
+    ItemId: 
+  EquipSounds:
+  - {fileID: 8300000, guid: 18fa2463d716a22469b35491a18368c9, type: 3}
+  - {fileID: 8300000, guid: dd6c193e18c90884bb30967c2f1aa0b3, type: 3}
+  UnEquipSounds:
+  - {fileID: 8300000, guid: 3045f9681a18245d39b5212fb3d50477, type: 3}
+  MeleeAudio:
+    EnterStanceSounds:
+    - {fileID: 8300000, guid: b0eddbe92b9c249b6a3e6913ea2dc163, type: 3}
+    - {fileID: 8300000, guid: 962fed30cb2044e488376207e9cd60f3, type: 3}
+    ComboSwingSounds: []
+    HitSounds:
+    - {fileID: 8300000, guid: 79138ec5e85ffcd4b9b4702c2751ba54, type: 3}
+    - {fileID: 8300000, guid: 20bcc948afb03b444b300d9905dab1e9, type: 3}
+    - {fileID: 8300000, guid: 6e36ba05591acc64dbc0d43edf31d8e6, type: 3}
+    - {fileID: 8300000, guid: cc7a2f9d717a4684ab9cb086c31e8113, type: 3}
+    - {fileID: 8300000, guid: ef2b0a27f96aa8f4586bc8aa52aad190, type: 3}
+    - {fileID: 8300000, guid: 478e5b81512d46f41a5ff998e5ca442e, type: 3}
+    - {fileID: 8300000, guid: b6e931240a5c41c498076c972c198314, type: 3}
+    - {fileID: 8300000, guid: 10cd7ad3fa9760c438678ff5c1f35757, type: 3}
+    ExitStanceSounds:
+    - {fileID: 8300000, guid: 72a5cc0ca35e54cd99955b3e2b62bdf5, type: 3}
+    - {fileID: 8300000, guid: b32ad61ca3cf84f8882d9f418232890b, type: 3}
+  RangedAudio:
+    EnterAimSounds: []
+    ExitAimSounds: []
+    ReloadSounds: []
+    ShootSounds: []
+    ProjectileHitSounds: []
   EquipEndTime: 0.5
   AttackCooldown: 0.5
   EnableIK: 0
@@ -73,8 +108,7 @@ MonoBehaviour:
     FadeDuration: 0
     Priority: 20
     ApplyGravity: 0
-  SwingSound: {fileID: 0}
-  HitSound: {fileID: 0}
+    Speed: 0
   AttackDamage: 10
   references:
     version: 2

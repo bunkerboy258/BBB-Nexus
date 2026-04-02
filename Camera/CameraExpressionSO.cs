@@ -35,6 +35,36 @@ namespace BBBNexus
         [Tooltip("碰撞检测用的相机球半径")]
         public float CameraRadius = 0.15f;
 
+        [Tooltip("进入碰撞状态时的阻尼。越小越快缩进，越大越柔和。")]
+        public float DampingIntoCollision = 0f;
+
+        [Tooltip("脱离碰撞状态时的阻尼。越小越快恢复，越大越柔和。")]
+        public float DampingFromCollision = 0f;
+
+        [Header("Adaptive Shoulder")]
+        [Tooltip("是否根据角色到越肩方向上的遮挡净空，自动缩小越肩度。")]
+        public bool EnableAdaptiveShoulder = false;
+
+        [Tooltip("遮挡净空必须始终大于 当前越肩距离 * 此系数，否则开始缩肩。")]
+        public float ShoulderClearanceMultiplier = 1.35f;
+
+        [Tooltip("越肩缩小时的平滑时间（秒）。越小越快收肩。")]
+        public float ShoulderShrinkSmoothTime = 0.06f;
+
+        [Tooltip("越肩恢复时的平滑时间（秒）。越大越不容易弹回。")]
+        public float ShoulderRecoverSmoothTime = 0.22f;
+
+        [Tooltip("侧向探测半径。<= 0 时自动沿用 CameraRadius。")]
+        public float ShoulderProbeRadius = 0f;
+
+        [Tooltip("环境拥挤时允许保留的最小越肩比例。0 = 可完全收中。")]
+        [Range(0f, 1f)]
+        public float MinShoulderScale = 0.35f;
+
+        [Tooltip("越肩比例变化低于此阈值时忽略，避免边缘抖动。")]
+        [Range(0f, 1f)]
+        public float ShoulderScaleDeadZone = 0.03f;
+
         [Header("输入")]
         [Tooltip("视角灵敏度缩放（乘以 CoreSO.LookSensitivity）。1 = 不变")]
         [Range(0.1f, 2f)]
@@ -57,6 +87,15 @@ namespace BBBNexus
             CameraSide        = CameraSide,
             CameraDistance    = CameraDistance,
             CameraRadius      = CameraRadius,
+            DampingIntoCollision = DampingIntoCollision,
+            DampingFromCollision = DampingFromCollision,
+            EnableAdaptiveShoulder = EnableAdaptiveShoulder,
+            ShoulderClearanceMultiplier = ShoulderClearanceMultiplier,
+            ShoulderShrinkSmoothTime = ShoulderShrinkSmoothTime,
+            ShoulderRecoverSmoothTime = ShoulderRecoverSmoothTime,
+            ShoulderProbeRadius = ShoulderProbeRadius,
+            MinShoulderScale = MinShoulderScale,
+            ShoulderScaleDeadZone = ShoulderScaleDeadZone,
             SensitivityScale  = SensitivityScale,
             FovSmoothTime     = FovSmoothTime,
             OffsetSmoothTime  = OffsetSmoothTime,

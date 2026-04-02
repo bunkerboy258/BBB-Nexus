@@ -47,7 +47,7 @@ namespace BBBNexus
         public ActionArbiterSO ActionArbiterConfig;
         [Tooltip("Status 域仲裁配置。当前可为空，逐步承接受击/僵直等控制规则。")]
         public StatusArbiterSO StatusArbiterConfig;
-        public AudioSO Audio;
+        public LocomotionAudioSO Audio;
         public EmjSO Emj;
     }
 }

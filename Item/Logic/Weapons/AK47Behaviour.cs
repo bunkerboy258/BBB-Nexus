@@ -216,9 +216,9 @@ namespace BBBNexus
             if (Time.time - _lastFireTime < _fireRate) return;
             _lastFireTime = Time.time;
             if (_muzzleFlash != null) _muzzleFlash.Play();
-            if (_akconfig != null && _akconfig.ShootSound != null && _muzzle != null)
+            if (_akconfig != null && _muzzle != null)
             {
-                AudioSource.PlayClipAtPoint(_akconfig.ShootSound, _muzzle.position);
+                WeaponAudioUtil.PlayAt(_akconfig.RangedAudio.ShootSounds, _muzzle.position);
             }
 
             if (_akconfig != null && _akconfig.MuzzleVFXPrefab != null && _muzzle != null)
@@ -262,7 +262,7 @@ namespace BBBNexus
                 var simple = proj.GetComponent<SimpleProjectile>();
                 if (simple != null)
                 {
-                    simple.hitSound = _akconfig.ProjectileHitSound;
+                    simple.hitSound = WeaponAudioUtil.Pick(_akconfig.RangedAudio.ProjectileHitSounds);
                 }
             }
         }

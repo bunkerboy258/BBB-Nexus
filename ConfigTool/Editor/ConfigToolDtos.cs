@@ -239,6 +239,8 @@ namespace BBBNexus
         public int index;
         public string type;
         public string value;
+        public string name;
+        public string assetPath;
     }
 
     [Serializable]
@@ -253,6 +255,37 @@ namespace BBBNexus
     }
 
     [Serializable]
+    internal sealed class AudioClipDto
+    {
+        public string name;
+        public string assetPath;
+        public string guid;
+        public long localFileId;
+        public float duration;
+        public int channels;
+        public int frequency;
+    }
+
+    [Serializable]
+    internal sealed class AudioFolderDto
+    {
+        public string folder;
+        public AudioClipDto[] clips;
+    }
+
+    [Serializable]
+    internal sealed class AudioBrowseResponse
+    {
+        public int totalCount;
+        public AudioFolderDto[] folders;
+    }
+
+    [Serializable]
+    internal sealed class AudioBrowseRequest
+    {
+        public string folder;
+    }
+
     internal sealed class MetaLibDuplicateDto
     {
         public string id;

@@ -19,6 +19,15 @@ MonoBehaviour:
   CameraSide: 0.62
   CameraDistance: 2.8
   CameraRadius: 0.15
+  DampingIntoCollision: 0.07
+  DampingFromCollision: 0.2
+  EnableAdaptiveShoulder: 1
+  ShoulderClearanceMultiplier: 1.35
+  ShoulderShrinkSmoothTime: 0.06
+  ShoulderRecoverSmoothTime: 0.22
+  ShoulderProbeRadius: 0
+  MinShoulderScale: 0.35
+  ShoulderScaleDeadZone: 0.03
   SensitivityScale: 1
   FovSmoothTime: 0.12
   OffsetSmoothTime: 0.15

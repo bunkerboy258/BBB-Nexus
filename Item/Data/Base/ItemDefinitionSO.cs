@@ -1,4 +1,7 @@
-﻿using UnityEngine;
+using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace BBBNexus
 {
@@ -24,13 +27,23 @@ namespace BBBNexus
         [Tooltip("最大堆叠数量")]
         public int MaxStack = 1;
 
-        // 在编辑器中自动生成或校验 ID
+        // 在编辑器中自动校验 ID：ItemID 必须与资产文件名一致
         protected virtual void OnValidate()
         {
-            if (string.IsNullOrEmpty(ItemID))
+#if UNITY_EDITOR
+            string canonicalName = name;
+            string assetPath = AssetDatabase.GetAssetPath(this);
+            if (!string.IsNullOrWhiteSpace(assetPath))
             {
-                ItemID = System.Guid.NewGuid().ToString();
+                canonicalName = System.IO.Path.GetFileNameWithoutExtension(assetPath);
             }
+
+            if (!string.IsNullOrWhiteSpace(canonicalName) && ItemID != canonicalName)
+            {
+                ItemID = canonicalName;
+                EditorUtility.SetDirty(this);
+            }
+#endif
         }
     }
 }

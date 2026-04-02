@@ -9,8 +9,8 @@ namespace BBBNexus
     /// - 只做“事件 -> 音频集合”的映射
     /// - 播放策略交给 AudioDriver/AudioController（当前：随机选一个并 PlayOneShot）
     /// </summary>
-    [CreateAssetMenu(fileName = "AudioSO", menuName = "BBBNexus/Player/Modules/AudioSO")]
-    public sealed class AudioSO : ScriptableObject
+    [CreateAssetMenu(fileName = "LocomotionAudioSO", menuName = "BBBNexus/Player/Modules/LocomotionAudioSO")]
+    public sealed class LocomotionAudioSO : ScriptableObject
     {
         [Serializable]
         public struct EventEntry

@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fbdde6f2413620344a353ed65943708e, type: 3}
-  m_Name: FistsSO
+  m_Name: Fists
   m_EditorClassIdentifier: 
-  ItemID: 55cb4ecb-b3e7-45fa-8895-d23e3f80dba3
-  DisplayName: 
+  ItemID: Fists
+  DisplayName: Fists
   Icon: {fileID: 0}
   Description: 
   MaxStack: 1
@@ -71,7 +71,34 @@ MonoBehaviour:
   VirtualOtherSlot:
     Enabled: 1
     TargetSlot: 2
-    ItemId: FistsSO
+    ItemId: Fists
+  EquipSounds:
+  - {fileID: 8300000, guid: b0eddbe92b9c249b6a3e6913ea2dc163, type: 3}
+  - {fileID: 8300000, guid: 144ee9438b9364f969c0fc7064615c19, type: 3}
+  UnEquipSounds:
+  - {fileID: 8300000, guid: 3045f9681a18245d39b5212fb3d50477, type: 3}
+  - {fileID: 8300000, guid: 5bee5d4cfa8134862bcb7247047d2b5e, type: 3}
+  MeleeAudio:
+    EnterStanceSounds:
+    - {fileID: 8300000, guid: 2a1cfd41c98d1460d816233f23e6152f, type: 3}
+    - {fileID: 8300000, guid: 940905f8a21c145119b64f16e7131c47, type: 3}
+    - {fileID: 8300000, guid: 962fed30cb2044e488376207e9cd60f3, type: 3}
+    ComboSwingSounds: []
+    HitSounds:
+    - {fileID: 8300000, guid: b5dd1682e1527704fbabee0208e5ec26, type: 3}
+    - {fileID: 8300000, guid: aaea79465f40b924fbb6bb338a1905da, type: 3}
+    - {fileID: 8300000, guid: 9e91f6b4d22885d4482f895857833f5a, type: 3}
+    - {fileID: 8300000, guid: fbd73e619dcf48e40b55eaebee619403, type: 3}
+    - {fileID: 8300000, guid: 41df8b407c9267e438aaf92bab360832, type: 3}
+    ExitStanceSounds:
+    - {fileID: 8300000, guid: b32ad61ca3cf84f8882d9f418232890b, type: 3}
+    - {fileID: 8300000, guid: 72a5cc0ca35e54cd99955b3e2b62bdf5, type: 3}
+  RangedAudio:
+    EnterAimSounds: []
+    ExitAimSounds: []
+    ReloadSounds: []
+    ShootSounds: []
+    ProjectileHitSounds: []
   EnterStanceAnim:
     _FadeDuration: 0.27533337
     _Speed: 2
