@@ -192,6 +192,64 @@ namespace BBBNexus
             };
         }
 
+        public static PrefabListResponse FindPrefabs(string query)
+        {
+            var normalizedQuery = (query ?? "").Trim();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var prefabs = new List<AssetRefDto>();
+
+            foreach (var guid in AssetDatabase.FindAssets("t:Prefab"))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                if (string.IsNullOrEmpty(path))
+                {
+                    continue;
+                }
+
+                var prefab = AssetDatabase.LoadMainAssetAtPath(path) as GameObject;
+                if (prefab == null || !IsMainPrefabAsset(prefab))
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrEmpty(normalizedQuery) &&
+                    prefab.name.IndexOf(normalizedQuery, StringComparison.OrdinalIgnoreCase) < 0 &&
+                    path.IndexOf(normalizedQuery, StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    continue;
+                }
+
+                if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(prefab, out string prefabGuid, out long localFileId))
+                {
+                    continue;
+                }
+
+                var key = prefabGuid + ":" + localFileId;
+                if (!seen.Add(key))
+                {
+                    continue;
+                }
+
+                prefabs.Add(new AssetRefDto
+                {
+                    name = prefab.name,
+                    type = nameof(GameObject),
+                    guid = prefabGuid,
+                    localFileId = localFileId,
+                    assetPath = path
+                });
+            }
+
+            return new PrefabListResponse
+            {
+                prefabs = prefabs
+                    .OrderBy(p => p.name, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(p => p.assetPath, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(p => p.localFileId)
+                    .ToArray()
+            };
+        }
+
         public static ClipListResponse FindAudioClips(string query)
         {
             var normalizedQuery = (query ?? "").Trim();
@@ -406,6 +464,20 @@ namespace BBBNexus
                         geometryId = geometryId,
                         geometryAssetPath = AttackClipGeometryLibrary.ToAssetPath(geometryId),
                         geometryResourcePath = resourcePath
+                    };
+
+                case WeaponSO weapon:
+                    string weaponResourcePath = weapon.GetAttackGeometryResourcePath();
+                    AttackClipGeometryDefinition weaponDefinition = AttackClipGeometryTemplateFactory.CreateForWeapon(weapon);
+                    var weaponGeometryId = weapon.GetAttackGeometryId();
+                    AttackClipGeometryLibrary.WriteDefinitionAndRegister(weaponGeometryId, weaponDefinition, $"{weapon.name} Attack Sweep");
+                    return new InitializeAttackGeometryResponse
+                    {
+                        assetPath = assetPath,
+                        assetType = asset.GetType().FullName,
+                        geometryId = weaponGeometryId,
+                        geometryAssetPath = AttackClipGeometryLibrary.ToAssetPath(weaponGeometryId),
+                        geometryResourcePath = weaponResourcePath
                     };
 
                 default:
@@ -1191,7 +1263,7 @@ namespace BBBNexus
                     $"Referenced asset is ambiguous: {normalizedName}{Environment.NewLine}Candidates:{Environment.NewLine}{details}");
             }
 
-            return matches[0];
+            return ValidateResolvedReference(matches[0], expectedType, normalizedName);
         }
 
         private static bool TryParseAssetSelector(string rawInput, out string assetPath, out string nameHint)
@@ -1250,7 +1322,8 @@ namespace BBBNexus
                     $"Referenced asset is ambiguous at path: {normalizedPath}{Environment.NewLine}Candidates:{Environment.NewLine}{details}");
             }
 
-            return candidates[0];
+            var selector = string.IsNullOrWhiteSpace(nameHint) ? normalizedPath : $"{nameHint} @ {normalizedPath}";
+            return ValidateResolvedReference(candidates[0], expectedType, selector);
         }
 
         private static bool IsNullLiteral(string value)
@@ -1266,6 +1339,43 @@ namespace BBBNexus
             }
 
             return expectedType.IsAssignableFrom(obj.GetType());
+        }
+
+        private static UnityEngine.Object ValidateResolvedReference(UnityEngine.Object obj, Type expectedType, string selector)
+        {
+            if (obj == null)
+            {
+                return null;
+            }
+
+            if (expectedType == typeof(GameObject) && !IsMainPrefabAsset(obj))
+            {
+                throw new InvalidOperationException(
+                    $"Referenced GameObject must be a main prefab asset, not a prefab child or sub-asset: {selector}");
+            }
+
+            return obj;
+        }
+
+        private static bool IsMainPrefabAsset(UnityEngine.Object obj)
+        {
+            if (!(obj is GameObject gameObject))
+            {
+                return false;
+            }
+
+            if (!PrefabUtility.IsPartOfPrefabAsset(gameObject))
+            {
+                return false;
+            }
+
+            var path = AssetDatabase.GetAssetPath(gameObject);
+            if (string.IsNullOrEmpty(path) || !path.EndsWith(".prefab", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return AssetDatabase.LoadMainAssetAtPath(path) == gameObject;
         }
 
         private static InspectorFieldDto ToInspectorField(SerializedObject serializedObject, InspectorSemanticField semanticField)

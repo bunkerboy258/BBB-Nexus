@@ -33,6 +33,7 @@ namespace BBBNexus
         private bool _lastJumpIntent;
         private bool _lastDodgeIntent;
         private bool _lastRollIntent;
+        private bool _lastReloadIntent;
 
         protected override void Awake()
         {
@@ -113,6 +114,13 @@ namespace BBBNexus
             rawData.PrimaryAttackHeld = wantsAttack;
             rawData.PrimaryAttackJustPressed = wantsAttack;
 
+            bool wantsReload = TryPlanReload(in context, out int reloadTargetCount);
+            rawData.ReloadJustPressed = wantsReload && !_lastReloadIntent;
+            if (rawData.ReloadJustPressed && _player?.RuntimeData != null)
+            {
+                _player.RuntimeData.RequestedReloadTargetCount = reloadTargetCount;
+            }
+
             bool wantsJump = intent.WantsToJump;
             rawData.JumpHeld = wantsJump;
             rawData.JumpJustPressed = wantsJump && !_lastJumpIntent;
@@ -128,6 +136,52 @@ namespace BBBNexus
             _lastJumpIntent = wantsJump;
             _lastDodgeIntent = wantsDodge;
             _lastRollIntent = wantsRoll;
+            _lastReloadIntent = wantsReload;
+        }
+
+        private bool TryPlanReload(in NavigationContext context, out int targetCount)
+        {
+            targetCount = -1;
+            if (_player?.EquipmentDriver?.CurrentItemDirector is not IAiReloadable reloadable)
+            {
+                return false;
+            }
+
+            if (!(_player.EquipmentDriver.CurrentItemDirector is IManualReloadable manualReloadable) ||
+                !manualReloadable.CanManualReload ||
+                reloadable.IsReloading ||
+                reloadable.CurrentMagazine > 0)
+            {
+                return false;
+            }
+
+            targetCount = CalculateReloadTargetCount(reloadable.MagazineCapacity, context.DistanceToTarget);
+            return targetCount > 0;
+        }
+
+        private int CalculateReloadTargetCount(int magazineCapacity, float distanceToTarget)
+        {
+            if (magazineCapacity <= 0)
+            {
+                return -1;
+            }
+
+            float attackRange = TacticalConfig != null ? Mathf.Max(0.01f, TacticalConfig.AttackRange) : 10f;
+            float distance01 = Mathf.Clamp01(distanceToTarget / attackRange);
+            float nearRatio = 0.4f;
+            float farRatio = 1f;
+            float variancePercent = 0.2f;
+            if (TacticalConfig is GunnerTacticalConfigSO gunnerConfig)
+            {
+                nearRatio = gunnerConfig.ReloadNearRatio;
+                farRatio = gunnerConfig.ReloadFarRatio;
+                variancePercent = gunnerConfig.ReloadVariancePercent;
+            }
+
+            float baseRatio = Mathf.Lerp(nearRatio, farRatio, distance01);
+            float variance = magazineCapacity * variancePercent;
+            float target = magazineCapacity * baseRatio + UnityEngine.Random.Range(-variance, variance);
+            return Mathf.Clamp(Mathf.RoundToInt(target), 1, magazineCapacity);
         }
 
         private float GetAuthorityYaw()
@@ -218,6 +272,7 @@ namespace BBBNexus
             rawData.AimHeld = false;
             rawData.PrimaryAttackHeld = false;
             rawData.PrimaryAttackJustPressed = false;
+            rawData.ReloadJustPressed = false;
             rawData.JumpHeld = false;
             rawData.JumpJustPressed = false;
             rawData.DodgeHeld = false;
@@ -227,6 +282,7 @@ namespace BBBNexus
             _lastJumpIntent = false;
             _lastDodgeIntent = false;
             _lastRollIntent = false;
+            _lastReloadIntent = false;
         }
     }
 }

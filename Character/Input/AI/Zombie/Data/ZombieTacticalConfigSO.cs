@@ -18,5 +18,9 @@ namespace BBBNexus
         [SerializeField] public float AttackCooldownMin = 1.0f;
         [Tooltip("一轮连段结束后的最长等待时间（秒）")]
         [SerializeField] public float AttackCooldownMax = 2.5f;
+
+        [Header("--- 攻击朝向（Zombie 专属）---")]
+        [Tooltip("进入攻击前允许的面朝目标角度（度）。超过该值会继续挪步转正。")]
+        [SerializeField] public float AttackFacingAngle = 35f;
     }
 }

@@ -209,6 +209,8 @@ namespace BBBNexus
         public bool WantsToggleEyes;
         /// <summary>换弹意图</summary>
         public bool WantsReload;
+        /// <summary>本次换弹期望至少装到多少发。-1 表示使用武器默认策略（通常为装满）。</summary>
+        public int RequestedReloadTargetCount = -1;
         /// <summary>使用道具意图</summary>
         public bool WantsUseItem;
         /// <summary>打开背包意图</summary>
@@ -371,6 +373,7 @@ namespace BBBNexus
 
             WantsToggleEyes    = false;
             WantsReload        = false;
+            RequestedReloadTargetCount = -1;
             WantsUseItem       = false;
             WantsOpenInventory = false;
             WantsExtraAction4  = false;

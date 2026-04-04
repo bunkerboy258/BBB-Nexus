@@ -4,6 +4,10 @@ namespace BBBNexus
 {
     public class SimpleSteeringSensor : NavigatorSensorBase
     {
+        [Header("Sensor Config")]
+        [Tooltip("可选的感知/绕障配置。赋值后会覆盖本组件上的数值字段，便于多个敌人共享同一套索敌参数。")]
+        public SimpleSteeringSensorConfigSO Config;
+
         // ── 感知参数 ──────────────────────────────────────────────────────
         [Header("Detection — Vision Cone")]
         [Tooltip("视野检测距离（米）：玩家在此范围内且在视野角内才能被发现")]
@@ -32,6 +36,25 @@ namespace BBBNexus
         // ── 调试 ──────────────────────────────────────────────────────────
         [Header("Debug")]
         public bool ShowGizmos = true;
+
+        protected override void Awake()
+        {
+            base.Awake();
+            ApplyConfigIfPresent();
+        }
+
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+            ApplyConfigIfPresent();
+        }
+
+#if UNITY_EDITOR
+        private void OnValidate()
+        {
+            ApplyConfigIfPresent();
+        }
+#endif
 
         protected override void ProcessSensorLogic()
         {
@@ -152,6 +175,20 @@ namespace BBBNexus
                 Gizmos.DrawLine(prev, next);
                 prev = next;
             }
+        }
+
+        private void ApplyConfigIfPresent()
+        {
+            if (Config == null)
+            {
+                return;
+            }
+
+            DetectionRange = Config.DetectionRange;
+            DetectionFOV = Config.DetectionFOV;
+            AlertRange = Config.AlertRange;
+            LostTargetCooldown = Config.LostTargetCooldown;
+            ObstacleDetectRange = Config.ObstacleDetectRange;
         }
     }
 }

@@ -19,8 +19,37 @@ namespace BBBNexus
             public int ComboIndex;
             public float AlignmentWindowStartTime;
             public float AlignmentWindowEndTime;
-            public float WindowStartTime;
-            public float WindowEndTime;
+
+            public float[] WindowStartTimes = System.Array.Empty<float>();
+            public float[] WindowEndTimes = System.Array.Empty<float>();
+
+            public float WindowStartTime
+            {
+                get => WindowStartTimes.Length > 0 ? WindowStartTimes[0] : 0f;
+                set { if (WindowStartTimes.Length > 0) WindowStartTimes[0] = value; }
+            }
+            public float WindowEndTime
+            {
+                get => WindowEndTimes.Length > 0 ? WindowEndTimes[0] : 0f;
+                set { if (WindowEndTimes.Length > 0) WindowEndTimes[0] = value; }
+            }
+
+            public void SetWindowCount(int count)
+            {
+                count = Mathf.Max(1, count);
+                WindowStartTimes = new float[count];
+                WindowEndTimes = new float[count];
+            }
+
+            public bool IsInAnyDamageWindow(float time)
+            {
+                for (int i = 0; i < WindowStartTimes.Length; i++)
+                {
+                    if (time >= WindowStartTimes[i] && time <= WindowEndTimes[i])
+                        return true;
+                }
+                return false;
+            }
         }
 
         private readonly struct AutoTargetCandidate
@@ -91,6 +120,8 @@ namespace BBBNexus
                 _hitbox.SetOwner(player);
                 _hitbox.Deactivate();
                 _hitbox.SetAttackGeometryId(_config != null ? _config.GetAttackGeometryId() : null);
+                _hitbox.HitRegistered -= OnHitRegistered;
+                _hitbox.HitRegistered += OnHitRegistered;
 
                 if (CurrentEquipSlot == EquipmentSlot.OffHand)
                 {
@@ -234,6 +265,11 @@ namespace BBBNexus
 
         public void OnForceUnequip()
         {
+            if (_hitbox != null)
+            {
+                _hitbox.HitRegistered -= OnHitRegistered;
+            }
+
             if (CurrentEquipSlot == EquipmentSlot.OffHand)
             {
                 PostSystem.Instance.Off("Fists.AttackStart", _onAttackStart);
@@ -248,6 +284,7 @@ namespace BBBNexus
             var stance = HasEnterStance() ? _config.EnterStanceAnim : null;
             if (stance != null)
             {
+                WeaponAudioUtil.PlayAt(_config.MeleeAudio.EnterStanceSounds, transform.position);
                 _isEnteringStance = true;
                 _stanceAttackBridged = false;
                 _currentStanceTransition = stance;
@@ -274,6 +311,7 @@ namespace BBBNexus
 
         private void TriggerExitStance()
         {
+            WeaponAudioUtil.PlayAt(_config.MeleeAudio.ExitStanceSounds, transform.position);
             _comboIndex = 0;
             _isAttacking = false;
             _inputBuffered = false;
@@ -351,7 +389,8 @@ namespace BBBNexus
             float normStart = float.IsNaN(transition.NormalizedStartTime) ? 0f : transition.NormalizedStartTime;
             float normEnd = transition.Events.GetRealNormalizedEndTime(speed);
             float actualDuration = clip.length * (normEnd - normStart) / speed;
-            float fadeInEndTime = transition.FadeDuration * speed;
+
+            PlaySwingSound(currentComboIndex);
 
             _comboIndex = currentComboIndex + 1;
             _isAttacking = true;
@@ -368,12 +407,13 @@ namespace BBBNexus
                 ComboIndex = currentComboIndex,
                 AlignmentWindowStartTime = _currentAttackStartTime,
                 AlignmentWindowEndTime = _currentAttackStartTime,
-                WindowStartTime = _currentAttackStartTime,
-                WindowEndTime = _currentAttackStartTime + actualDuration,
             };
+            _activeAttackContext.SetWindowCount(1);
+            _activeAttackContext.WindowStartTime = _currentAttackStartTime;
+            _activeAttackContext.WindowEndTime = _currentAttackStartTime + actualDuration;
 
-            ApplyDamageWindowTiming(_activeAttackContext, transition, fadeInEndTime, actualDuration, currentComboIndex);
-            ApplyAlignmentWindowTiming(_activeAttackContext, transition, fadeInEndTime, actualDuration, currentComboIndex);
+            ApplyDamageWindowTiming(_activeAttackContext, actualDuration, currentComboIndex);
+            ApplyAlignmentWindowTiming(_activeAttackContext, actualDuration, currentComboIndex);
 
             if (CurrentEquipSlot == EquipmentSlot.MainHand)
             {
@@ -383,6 +423,24 @@ namespace BBBNexus
             _player.InputPipeline.ConsumePrimaryAttackPressed();
             var req = new ActionRequest(clip, _config.ComboPriority, applyGravity: true) { Transition = transition };
             _player.RequestOverride(in req, flushImmediately: true);
+        }
+
+        private void PlaySwingSound(int comboIndex)
+        {
+            if (_config == null)
+            {
+                return;
+            }
+
+            var swingClip = WeaponAudioUtil.PickCombo(_config.MeleeAudio.ComboSwingSounds, comboIndex);
+            if (swingClip != null)
+            {
+                AudioSource.PlayClipAtPoint(swingClip, transform.position);
+                return;
+            }
+
+            // 资源还没补齐时，先退回到已有的起手音，避免挥空完全静音。
+            WeaponAudioUtil.PlayAt(_config.MeleeAudio.EnterStanceSounds, transform.position);
         }
 
         private void OnRemoteAttackStart(object data)
@@ -435,6 +493,16 @@ namespace BBBNexus
             _autoTargetTransform = null;
         }
 
+        private void OnHitRegistered(Collider other, IDamageable damageable, DamageRequest request)
+        {
+            if (_config == null)
+            {
+                return;
+            }
+
+            WeaponAudioUtil.PlayAt(_config.MeleeAudio.HitSounds, request.HitPoint);
+        }
+
         private void UpdateHitWindowState()
         {
             if (_activeAttackContext == null)
@@ -452,7 +520,7 @@ namespace BBBNexus
             }
 
             float now = Time.time;
-            bool shouldBeActive = now >= _activeAttackContext.WindowStartTime && now <= _activeAttackContext.WindowEndTime;
+            bool shouldBeActive = _activeAttackContext.IsInAnyDamageWindow(now);
             if (shouldBeActive == _isHitWindowOpen)
                 return;
 
@@ -494,7 +562,8 @@ namespace BBBNexus
             }
 
             float maxStepDistance = ComputeMaxStepDistance(remainingTime);
-            if (!TryFindBestAutoTargetCandidate(_player, attackClipGeometry, searchRange, remainingTime, _config.AutoTargetTurnSpeed, maxStepDistance, out var candidate))
+            float candidateSearchRange = searchRange + maxStepDistance;
+            if (!TryFindBestAutoTargetCandidate(_player, attackClipGeometry, candidateSearchRange, remainingTime, _config.AutoTargetTurnSpeed, maxStepDistance, out var candidate))
             {
                 _autoTargetTransform = null;
                 return;
@@ -707,36 +776,33 @@ namespace BBBNexus
 
         private void ApplyDamageWindowTiming(
             FistsAttackWindowContext context,
-            ClipTransition transition,
-            float fadeInEndTime,
             float actualDuration,
             int comboIndex)
         {
             FistsDamageWindowSidecar sidecar = _config.GetDamageWindow(comboIndex);
+            float dominantStart = 0f;
+            float dominantEnd = ResolveDominantEndTime(actualDuration, comboIndex);
             if (!sidecar.Enabled)
             {
-                context.WindowStartTime = _currentAttackStartTime;
-                context.WindowEndTime = _currentAttackStartTime + actualDuration;
+                context.SetWindowCount(1);
+                context.WindowStartTime = _currentAttackStartTime + dominantStart;
+                context.WindowEndTime = _currentAttackStartTime + dominantEnd;
                 return;
             }
 
-            float dominantStart = Mathf.Max(0f, fadeInEndTime);
-            float dominantEnd = Mathf.Max(dominantStart, actualDuration);
-            float startNormalized = Mathf.Clamp01(sidecar.StartNormalized);
-            float endNormalized = Mathf.Clamp01(sidecar.EndNormalized);
-            if (endNormalized < startNormalized)
-                (startNormalized, endNormalized) = (endNormalized, startNormalized);
+            int windowCount = sidecar.WindowCount;
+            context.SetWindowCount(windowCount);
 
-            float localStart = Mathf.LerpUnclamped(dominantStart, dominantEnd, startNormalized);
-            float localEnd = Mathf.LerpUnclamped(dominantStart, dominantEnd, endNormalized);
-            context.WindowStartTime = _currentAttackStartTime + localStart;
-            context.WindowEndTime = _currentAttackStartTime + localEnd;
+            for (int i = 0; i < windowCount; i++)
+            {
+                sidecar.GetWindow(i, out float start, out float end);
+                context.WindowStartTimes[i] = _currentAttackStartTime + Mathf.LerpUnclamped(dominantStart, dominantEnd, start);
+                context.WindowEndTimes[i] = _currentAttackStartTime + Mathf.LerpUnclamped(dominantStart, dominantEnd, end);
+            }
         }
 
         private void ApplyAlignmentWindowTiming(
             FistsAttackWindowContext context,
-            ClipTransition transition,
-            float fadeInEndTime,
             float actualDuration,
             int comboIndex)
         {
@@ -748,8 +814,8 @@ namespace BBBNexus
                 return;
             }
 
-            float dominantStart = Mathf.Max(0f, fadeInEndTime);
-            float dominantEnd = Mathf.Max(dominantStart, actualDuration);
+            float dominantStart = 0f;
+            float dominantEnd = ResolveDominantEndTime(actualDuration, comboIndex);
             float startNormalized = Mathf.Clamp01(sidecar.StartNormalized);
             float endNormalized = Mathf.Clamp01(sidecar.EndNormalized);
             if (endNormalized < startNormalized)
@@ -761,6 +827,26 @@ namespace BBBNexus
             float localEnd = Mathf.LerpUnclamped(dominantStart, dominantEnd, endNormalized);
             context.AlignmentWindowStartTime = _currentAttackStartTime + localStart;
             context.AlignmentWindowEndTime = _currentAttackStartTime + localEnd;
+        }
+
+        private float ResolveDominantEndTime(float actualDuration, int comboIndex)
+        {
+            float duration = Mathf.Max(0f, actualDuration);
+            float outgoingFade = ResolveOutgoingFadeDuration(comboIndex);
+            return Mathf.Max(0f, duration - outgoingFade);
+        }
+
+        private float ResolveOutgoingFadeDuration(int comboIndex)
+        {
+            if (_config?.ComboSequence == null || _config.ComboSequence.Length == 0)
+                return 0f;
+
+            int nextIndex = comboIndex + 1;
+            if (nextIndex >= _config.ComboSequence.Length)
+                nextIndex = 0;
+
+            ClipTransition next = _config.ComboSequence[nextIndex];
+            return next != null ? Mathf.Max(0f, next.FadeDuration) : 0f;
         }
 
         private FistsAttackHand GetCurrentAttackHand()

@@ -22,6 +22,8 @@ try
         "health"        => await CmdHealth(client),
         "list-clips"    => await CmdListClips(client, args),
         "find-clip"     => await CmdFindClip(client, args),
+        "list-prefabs"  => await CmdListPrefabs(client, args),
+        "find-prefab"   => await CmdFindPrefab(client, args),
         "fields"        => await CmdFields(client, args),
         "inspect"       => await CmdInspect(client, args),
         "set"           => await CmdSet(client, args),
@@ -106,6 +108,53 @@ static async Task<int> CmdFindClip(ConfigToolClient client, string[] args)
     }
 
     return await CmdListClips(client, new[] { "list-clips", "--filter", args[1] });
+}
+
+static async Task<int> CmdListPrefabs(ConfigToolClient client, string[] args)
+{
+    if (HasCommandHelp(args))
+    {
+        return PrintCommandHelp("list-prefabs");
+    }
+
+    var filter = "";
+    for (var i = 1; i < args.Length - 1; i++)
+    {
+        if (args[i] == "--filter")
+        {
+            filter = args[i + 1];
+        }
+    }
+
+    var response = await client.PostAsync<FindClipRequest, PrefabListResponse>("prefabs/find", new FindClipRequest
+    {
+        Query = filter
+    });
+
+    Console.WriteLine($"{"Name",-50} {"GUID",-32} {"LocalFileId",-14} AssetPath");
+    Console.WriteLine(new string('-', 140));
+    foreach (var prefab in response.Prefabs)
+    {
+        Console.WriteLine($"{prefab.Name,-50} {prefab.Guid,-32} {prefab.LocalFileId,-14} {prefab.AssetPath}");
+    }
+
+    return 0;
+}
+
+static async Task<int> CmdFindPrefab(ConfigToolClient client, string[] args)
+{
+    if (HasCommandHelp(args))
+    {
+        return PrintCommandHelp("find-prefab");
+    }
+
+    if (args.Length < 2)
+    {
+        Console.Error.WriteLine("Usage: config-tool find-prefab <name>");
+        return 1;
+    }
+
+    return await CmdListPrefabs(client, new[] { "list-prefabs", "--filter", args[1] });
 }
 
 static async Task<int> CmdFields(ConfigToolClient client, string[] args)
@@ -575,6 +624,8 @@ static void PrintHelp()
             health                     查看 Unity Editor 服务状态
             list-clips                 列出 AnimationClip，可用 --filter 过滤
             find-clip                  按名字片段搜索 AnimationClip
+            list-prefabs               列出主 Prefab 资产，可用 --filter 过滤
+            find-prefab                按名字片段搜索主 Prefab 资产
             fields                     查看原始序列化字段
             inspect                    查看贴近 Inspector 的语义字段
             set                        按原始字段路径设置标量
@@ -634,6 +685,30 @@ static int PrintCommandHelp(string command)
                   config-tool find-clip Fists
                 """);
             return 0;
+        case "list-prefabs":
+            Console.WriteLine("""
+                config-tool list-prefabs [--filter <text>]
+
+                说明:
+                  列出项目中的主 Prefab 资产。可用 --filter 按名称或路径片段过滤。
+                  只返回 prefab 主资源，不返回 prefab 内子对象或其它子资产。
+
+                示例:
+                  config-tool list-prefabs
+                  config-tool list-prefabs --filter Pistol
+                """);
+            return 0;
+        case "find-prefab":
+            Console.WriteLine("""
+                config-tool find-prefab <name>
+
+                说明:
+                  按名字片段搜索主 Prefab 资产。等价于 list-prefabs --filter。
+
+                示例:
+                  config-tool find-prefab Pistol
+                """);
+            return 0;
         case "fields":
             Console.WriteLine("""
                 config-tool fields <asset-path>
@@ -682,13 +757,16 @@ static int PrintCommandHelp(string command)
             return 0;
         case "set-ref":
             Console.WriteLine("""
-                config-tool set-ref <asset-path> <field> <asset-name|null>
+                config-tool set-ref <asset-path> <field> <asset-selector|null>
 
                 说明:
                   按原始字段路径设置 Unity 引用字段。传入 null 可清空引用。
+                  selector 可传名称、完整资源路径、或 "name @ path"。
+                  对 GameObject 字段，只接受主 prefab 资产，不接受 prefab 内子对象或子资产。
 
                 示例:
                   config-tool set-ref "Assets/.../StatusEffectSO_Smoke.asset" "Clip._Clip" "Big Hit To Head"
+                  config-tool set-ref "Assets/.../Pistol.asset" ProjectilePrefab "Bullet @ Assets/Resources/ItemPrefab/Bullet.prefab"
                   config-tool set-ref "Assets/.../StatusEffectSO_Smoke.asset" "Clip._Clip" null
                 """);
             return 0;
@@ -1059,7 +1137,28 @@ internal sealed class ClipListResponse
     public ClipInfo[] Clips { get; set; } = Array.Empty<ClipInfo>();
 }
 
+internal sealed class PrefabListResponse
+{
+    [JsonPropertyName("prefabs")]
+    public PrefabInfo[] Prefabs { get; set; } = Array.Empty<PrefabInfo>();
+}
+
 internal sealed class ClipInfo
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = "";
+
+    [JsonPropertyName("guid")]
+    public string Guid { get; set; } = "";
+
+    [JsonPropertyName("localFileId")]
+    public long LocalFileId { get; set; }
+
+    [JsonPropertyName("assetPath")]
+    public string AssetPath { get; set; } = "";
+}
+
+internal sealed class PrefabInfo
 {
     [JsonPropertyName("name")]
     public string Name { get; set; } = "";

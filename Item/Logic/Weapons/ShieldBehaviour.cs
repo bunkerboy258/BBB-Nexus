@@ -15,8 +15,15 @@ namespace BBBNexus
     /// </summary>
     public class ShieldBehaviour : MonoBehaviour, IHoldableItem, IDamageable
     {
+        [Header("--- 格挡挂点 ---")]
+        [Tooltip("格挡朝向参考点。优先使用这个挂点的 forward 作为盾牌正面，避免骨骼动画导致根节点朝向不稳定。")]
+        [SerializeField] private Transform _blockMuzzle;
+
         private BBBCharacterController _owner;
         private ShieldSO _config;
+        private int _lastProcessedFrame = -1;
+        private int _lastProcessedAttackerId;
+        private int _lastProcessedWeaponId;
 
         public EquipmentSlot CurrentEquipSlot { get; set; }
 
@@ -39,15 +46,78 @@ namespace BBBNexus
             _owner = null;
         }
 
-        public void RequestDamage(in DamageRequest request)
+        public bool CanBlock(in DamageRequest request)
         {
-            // 1. 标记持盾者本帧免伤（防穿盾）
+            if (_owner == null)
+                return false;
+
+            var attackerTransform = request.ResolveAttackerTransform();
+            if (attackerTransform == null)
+                return false;
+
+            Transform facingSource = _blockMuzzle != null ? _blockMuzzle : transform;
+            Vector3 blockForward = _config != null && _config.UseNegativeForwardAsBlockFront
+                ? -facingSource.forward
+                : facingSource.forward;
+            blockForward.y = 0f;
+            if (blockForward.sqrMagnitude < 0.0001f)
+                return false;
+            blockForward.Normalize();
+
+            Vector3 toAttacker = attackerTransform.position - _owner.transform.position;
+            toAttacker.y = 0f;
+            if (toAttacker.sqrMagnitude < 0.0001f)
+                return false;
+            toAttacker.Normalize();
+
+            float arcDegrees = _config != null ? Mathf.Clamp(_config.BlockArcDegrees, 0f, 180f) : 150f;
+            float minDot = Mathf.Cos(arcDegrees * 0.5f * Mathf.Deg2Rad);
+            return Vector3.Dot(blockForward, toAttacker) >= minDot;
+        }
+
+        public bool TryBlock(in DamageRequest request)
+        {
+            if (!CanBlock(in request))
+                return false;
+
+            if (IsDuplicateProcessedRequest(in request))
+                return true;
+
+            RememberProcessedRequest(in request);
             _owner?.NotifyShieldBlocked();
 
-            // 2. 对攻击者施加硬直
-            if (_config?.BlockedEffect == null) return;
-            var attacker = request.ResolveAttackerController();
-            attacker?.StatusEffects.Apply(_config.BlockedEffect);
+            if (_config?.BlockedEffect != null)
+            {
+                var attacker = request.ResolveAttackerController();
+                attacker?.StatusEffects.Apply(_config.BlockedEffect);
+            }
+
+            return true;
+        }
+
+        public void RequestDamage(in DamageRequest request)
+        {
+            if (TryBlock(in request))
+                return;
+
+            _owner?.RequestDamage(in request);
+        }
+
+        private bool IsDuplicateProcessedRequest(in DamageRequest request)
+        {
+            if (_lastProcessedFrame != Time.frameCount)
+                return false;
+
+            int attackerId = request.Attacker != null ? request.Attacker.GetInstanceID() : 0;
+            int weaponId = request.WeaponTransform != null ? request.WeaponTransform.GetInstanceID() : 0;
+            return _lastProcessedAttackerId == attackerId && _lastProcessedWeaponId == weaponId;
+        }
+
+        private void RememberProcessedRequest(in DamageRequest request)
+        {
+            _lastProcessedFrame = Time.frameCount;
+            _lastProcessedAttackerId = request.Attacker != null ? request.Attacker.GetInstanceID() : 0;
+            _lastProcessedWeaponId = request.WeaponTransform != null ? request.WeaponTransform.GetInstanceID() : 0;
         }
     }
 }

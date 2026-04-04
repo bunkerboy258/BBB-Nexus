@@ -210,6 +210,13 @@ namespace BBBNexus
                         return JsonUtility.ToJson(ConfigToolAssetService.FindClips(dto.query));
                     });
 
+                case "/prefabs/find":
+                    return RunBody(request, body =>
+                    {
+                        var dto = JsonUtility.FromJson<FindClipRequest>(body);
+                        return JsonUtility.ToJson(ConfigToolAssetService.FindPrefabs(dto.query));
+                    });
+
                 case "/audio-clips/find":
                     return RunBody(request, body =>
                     {

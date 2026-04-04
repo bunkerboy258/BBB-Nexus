@@ -20,7 +20,7 @@ MonoBehaviour:
   Prefab: {fileID: 7004216108275635573, guid: cc362d2da1ff42b49b850055347a6182, type: 3}
   EquipSlot: 1
   HoldPositionOffset: {x: 0, y: 0, z: 0}
-  HoldRotationOffset: {x: 0, y: 0, z: 0, w: 0}
+  HoldRotationOffset: {x: 0, y: 0, z: 0, w: 1}
   UpperBodyLayerWeight: 0
   EquipAnim:
     _FadeDuration: 0.25
@@ -135,33 +135,56 @@ MonoBehaviour:
     _Speed: 1
     _Events:
       _NormalizedTimes:
-      - 1.39
+      - 1.005812
       _Callbacks: []
       _Names: []
     _Clip: {fileID: -203655887218126122, guid: 26877374390c7d142996e3466672d137, type: 3}
     _NormalizedStartTime: -0.31
     _StableKey: 70042576f4432f9468b1014e399f161b
-  - _FadeDuration: 0.25
+  - _FadeDuration: 0.15283334
     _Speed: 1.17
     _Events:
       _NormalizedTimes:
-      - 1.03
+      - 0.7760001
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: 10d744e70858b6b41b9e880202595d86, type: 3}
+    _NormalizedStartTime: NaN
+    _StableKey: f681e78fb6444094ba11659270fb3ee9
+  - _FadeDuration: 0.2
+    _Speed: 1
+    _Events:
+      _NormalizedTimes:
+      - 0.8215698
       _Callbacks: []
       _Names: []
     _Clip: {fileID: -203655887218126122, guid: 27567e552f3ec1f418bb68b104190ef6, type: 3}
     _NormalizedStartTime: NaN
-    _StableKey: f681e78fb6444094ba11659270fb3ee9
-  ComboAttackHands: 000000000100000000000000
+    _StableKey: 87e6152cc6444eb43a8733dd430828e8
+  ComboAttackHands: 00000000010000000200000001000000
   ComboDamageWindows:
   - Enabled: 1
-    StartNormalized: 0.2990456
-    EndNormalized: 0.65817624
+    StartNormalized: 0.58477336
+    EndNormalized: 0.8566364
+    ExtraWindows: []
   - Enabled: 1
-    StartNormalized: 0.33085892
-    EndNormalized: 0.5811238
+    StartNormalized: 0.52320987
+    EndNormalized: 0.6980605
+    ExtraWindows: []
   - Enabled: 1
-    StartNormalized: 0.32237545
-    EndNormalized: 0.59809136
+    StartNormalized: 0.30756527
+    EndNormalized: 0.3942915
+    ExtraWindows:
+    - StartNormalized: 0.43864226
+      EndNormalized: 0.54099214
+    - StartNormalized: 0.5785903
+      EndNormalized: 0.6830289
+    - StartNormalized: 0.71436036
+      EndNormalized: 0.81253266
+  - Enabled: 1
+    StartNormalized: 0.46959803
+    EndNormalized: 0.6831658
+    ExtraWindows: []
   ComboAlignmentWindows:
   - Enabled: 1
     StartNormalized: 0
@@ -171,7 +194,10 @@ MonoBehaviour:
     EndNormalized: 0.24999999
   - Enabled: 1
     StartNormalized: 0
-    EndNormalized: 0.25
+    EndNormalized: 0.17361808
+  - Enabled: 1
+    StartNormalized: 0
+    EndNormalized: 0.22386934
   ComboWindowStart: 0.5
   ComboLateBuffer: 0.2
   ComboPriority: 25

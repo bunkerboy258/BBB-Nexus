@@ -10,6 +10,22 @@ namespace BBBNexus
         BothHands = 2,
     }
 
+    /// <summary>
+    /// 单个伤害子窗口（归一化区间）。
+    /// </summary>
+    [System.Serializable]
+    public struct DamageSubWindow
+    {
+        [Range(0f, 1f)]
+        public float StartNormalized;
+
+        [Range(0f, 1f)]
+        public float EndNormalized;
+    }
+
+    /// <summary>
+    /// 每个 combo 段的伤害窗口侧链。支持多个子窗口（如一刀两段判定）。
+    /// </summary>
     [System.Serializable]
     public struct FistsDamageWindowSidecar
     {
@@ -24,13 +40,51 @@ namespace BBBNexus
         [Range(0f, 1f)]
         public float EndNormalized;
 
+        [Tooltip("额外的伤害子窗口。每个子窗口是一段独立的伤害判定区间。主窗口 (Start/End) 始终作为第一个窗口。")]
+        public DamageSubWindow[] ExtraWindows;
+
         public static FistsDamageWindowSidecar Default =>
             new FistsDamageWindowSidecar
             {
                 Enabled = false,
                 StartNormalized = 0.15f,
                 EndNormalized = 0.45f,
+                ExtraWindows = null,
             };
+
+        /// <summary>
+        /// 返回总窗口数（主窗口 + ExtraWindows）。
+        /// </summary>
+        public int WindowCount => 1 + (ExtraWindows != null ? ExtraWindows.Length : 0);
+
+        /// <summary>
+        /// 获取第 i 个窗口的归一化区间（0 = 主窗口）。
+        /// </summary>
+        public void GetWindow(int index, out float start, out float end)
+        {
+            if (index <= 0)
+            {
+                start = StartNormalized;
+                end = EndNormalized;
+            }
+            else
+            {
+                int extraIndex = index - 1;
+                if (ExtraWindows != null && extraIndex < ExtraWindows.Length)
+                {
+                    start = ExtraWindows[extraIndex].StartNormalized;
+                    end = ExtraWindows[extraIndex].EndNormalized;
+                }
+                else
+                {
+                    start = 0f;
+                    end = 0f;
+                }
+            }
+
+            if (end < start)
+                (start, end) = (end, start);
+        }
     }
 
     [System.Serializable]
@@ -106,6 +160,11 @@ namespace BBBNexus
         [Header("攻击几何定义")]
         [Tooltip("Attack Clip Geometry Definition 的 MetaLib ID。留空时回退到 <资产名>_AttackSweep。")]
         public string AttackGeometryId;
+
+#if UNITY_EDITOR
+        [HideInInspector] public GameObject BakingCharacterPrefab;
+        [HideInInspector] public GameObject BakingWeaponPrefab;
+#endif
 
         public FistsAttackHand GetAttackHand(int comboIndex)
         {

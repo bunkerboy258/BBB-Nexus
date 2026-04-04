@@ -43,6 +43,16 @@ namespace BBBNexus
         public Vector3 HoldPositionOffset;
         public Quaternion HoldRotationOffset = Quaternion.identity;
 
+        protected virtual void OnValidate()
+        {
+            // 修复零四元数（旧资产可能序列化为 (0,0,0,0)）
+            if (HoldRotationOffset.x == 0f && HoldRotationOffset.y == 0f &&
+                HoldRotationOffset.z == 0f && HoldRotationOffset.w == 0f)
+            {
+                HoldRotationOffset = Quaternion.identity;
+            }
+        }
+
         [Header("--- 上半身层控制 ---")]
         [Tooltip("装备此物品时上半身动画层的目标权重。拳头/默认状态填 0，持枪/持剑等需要独立上半身姿势填 1")]
         public float UpperBodyLayerWeight = 1f;

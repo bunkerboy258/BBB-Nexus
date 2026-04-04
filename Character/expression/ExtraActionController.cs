@@ -106,6 +106,13 @@ namespace BBBNexus
                 return;
             }
 
+            int targetCount = _runtimeData != null ? _runtimeData.RequestedReloadTargetCount : -1;
+            if (targetCount > 0 && reloadable is IAiReloadable aiReloadable)
+            {
+                aiReloadable.RequestManualReload(targetCount);
+                return;
+            }
+
             reloadable.RequestManualReload();
         }
 

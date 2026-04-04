@@ -21,7 +21,7 @@ MonoBehaviour:
       _NormalizedTimes: []
       _Callbacks: []
       _Names: []
-    _Clip: {fileID: 0}
+    _Clip: {fileID: -203655887218126122, guid: 6066196bfee6b9b4d84396a799fdb77e, type: 3}
     _NormalizedStartTime: NaN
   ClipHitFront:
     _FadeDuration: 0.25

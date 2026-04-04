@@ -14,9 +14,6 @@ namespace BBBNexus
         public float EquipEndTime = 0.5f;
 
         [Header("--- 近战武器独有配置 ---")]
-        [Tooltip("攻击冷却时间 (秒)")]
-        public float AttackCooldown = 0.5f;
-
         [Tooltip("是否启用 IK（近战通常不需要）")]
         public bool EnableIK = false;
     }

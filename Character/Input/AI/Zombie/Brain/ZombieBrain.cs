@@ -6,9 +6,8 @@ namespace BBBNexus
     [Serializable]
     public class ZombieBrain : AITacticalBrainBase
     {
-        private const float AttackFacingAngle = 35f;
-
         // 无配置时的内置默认值
+        private const float DefaultAttackFacingAngle = 35f;
         private const float DefaultPerHitCommitTime = 0.7f;
         private const int DefaultComboMin = 1;
         private const int DefaultComboMax = 3;
@@ -60,7 +59,7 @@ namespace BBBNexus
                 // In attack range.
                 // FreeLook 模式下 MotionDriver 仅在有移动输入时才旋转角色，
                 // 因此需要调整朝向或冷却恢复时必须保持缓慢逼近以驱动转向。
-                if (facingAngle > AttackFacingAngle)
+                if (facingAngle > GetAttackFacingAngle())
                 {
                     moveWorldDir = targetDir;
                 }
@@ -130,6 +129,11 @@ namespace BBBNexus
         private float GetPerHitCommitTime()
         {
             return _zombieConfig != null ? _zombieConfig.PerHitCommitTime : DefaultPerHitCommitTime;
+        }
+
+        private float GetAttackFacingAngle()
+        {
+            return _zombieConfig != null ? _zombieConfig.AttackFacingAngle : DefaultAttackFacingAngle;
         }
 
         private float GetAttackRecoveryDuration()

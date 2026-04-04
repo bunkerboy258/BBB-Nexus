@@ -126,6 +126,9 @@ namespace BBBNexus
         public float MaxHealthForBar => CurrentMaxHealth;
 
         private int _shieldBlockedFrame = -1;
+        private int _lastIncomingDamageFrame = -1;
+        private int _lastIncomingAttackerId;
+        private int _lastIncomingWeaponId;
         /// <summary>盾牌被击中时调用，标记本帧已拦截，HealthArbiter 将跳过伤害队列</summary>
         public void NotifyShieldBlocked() => _shieldBlockedFrame = UnityEngine.Time.frameCount;
         public bool IsShieldBlockedThisFrame => _shieldBlockedFrame == UnityEngine.Time.frameCount;
@@ -925,6 +928,14 @@ namespace BBBNexus
         #region IDamageable 接口实现
         public void RequestDamage(in DamageRequest request)
         {
+            if (IsDuplicateIncomingDamage(in request))
+                return;
+
+            RememberIncomingDamage(in request);
+
+            if (TryInterceptByShield(in request))
+                return;
+
             // 闭眼格挡：拦截伤害，生成替身并对攻击者施加僵直
             var eyesMgr = EyesClosedSystemManager.Instance;
             var attackerController = request.ResolveAttackerController();
@@ -980,5 +991,37 @@ namespace BBBNexus
         }
 
         #endregion
+
+        private bool TryInterceptByShield(in DamageRequest request)
+        {
+            var equippedItems = EquipmentDriver?.AllEquippedItems;
+            if (equippedItems == null)
+                return false;
+
+            for (int i = 0; i < equippedItems.Count; i++)
+            {
+                if (equippedItems[i] is ShieldBehaviour shield && shield.TryBlock(in request))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private bool IsDuplicateIncomingDamage(in DamageRequest request)
+        {
+            if (_lastIncomingDamageFrame != Time.frameCount)
+                return false;
+
+            int attackerId = request.Attacker != null ? request.Attacker.GetInstanceID() : 0;
+            int weaponId = request.WeaponTransform != null ? request.WeaponTransform.GetInstanceID() : 0;
+            return _lastIncomingAttackerId == attackerId && _lastIncomingWeaponId == weaponId;
+        }
+
+        private void RememberIncomingDamage(in DamageRequest request)
+        {
+            _lastIncomingDamageFrame = Time.frameCount;
+            _lastIncomingAttackerId = request.Attacker != null ? request.Attacker.GetInstanceID() : 0;
+            _lastIncomingWeaponId = request.WeaponTransform != null ? request.WeaponTransform.GetInstanceID() : 0;
+        }
     }
 }

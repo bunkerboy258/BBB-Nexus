@@ -172,6 +172,12 @@ namespace BBBNexus
     }
 
     [Serializable]
+    internal sealed class PrefabListResponse
+    {
+        public AssetRefDto[] prefabs;
+    }
+
+    [Serializable]
     internal sealed class ScriptableObjectTypeDto
     {
         public string name;

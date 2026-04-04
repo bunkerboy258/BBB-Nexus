@@ -23,6 +23,7 @@ namespace BBBNexus
         private bool _lastJumpIntent;
         private bool _lastDodgeIntent;
         private bool _lastRollIntent;
+        private bool _lastReloadIntent;
 
         public NavigatorSensorBase NavigatorSensor => _navigatorSensor;
         public IAITacticalBrain Brain => _brain;
@@ -86,6 +87,14 @@ namespace BBBNexus
             // so combo-capable behaviours can continue buffering follow-up attacks.
             rawData.PrimaryAttackJustPressed = currentAttackIntent;
 
+            bool currentReloadIntent = TryPlanReload(in context, out int reloadTargetCount);
+            rawData.ReloadJustPressed = currentReloadIntent && !_lastReloadIntent;
+            var player = GetComponentInParent<BBBCharacterController>();
+            if (rawData.ReloadJustPressed && player?.RuntimeData != null)
+            {
+                player.RuntimeData.RequestedReloadTargetCount = reloadTargetCount;
+            }
+
             // --- 跳跃信号映射 ---
             bool currentJumpIntent = intent.WantsToJump;
             rawData.JumpHeld = currentJumpIntent;
@@ -106,6 +115,7 @@ namespace BBBNexus
             _lastJumpIntent = currentJumpIntent;
             _lastDodgeIntent = currentDodgeIntent;
             _lastRollIntent = currentRollIntent;
+            _lastReloadIntent = currentReloadIntent;
 
             // 不需要手动清理，这些在意图管线中会被处理
         }
@@ -117,6 +127,7 @@ namespace BBBNexus
             rawData.AimHeld = false;
             rawData.PrimaryAttackHeld = false;
             rawData.PrimaryAttackJustPressed = false;
+            rawData.ReloadJustPressed = false;
             rawData.JumpHeld = false;
             rawData.JumpJustPressed = false;
             rawData.DodgeHeld = false;
@@ -128,6 +139,43 @@ namespace BBBNexus
             _lastJumpIntent = false;
             _lastDodgeIntent = false;
             _lastRollIntent = false;
+            _lastReloadIntent = false;
+        }
+
+        private bool TryPlanReload(in NavigationContext context, out int targetCount)
+        {
+            targetCount = -1;
+            var player = GetComponentInParent<BBBCharacterController>();
+            if (player?.EquipmentDriver?.CurrentItemDirector is not IAiReloadable reloadable)
+            {
+                return false;
+            }
+
+            if (!(player.EquipmentDriver.CurrentItemDirector is IManualReloadable manualReloadable) ||
+                !manualReloadable.CanManualReload ||
+                reloadable.IsReloading ||
+                reloadable.CurrentMagazine > 0)
+            {
+                return false;
+            }
+
+            float attackRange = TacticalConfig != null ? Mathf.Max(0.01f, TacticalConfig.AttackRange) : 10f;
+            float distance01 = Mathf.Clamp01(context.DistanceToTarget / attackRange);
+            float nearRatio = 0.4f;
+            float farRatio = 1f;
+            float variancePercent = 0.2f;
+            if (TacticalConfig is GunnerTacticalConfigSO gunnerConfig)
+            {
+                nearRatio = gunnerConfig.ReloadNearRatio;
+                farRatio = gunnerConfig.ReloadFarRatio;
+                variancePercent = gunnerConfig.ReloadVariancePercent;
+            }
+
+            float baseRatio = Mathf.Lerp(nearRatio, farRatio, distance01);
+            float variance = reloadable.MagazineCapacity * variancePercent;
+            float target = reloadable.MagazineCapacity * baseRatio + UnityEngine.Random.Range(-variance, variance);
+            targetCount = Mathf.Clamp(Mathf.RoundToInt(target), 1, reloadable.MagazineCapacity);
+            return targetCount > 0;
         }
     }
 }

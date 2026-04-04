@@ -3,7 +3,7 @@ using UnityEngine;
 namespace BBBNexus
 {
     // 手枪行为：装备后维持上半身枪姿；右键时申请 Aim 全身状态；Aim 时允许持续开火。
-    public class PistolBehaviour : MonoBehaviour, IHoldableItem, IPoolable, IManualReloadable
+    public class PistolBehaviour : MonoBehaviour, IHoldableItem, IPoolable, IManualReloadable, IAiReloadable
     {
         private const float DefaultHitScanRange = 80f;
         private const float DefaultDamageAmount = 10f;
@@ -28,10 +28,12 @@ namespace BBBNexus
         private AmmoStateData _cachedAmmoState;
         private ReloadStateData _cachedReloadState;
         private bool _hasCachedAmmo;
+        private int _requestedReloadTargetMagazine;
 
         public EquipmentSlot CurrentEquipSlot { get; set; }
         public bool HasCachedAmmo => _hasCachedAmmo;
         public int CurrentMagazine => _hasCachedAmmo && _cachedAmmoState != null ? _cachedAmmoState.CurrentMagazine : 0;
+        public int MagazineCapacity => _config != null ? Mathf.Max(1, _config.MagazineSize) : 0;
         public int ReserveAmmo => ResolveReserveAmmo();
         public bool IsReloading => _cachedReloadState != null && _cachedReloadState.IsReloading;
         public float ReloadEndTime => _cachedReloadState != null ? _cachedReloadState.ReloadEndTime : 0f;
@@ -173,6 +175,7 @@ namespace BBBNexus
             _isEquipping = false;
             _wasAiming = false;
             _hasCachedAmmo = false;
+            _requestedReloadTargetMagazine = 0;
             if (_player?.RuntimeData != null)
             {
                 _player.RuntimeData.CanEnterTacticalMotionBase = false;
@@ -425,26 +428,34 @@ namespace BBBNexus
         /// </summary>
         public bool RequestManualReload()
         {
-            return TryReloadInternal();
+            return TryReloadInternal(MagazineCapacity);
         }
 
-        private bool TryReloadInternal()
+        public bool RequestManualReload(int targetMagazineCount)
+        {
+            return TryReloadInternal(targetMagazineCount);
+        }
+
+        private bool TryReloadInternal(int targetMagazineCount)
         {
             if (_player == null || _config == null || !_hasCachedAmmo)
                 return false;
+
+            int clampedTarget = Mathf.Clamp(targetMagazineCount, 1, MagazineCapacity);
 
             // 检查是否可以换弹
             if (_cachedReloadState.IsReloading)
                 return false;
 
             // 检查弹匣是否已满
-            if (_cachedAmmoState.CurrentMagazine >= _config.MagazineSize)
+            if (_cachedAmmoState.CurrentMagazine >= clampedTarget)
                 return false;
 
             // 背包里没有对应弹药时不允许换弹
             if (ReserveAmmo <= 0)
                 return false;
 
+            _requestedReloadTargetMagazine = clampedTarget;
             StartReloadCycle();
             return _cachedReloadState.IsReloading;
         }
@@ -519,6 +530,7 @@ namespace BBBNexus
             _isEquipping = false;
             _wasAiming = false;
             _lastFireTime = 0f;
+            _requestedReloadTargetMagazine = 0;
         }
 
         private bool CanStartReload()
@@ -548,7 +560,11 @@ namespace BBBNexus
                 return false;
             }
 
-            if (_cachedAmmoState.CurrentMagazine >= _config.MagazineSize)
+            int targetMagazineCount = _requestedReloadTargetMagazine > 0
+                ? Mathf.Min(_requestedReloadTargetMagazine, MagazineCapacity)
+                : MagazineCapacity;
+
+            if (_cachedAmmoState.CurrentMagazine >= targetMagazineCount)
             {
                 return false;
             }
@@ -583,6 +599,7 @@ namespace BBBNexus
             _cachedReloadState.IsReloading = false;
             _cachedReloadState.ReloadStartTime = 0f;
             _cachedReloadState.ReloadEndTime = 0f;
+            _requestedReloadTargetMagazine = 0;
             SaveReloadState();
 
             if (restoreIdle && _config != null && _config.EquipIdleAnim != null && _player != null)
