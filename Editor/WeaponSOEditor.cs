@@ -10,6 +10,7 @@ namespace BBBNexus.Editor
         private const float WindowBarHeight = 14f;
         private const string MeleeFoldoutKey = "BBBNexus.WeaponSOEditor.MeleeFoldout";
         private const string RangedFoldoutKey = "BBBNexus.WeaponSOEditor.RangedFoldout";
+        private const string BakeUseRootTransformForSweepKey = "BBBNexus.WeaponSOEditor.BakeUseRootTransformForSweep";
         private static readonly Color DamageFillColor = new(0.85f, 0.18f, 0.18f, 0.85f);
         private static readonly Color DamageFillDisabledColor = new(0.35f, 0.18f, 0.18f, 0.4f);
         private static readonly Color AlignmentFillColor = new(0.18f, 0.55f, 0.92f, 0.85f);
@@ -35,11 +36,13 @@ namespace BBBNexus.Editor
 
         private SerializedProperty _bakingCharacterPrefab;
         private SerializedProperty _bakingWeaponPrefab;
+        private bool _bakeUseRootTransformForSweep;
 
         private void OnEnable()
         {
             _meleeFoldout = SessionState.GetBool(MeleeFoldoutKey, true);
             _rangedFoldout = SessionState.GetBool(RangedFoldoutKey, true);
+            _bakeUseRootTransformForSweep = SessionState.GetBool(BakeUseRootTransformForSweepKey, true);
 
             _enterStanceAnim = serializedObject.FindProperty("EnterStanceAnim");
             _exitStanceAnim = serializedObject.FindProperty("ExitStanceAnim");
@@ -208,6 +211,12 @@ namespace BBBNexus.Editor
                 SyncParallelArray(_comboAttackHands, targetSize, InitializeHandSlot);
                 SyncParallelArray(_comboDamageWindows, targetSize, InitializeDamageWindowSlot);
                 SyncParallelArray(_comboAlignmentWindows, targetSize, InitializeAlignmentWindowSlot);
+                // 新元素在 ApplyModifiedProperties 之前 C# 侧尚未实体化，
+                // Animancer 会通过反射拿到 null，导致 Context.Transition.GetType() 崩溃。
+                // 提前提交并跳过本帧渲染，下一帧元素已就绪再画。
+                serializedObject.ApplyModifiedProperties();
+                serializedObject.Update();
+                return;
             }
             else
             {
@@ -554,6 +563,10 @@ namespace BBBNexus.Editor
 
             EditorGUILayout.PropertyField(_bakingCharacterPrefab, new GUIContent("角色 Prefab（烘焙用）"));
             EditorGUILayout.PropertyField(_bakingWeaponPrefab, new GUIContent("武器 Prefab（烘焙用）"));
+            _bakeUseRootTransformForSweep = EditorGUILayout.ToggleLeft(
+                "要不要使用 Root 变换渲染武器扫掠",
+                _bakeUseRootTransformForSweep);
+            SessionState.SetBool(BakeUseRootTransformForSweepKey, _bakeUseRootTransformForSweep);
 
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -615,7 +628,8 @@ namespace BBBNexus.Editor
                 mountSlot: weapon.EquipSlot,
                 holdPositionOffset: weapon.HoldPositionOffset,
                 holdRotationOffset: weapon.HoldRotationOffset,
-                applyHoldOffset: true);
+                applyHoldOffset: true,
+                useRootTransformForSweep: _bakeUseRootTransformForSweep);
 
             if (definition == null)
             {

@@ -387,8 +387,7 @@ namespace BBBNexus
 
             float speed = transition.Speed > 0f ? transition.Speed : 1f;
             float normStart = float.IsNaN(transition.NormalizedStartTime) ? 0f : transition.NormalizedStartTime;
-            float normEnd = transition.Events.GetRealNormalizedEndTime(speed);
-            float actualDuration = clip.length * (normEnd - normStart) / speed;
+            float actualDuration = clip.length * (transition.Events.GetRealNormalizedEndTime(speed) - normStart) / speed;
 
             PlaySwingSound(currentComboIndex);
 

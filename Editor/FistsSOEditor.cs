@@ -8,6 +8,7 @@ namespace BBBNexus.Editor
     public class FistsSOEditor : UnityEditor.Editor
     {
         private const float WindowBarHeight = 14f;
+        private const string BakeUseRootTransformForSweepKey = "BBBNexus.FistsSOEditor.BakeUseRootTransformForSweep";
         private static readonly Color DamageFillColor = new(0.85f, 0.18f, 0.18f, 0.85f);
         private static readonly Color DamageFillDisabledColor = new(0.35f, 0.18f, 0.18f, 0.4f);
         private static readonly Color AlignmentFillColor = new(0.18f, 0.55f, 0.92f, 0.85f);
@@ -27,6 +28,7 @@ namespace BBBNexus.Editor
 
         private SerializedProperty _bakingCharacterPrefab;
         private SerializedProperty _bakingWeaponPrefab;
+        private bool _bakeUseRootTransformForSweep;
 
         private void OnEnable()
         {
@@ -43,6 +45,7 @@ namespace BBBNexus.Editor
             _attackGeometryId = serializedObject.FindProperty("AttackGeometryId");
             _bakingCharacterPrefab = serializedObject.FindProperty("BakingCharacterPrefab");
             _bakingWeaponPrefab = serializedObject.FindProperty("BakingWeaponPrefab");
+            _bakeUseRootTransformForSweep = SessionState.GetBool(BakeUseRootTransformForSweepKey, true);
             Undo.undoRedoPerformed += HandleUndoRedo;
         }
 
@@ -473,6 +476,10 @@ namespace BBBNexus.Editor
 
             EditorGUILayout.PropertyField(_bakingCharacterPrefab, new GUIContent("角色 Prefab（烘焙用）"));
             EditorGUILayout.PropertyField(_bakingWeaponPrefab, new GUIContent("武器 Prefab（烘焙用）"));
+            _bakeUseRootTransformForSweep = EditorGUILayout.ToggleLeft(
+                "要不要使用 Root 变换渲染武器扫掠",
+                _bakeUseRootTransformForSweep);
+            SessionState.SetBool(BakeUseRootTransformForSweepKey, _bakeUseRootTransformForSweep);
 
             using (new EditorGUILayout.HorizontalScope())
             {
@@ -533,7 +540,8 @@ namespace BBBNexus.Editor
                 mountSlot: fists.EquipSlot,
                 holdPositionOffset: fists.HoldPositionOffset,
                 holdRotationOffset: fists.HoldRotationOffset,
-                applyHoldOffset: true);
+                applyHoldOffset: true,
+                useRootTransformForSweep: _bakeUseRootTransformForSweep);
 
             if (definition == null)
             {

@@ -69,6 +69,7 @@ namespace BBBNexus
         public EquippableItemSO DefaultEquipment3;
         public bool statedebug = false;
         public bool DebugShowCurrentClipOverlay = false;
+        public bool DebugFullBodyRootMotion = false;
         public Vector3 DebugClipOverlayWorldOffset = new Vector3(0f, 0.12f, 0f);
 
 
@@ -124,6 +125,7 @@ namespace BBBNexus
         public Transform HealthBarTransform => transform;
         public float CurrentHealthForBar => RuntimeData != null ? RuntimeData.CurrentHealth : 0f;
         public float MaxHealthForBar => CurrentMaxHealth;
+        public bool RootMotionHandledVerticalThisFrame { get; private set; }
 
         private int _shieldBlockedFrame = -1;
         private int _lastIncomingDamageFrame = -1;
@@ -139,6 +141,10 @@ namespace BBBNexus
 
         private bool _booted;
         private bool _wasLocomotionBlocked;
+        private int _lastRootMotionDebugFrame = -1;
+        private int _capturedRootMotionFrame = -1;
+        private Vector3 _capturedRootMotionDeltaPosition = Vector3.zero;
+        private Quaternion _capturedRootMotionDeltaRotation = Quaternion.identity;
         private GUIStyle _debugClipOverlayStyle;
         private GUIStyle _debugClipOverlayPanelStyle;
         private Renderer[] _debugOverlayRenderers;
@@ -331,6 +337,7 @@ namespace BBBNexus
             }
             StatusEffects?.Clear();
             _wasLocomotionBlocked = false;
+            RootMotionHandledVerticalThisFrame = false;
         }
 
         public void OnDespawned()
@@ -362,6 +369,7 @@ namespace BBBNexus
             }
             StatusEffects?.Clear();
             _wasLocomotionBlocked = false;
+            RootMotionHandledVerticalThisFrame = false;
         }
 
         private void OnEnable()
@@ -456,6 +464,9 @@ namespace BBBNexus
         {
             if (!_booted) return; // pooling safety
 
+            RootMotionHandledVerticalThisFrame = false;
+            ConsumeFullBodyRootMotionIfNeeded();
+
             bool locomotionBlocked = CharacterArbiter != null && CharacterArbiter.IsLocomotionBlocked();
             if (locomotionBlocked)
             {
@@ -475,6 +486,112 @@ namespace BBBNexus
             ArbiterPipeline?.ProcessLateUpdateArbiters();
 
             RuntimeData.ResetIntetnt();
+        }
+
+        private void OnAnimatorMove()
+        {
+            if (!_booted || Animator == null || AnimFacade == null)
+            {
+                return;
+            }
+
+            if (!AnimFacade.IsFullBodyRootMotionEnabled)
+            {
+                return;
+            }
+
+            _capturedRootMotionDeltaPosition = Animator.deltaPosition;
+            _capturedRootMotionDeltaRotation = Animator.deltaRotation;
+            _capturedRootMotionFrame = Time.frameCount;
+        }
+
+        private void ConsumeFullBodyRootMotionIfNeeded()
+        {
+            if (AnimFacade == null || !AnimFacade.IsFullBodyRootMotionEnabled || Animator == null || MotionDriver == null)
+            {
+                return;
+            }
+
+            if (_capturedRootMotionFrame != Time.frameCount)
+            {
+                return;
+            }
+
+            Vector3 deltaPosition = _capturedRootMotionDeltaPosition;
+            Vector3 filteredHorizontalDisplacement = Vector3.zero;
+            bool hardStop = RuntimeData != null && RuntimeData.Override.IsActive && RuntimeData.Override.Request.HardStopOnBlock;
+            if (deltaPosition.sqrMagnitude > 0.0000001f)
+            {
+                filteredHorizontalDisplacement = MotionDriver.ApplyRootMotionHorizontal(
+                    new Vector3(deltaPosition.x, 0f, deltaPosition.z),
+                    hardStop);
+                if (filteredHorizontalDisplacement.sqrMagnitude > 0.0000001f)
+                {
+                    MotionDriver.RequestHorizontalDisplacement(filteredHorizontalDisplacement);
+                }
+
+            }
+
+            Quaternion deltaRotation = _capturedRootMotionDeltaRotation;
+            float deltaYaw = deltaRotation.eulerAngles.y;
+            if (deltaYaw > 180f)
+            {
+                deltaYaw -= 360f;
+            }
+
+            if (Mathf.Abs(deltaYaw) > 0.001f)
+            {
+                MotionDriver.RequestYaw(transform.eulerAngles.y + deltaYaw);
+            }
+
+            TraceFullBodyRootMotion(deltaPosition, filteredHorizontalDisplacement, deltaYaw, hardStop);
+        }
+
+        public void ClearAttackRootMotionPlayback()
+        {
+            RuntimeData?.AttackRootMotionPlayback.Clear();
+        }
+
+        private void TraceFullBodyRootMotion(
+            Vector3 deltaPosition,
+            Vector3 filteredHorizontalDisplacement,
+            float deltaYaw,
+            bool hardStop)
+        {
+            if (!DebugFullBodyRootMotion || !Application.isPlaying)
+            {
+                return;
+            }
+
+            int frame = Time.frameCount;
+            if (_lastRootMotionDebugFrame == frame || frame % 5 != 0)
+            {
+                return;
+            }
+
+            _lastRootMotionDebugFrame = frame;
+
+            string clipName = "none";
+            if (Animancer != null && Animancer.Layers.Count > 0)
+            {
+                var state = Animancer.Layers[0].CurrentState;
+                var clip = state?.Clip != null ? state.Clip : state?.MainObject as AnimationClip;
+                if (clip != null)
+                {
+                    clipName = clip.name;
+                }
+            }
+
+            Vector3 rawHorizontal = new Vector3(deltaPosition.x, 0f, deltaPosition.z);
+            bool horizontalSuppressed = rawHorizontal.sqrMagnitude > 0.0000001f &&
+                                        filteredHorizontalDisplacement.sqrMagnitude <= 0.0000001f;
+
+            Debug.Log(
+                $"[FullBodyRootMotion] frame={frame} clip={clipName} active={AnimFacade.IsFullBodyRootMotionEnabled} " +
+                $"rawDelta={deltaPosition:F4} rawXZ={rawHorizontal:F4} filteredXZ={filteredHorizontalDisplacement:F4} " +
+                $"deltaYaw={deltaYaw:F3} hardStop={hardStop} blockedToZero={horizontalSuppressed} " +
+                $"applyRootMotion={Animator.applyRootMotion}",
+                this);
         }
 
         private void OnGUI()

@@ -99,7 +99,7 @@ namespace BBBNexus
 
         [Header("--- Debug ---")]
         [Tooltip("输出前摇对齐窗口与自动锁定求解日志。")]
-        [SerializeField] private bool _debugAutoTarget;
+        [SerializeField] private bool _debugAutoTarget = false;
 
         // ─────────────────────────────────────────────────────
         // 共享状态
@@ -167,7 +167,7 @@ namespace BBBNexus
         // IHoldableItem
         // ─────────────────────────────────────────────────────
 
-        public void Initialize(ItemInstance instanceData)
+        public virtual void Initialize(ItemInstance instanceData)
         {
             _instance = instanceData;
             _config = instanceData?.GetSODataAs<WeaponSO>();
@@ -180,7 +180,7 @@ namespace BBBNexus
             }
         }
 
-        public void OnEquipEnter(BBBCharacterController player)
+        public virtual void OnEquipEnter(BBBCharacterController player)
         {
             _player = player;
 
@@ -189,9 +189,13 @@ namespace BBBNexus
 
             if (_config != null && _config.HasRanged)
                 EquipRanged();
+
+            // 无近战无远程（如纯格挡盾牌）时，仍需驱动视觉装备动画
+            if (_config != null && !_config.HasMelee && !_config.HasRanged)
+                EquipVisualOnly();
         }
 
-        public void OnUpdateLogic()
+        public virtual void OnUpdateLogic()
         {
             if (_player == null || _config == null) return;
 
@@ -203,9 +207,13 @@ namespace BBBNexus
 
             if (_config.HasRanged)
                 UpdateRanged(statusBlocked || actionBlocked);
+
+            // 纯视觉模式（无近战无远程）的装备等待阶段
+            if (!_config.HasMelee && !_config.HasRanged)
+                UpdateVisualOnly();
         }
 
-        public void OnForceUnequip()
+        public virtual void OnForceUnequip()
         {
             if (_config != null && _config.HasMelee)
                 UnequipMelee();
@@ -261,6 +269,15 @@ namespace BBBNexus
             _player?.InputPipeline?.ConsumePrimaryAttackPressed();
             _ignoreAttackUntil = Time.time + 0.12f;
             ResetComboState();
+
+            // 纯近战武器（无远程模块）自行驱动装备动画，HasRanged 时由 EquipRanged 统一处理
+            if (!_config.HasRanged)
+            {
+                _isEquipping = true;
+                _equipEndTime = Time.time + (_config.EquipEndTime > 0f ? _config.EquipEndTime : 0.5f);
+                if (_config.EquipAnim?.Clip != null)
+                    _player.AnimFacade.PlayTransition(_config.EquipAnim, _config.EquipAnimPlayOptions);
+            }
         }
 
         private void UnequipMelee()
@@ -278,11 +295,46 @@ namespace BBBNexus
         }
 
         // ═════════════════════════════════════════════════════
+        // 纯视觉模式（无近战无远程，如格挡盾牌）
+        // ═════════════════════════════════════════════════════
+
+        private void EquipVisualOnly()
+        {
+            _isEquipping = true;
+            _equipEndTime = Time.time + (_config.EquipEndTime > 0f ? _config.EquipEndTime : 0.5f);
+            if (_config.EquipAnim?.Clip != null)
+                _player.AnimFacade.PlayTransition(_config.EquipAnim, _config.EquipAnimPlayOptions);
+        }
+
+        private void UpdateVisualOnly()
+        {
+            if (!_isEquipping) return;
+            if (Time.time >= _equipEndTime)
+            {
+                _isEquipping = false;
+                if (_config.EquipIdleAnim?.Clip != null)
+                    _player.AnimFacade.PlayTransition(_config.EquipIdleAnim, _config.EquipIdleAnimOptions);
+            }
+        }
+
+        // ═════════════════════════════════════════════════════
         // 近战 — 每帧更新
         // ═════════════════════════════════════════════════════
 
         private void UpdateMelee(bool statusBlocked, bool actionBlocked)
         {
+            // 纯近战装备动画阶段（HasRanged 时由 UpdateRanged 统一管理）
+            if (_isEquipping && !_config.HasRanged)
+            {
+                if (Time.time >= _equipEndTime)
+                {
+                    _isEquipping = false;
+                    if (_config.EquipIdleAnim?.Clip != null)
+                        _player.AnimFacade.PlayTransition(_config.EquipIdleAnim, _config.EquipIdleAnimOptions);
+                }
+                else return;
+            }
+
             if (_config.ComboSequence == null || _config.ComboSequence.Length == 0) return;
 
             if (CurrentEquipSlot == EquipmentSlot.MainHand && _config.CameraPreset != null)
@@ -391,7 +443,7 @@ namespace BBBNexus
                 _currentStanceTransition = stance;
                 _currentStanceStartTime = Time.time;
                 _player.InputPipeline.ConsumePrimaryAttackPressed();
-                var req = new ActionRequest(stance.Clip, _config.ComboPriority, applyGravity: true) { Transition = stance };
+                var req = new ActionRequest(stance.Clip, _config.ComboPriority, applyGravity: true) { Transition = stance, HardStopOnBlock = true };
                 _player.RequestOverride(in req, flushImmediately: true);
                 _player.AnimFacade?.SetOverrideOnEndCallback(OnStanceEnd);
                 return;
@@ -434,7 +486,7 @@ namespace BBBNexus
             if (exit != null && UsesLockExit())
             {
                 _isExitingStance = true;
-                var req = new ActionRequest(exit.Clip, _config.ComboPriority, applyGravity: true) { Transition = exit };
+                var req = new ActionRequest(exit.Clip, _config.ComboPriority, applyGravity: true) { Transition = exit, HardStopOnBlock = true };
                 _player.RequestOverride(in req, flushImmediately: true);
             }
             else
@@ -469,8 +521,7 @@ namespace BBBNexus
 
             float speed = transition.Speed > 0f ? transition.Speed : 1f;
             float normStart = float.IsNaN(transition.NormalizedStartTime) ? 0f : transition.NormalizedStartTime;
-            float normEnd = transition.Events.GetRealNormalizedEndTime(speed);
-            float actualDuration = clip.length * (normEnd - normStart) / speed;
+            float actualDuration = clip.length * (transition.Events.GetRealNormalizedEndTime(speed) - normStart) / speed;
 
             PlaySwingSound(idx);
 
@@ -501,7 +552,7 @@ namespace BBBNexus
                 PostSystem.Instance.Send("Weapon.AttackStart", _activeAttackContext);
 
             _player.InputPipeline.ConsumePrimaryAttackPressed();
-            var req = new ActionRequest(clip, _config.ComboPriority, applyGravity: true) { Transition = transition };
+            var req = new ActionRequest(clip, _config.ComboPriority, applyGravity: true) { Transition = transition, HardStopOnBlock = true };
             _player.RequestOverride(in req, flushImmediately: true);
         }
 
@@ -919,7 +970,7 @@ namespace BBBNexus
             if (_muzzle != null && _player?.RuntimeData != null && _config.UseAimCorrection)
                 _player.RuntimeData.CurrentAimReference = _muzzle;
 
-            if (_config.EquipAnim != null && _player != null)
+            if (_config.EquipAnim?.Clip != null && _player != null)
                 _player.AnimFacade.PlayTransition(_config.EquipAnim, _config.EquipAnimPlayOptions);
 
             LoadAmmoState();
@@ -945,7 +996,7 @@ namespace BBBNexus
             if (_player != null && _player.RuntimeData != null && _player.RuntimeData.CurrentItem == null)
             {
                 _player.RuntimeData.WantsLookAtIK = false;
-                if (_config?.UnEquipAnim != null)
+                if (_config?.UnEquipAnim?.Clip != null)
                     _player.AnimFacade.PlayTransition(_config.UnEquipAnim, _config.UnEquipAnimPlayOptions);
             }
         }
@@ -966,7 +1017,7 @@ namespace BBBNexus
                 {
                     _isEquipping = false;
                     _player.RuntimeData.CanEnterTacticalMotionBase = true;
-                    if (_config.EquipIdleAnim != null)
+                    if (_config.EquipIdleAnim?.Clip != null)
                         _player.AnimFacade.PlayTransition(_config.EquipIdleAnim, _config.EquipIdleAnimOptions);
                 }
                 else return;
@@ -988,12 +1039,12 @@ namespace BBBNexus
             {
                 if (isAiming)
                 {
-                    if (_config.AimAnim != null) _player.AnimFacade.PlayTransition(_config.AimAnim, _config.AimAnimPlayOptions);
+                    if (_config.AimAnim?.Clip != null) _player.AnimFacade.PlayTransition(_config.AimAnim, _config.AimAnimPlayOptions);
                     _player.RuntimeData.WantsLookAtIK = true;
                 }
                 else
                 {
-                    if (_config.EquipIdleAnim != null) _player.AnimFacade.PlayTransition(_config.EquipIdleAnim, _config.EquipIdleAnimOptions);
+                    if (_config.EquipIdleAnim?.Clip != null) _player.AnimFacade.PlayTransition(_config.EquipIdleAnim, _config.EquipIdleAnimOptions);
                     _player.RuntimeData.WantsLookAtIK = false;
                 }
                 _wasAiming = isAiming;
@@ -1143,7 +1194,7 @@ namespace BBBNexus
             _cachedReloadState.ReloadEndTime = 0f;
             _requestedReloadTargetMagazine = 0;
             SaveReloadState();
-            if (restoreIdle && _config?.EquipIdleAnim != null && _player != null)
+            if (restoreIdle && _config?.EquipIdleAnim?.Clip != null && _player != null)
                 _player.AnimFacade.PlayTransition(_config.EquipIdleAnim, _config.EquipIdleAnimOptions);
         }
 
