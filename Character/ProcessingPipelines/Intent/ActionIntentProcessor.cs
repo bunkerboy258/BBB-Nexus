@@ -9,7 +9,7 @@ namespace BBBNexus
     /// </summary>
     public sealed class ActionIntentProcessor
     {
-        private const bool ActionIntentTrace = true;
+        private const bool ActionIntentTrace = false;
         private readonly PlayerRuntimeData _data;
         private readonly InputPipeline _input;
 

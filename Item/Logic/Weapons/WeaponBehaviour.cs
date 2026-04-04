@@ -244,6 +244,9 @@ namespace BBBNexus
 
         private void EquipMelee()
         {
+            // 播放装备音效
+            WeaponAudioUtil.PlayAt(_config.EquipSounds, transform.position);
+
             _hitbox = GetComponentInChildren<FistHitbox>();
             if (_hitbox != null)
             {
@@ -282,6 +285,9 @@ namespace BBBNexus
 
         private void UnequipMelee()
         {
+            // 播放收起音效
+            WeaponAudioUtil.PlayAt(_config.UnEquipSounds, transform.position);
+
             if (_hitbox != null)
                 _hitbox.HitRegistered -= OnHitRegistered;
 
@@ -961,6 +967,9 @@ namespace BBBNexus
 
         private void EquipRanged()
         {
+            // 播放装备音效
+            WeaponAudioUtil.PlayAt(_config.EquipSounds, transform.position);
+
             _isEquipping = true;
             _equipEndTime = Time.time + (_config != null ? _config.EquipEndTime : 0.35f);
 
@@ -978,6 +987,9 @@ namespace BBBNexus
 
         private void UnequipRanged()
         {
+            // 播放收起音效
+            WeaponAudioUtil.PlayAt(_config.UnEquipSounds, transform.position);
+
             CancelReload(false);
             SaveAmmoState();
             SaveReloadState();

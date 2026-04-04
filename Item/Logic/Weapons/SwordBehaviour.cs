@@ -4,6 +4,7 @@ using Animancer;
 namespace BBBNexus
 {
     // 剑：简化的持有与单段攻击逻辑
+    [System.Obsolete("SwordBehaviour 已废弃，请使用具体武器的 Behaviour 实现（如 KnifeBehaviour）。")]
     public class SwordBehaviour : MonoBehaviour, IHoldableItem, IPoolable
     {
         private enum SwordPhase { None, Equipping, Idle, Unequipping, Attacking }

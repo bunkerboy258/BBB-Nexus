@@ -34,6 +34,7 @@ namespace BBBNexus
 
             // 清理全身动作相关表现
             AnimFacade.StopFullBodyAction();
+            player.ClearAttackRootMotionPlayback();
 
             data.Override.Clear();
             data.ActionControl.Clear();
@@ -52,7 +53,9 @@ namespace BBBNexus
             if (!data.Override.IsActive) return;
 
             if (data.Override.Request.ApplyGravity)
-                player.MotionDriver.UpdateGravityOnly();
+                player.MotionDriver.UpdateGravityOnly(
+                    data.Override.Request.HardStopOnBlock,
+                    skipGravity: player.RootMotionHandledVerticalThisFrame);
         }
 
         // 允许外部在不切换状态的情况下强制重播新请求

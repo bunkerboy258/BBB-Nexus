@@ -65,6 +65,7 @@ namespace BBBNexus
         //(我有洁癖 遂构造了一个简单的委托对象池)
 
         private bool _fullBodyRootMotionEnabled;
+        public override bool IsFullBodyRootMotionEnabled => _fullBodyRootMotionEnabled;
 
         private void Awake()
         {
@@ -335,7 +336,8 @@ namespace BBBNexus
             if (clip == null) return;
 
             _fullBodyRootMotionEnabled = true;
-            _animancer.Animator.applyRootMotion = true;
+            // applyRootMotion 保持 false：不让 Unity 自动贴 deltaPosition，
+            // 由 LateUpdate 手动读取并过 ResolveCharacterBlocking 过滤后 Move。
 
             // 全身动作切换时 清理 layer0 的通用回调槽
             ClearOnEndCallback(0);
@@ -351,7 +353,6 @@ namespace BBBNexus
             if (transition == null) return;
 
             _fullBodyRootMotionEnabled = true;
-            _animancer.Animator.applyRootMotion = true;
 
             ClearOnEndCallback(0);
             // 用 FadeDuration 渐出上半身层，与 PlayFullBodyAction 保持一致
@@ -361,10 +362,6 @@ namespace BBBNexus
 
         public override void StopFullBodyAction()
         {
-            if (_fullBodyRootMotionEnabled && _animancer != null && _animancer.Animator != null)
-            {
-                _animancer.Animator.applyRootMotion = false;
-            }
             _fullBodyRootMotionEnabled = false;
         }
 

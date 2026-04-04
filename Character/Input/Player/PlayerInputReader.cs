@@ -5,7 +5,7 @@ namespace BBBNexus
 {
     public class PlayerInputReader : InputSourceBase
     {
-        public bool InputTrace = true;
+        public bool InputTrace = false;
 
         #region 配置参数
         [Header("视角设置")]

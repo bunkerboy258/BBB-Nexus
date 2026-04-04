@@ -84,7 +84,7 @@ namespace BBBNexus
 
             float equipAnimDuration = _akconfig.EquipEndTime;
             _equipEndTime = Time.time + equipAnimDuration;
-            if (_akconfig != null && _akconfig.EquipAnim != null && _player != null)
+            if (_akconfig != null && _akconfig.EquipAnim?.Clip != null && _player != null)
             {
                 _player.AnimFacade.PlayTransition(_akconfig.EquipAnim, _akconfig.EquipAnimPlayOptions);
             }
@@ -137,7 +137,7 @@ namespace BBBNexus
                     {
                         _player.RuntimeData.CanEnterTacticalMotionBase = true;
                     }
-                    if (_akconfig != null && _akconfig.EquipIdleAnim != null && _player != null)
+                    if (_akconfig != null && _akconfig.EquipIdleAnim?.Clip != null && _player != null)
                     {
                         _player.AnimFacade.PlayTransition(_akconfig.EquipIdleAnim, _akconfig.EquipIdleAnimOptions);
                     }
@@ -164,7 +164,7 @@ namespace BBBNexus
                 }
                 else
                 {
-                    if (_akconfig != null && _akconfig.EquipIdleAnim != null && _player != null)
+                    if (_akconfig != null && _akconfig.EquipIdleAnim?.Clip != null && _player != null)
                     {
                         _player.AnimFacade.PlayTransition(_akconfig.EquipIdleAnim, _akconfig.EquipIdleAnimOptions);
                     }
@@ -203,7 +203,7 @@ namespace BBBNexus
 
             if (_player != null && _player.RuntimeData != null && _player.RuntimeData.CurrentItem == null)
             {
-                if (_akconfig != null && _akconfig.UnEquipAnim != null)
+                if (_akconfig != null && _akconfig.UnEquipAnim?.Clip != null)
                 {
                     _player.AnimFacade.PlayTransition(_akconfig.UnEquipAnim, _akconfig.UnEquipAnimPlayOptions);
                 }

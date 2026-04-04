@@ -20,6 +20,7 @@ namespace BBBNexus
     public class PlayerRuntimeData
     {
         public OverrideContext Override;
+        public AttackRootMotionPlaybackContext AttackRootMotionPlayback;
         public StatusEffectContext StatusEffect;
         public ActionControlContext ActionControl;
         public StatusControlContext StatusControl;
@@ -37,6 +38,7 @@ namespace BBBNexus
             MaxSanity = 100f;
             CurrentSanity = MaxSanity;
             Override.Clear();
+            AttackRootMotionPlayback.Clear();
             StatusEffect.Clear();
             ActionControl.Clear();
             StatusControl.Clear();
@@ -84,6 +86,8 @@ namespace BBBNexus
         public float RequestedYawSmoothTime;
         /// <summary>外部请求的瞬时水平位移（世界空间，单位米）。MotionDriver 每帧消费后清除。</summary>
         public Vector3 RequestedHorizontalDisplacement;
+        /// <summary>外部请求的瞬时垂直位移（世界空间，单位米）。MotionDriver 每帧消费后清除。</summary>
+        public float RequestedVerticalDisplacement;
         #endregion
 
         #region 物理与地面状态

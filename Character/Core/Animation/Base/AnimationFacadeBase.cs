@@ -89,5 +89,10 @@ namespace BBBNexus
         /// 停止全身动画
         /// </summary>
         public abstract void StopFullBodyAction();
+
+        /// <summary>
+        /// 当前是否处于全身根运动状态（由 PlayFullBodyAction 系列开启，StopFullBodyAction 关闭）
+        /// </summary>
+        public virtual bool IsFullBodyRootMotionEnabled => false;
     }
 }

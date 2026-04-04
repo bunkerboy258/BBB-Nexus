@@ -149,20 +149,41 @@ namespace BBBNexus
             _data.RequestedHorizontalDisplacement += displacement;
         }
 
-        public void UpdateGravityOnly()
+        public void RequestVerticalDisplacement(float displacement)
+        {
+            _data.RequestedVerticalDisplacement += displacement;
+        }
+
+        public void UpdateGravityOnly(bool hardStop = false, bool skipGravity = false)
         {
             ConsumeYawRequest();
-            // 即使只做重力，也要消费并阻挡水平位移请求（攻击对齐等），防止撞入其他角色
+            // 即使只做重力，也要消费并阻挡水平位移请求（攻击对齐/根运动等），防止撞入其他角色
             Vector3 hv = Vector3.zero;
             Vector3 requestedDisplacement = ConsumeRequestedHorizontalDisplacement();
             if (requestedDisplacement.sqrMagnitude > 0.0001f && Time.deltaTime > 0.000001f)
             {
                 hv = requestedDisplacement / Time.deltaTime;
             }
-            hv = ResolveCharacterBlocking(hv);
-            Vector3 vv = GetGravityThisFrame();
+            hv = ResolveCharacterBlocking(hv, hardStop);
+            float requestedVerticalDisplacement = ConsumeRequestedVerticalDisplacement();
+            Vector3 vv = BuildVerticalVelocity(skipGravity, requestedVerticalDisplacement);
             _cc.Move((hv + vv) * Time.deltaTime);
             _data.CurrentSpeed = _cc.velocity.magnitude;
+        }
+
+        /// <summary>
+        /// 将动画根运动的 XZ 位移过角色间阻挡过滤后返回。
+        /// </summary>
+        public Vector3 ApplyRootMotionHorizontal(Vector3 horizontalDisplacement, bool hardStop)
+        {
+            horizontalDisplacement.y = 0f;
+            if (horizontalDisplacement.sqrMagnitude <= 0.0001f || Time.deltaTime <= 0.000001f)
+            {
+                return Vector3.zero;
+            }
+
+            Vector3 filteredVelocity = ResolveCharacterBlocking(horizontalDisplacement / Time.deltaTime, hardStop);
+            return filteredVelocity * Time.deltaTime;
         }
 
         public void UpdateMotion(MotionClipData clipData, float stateTime)
@@ -294,7 +315,8 @@ namespace BBBNexus
             // 墙壁与地形仍由 CharacterController 原生碰撞负责。
             horizontalVelocity = ResolveCharacterBlocking(horizontalVelocity);
 
-            Vector3 vv = GetGravityThisFrame();
+            float requestedVerticalDisplacement = ConsumeRequestedVerticalDisplacement();
+            Vector3 vv = BuildVerticalVelocity(skipGravity: false, requestedVerticalDisplacement);
             _cc.Move((horizontalVelocity + vv) * Time.deltaTime);
             _data.CurrentSpeed = _cc.velocity.magnitude;
         }
@@ -464,6 +486,13 @@ namespace BBBNexus
             return displacement;
         }
 
+        private float ConsumeRequestedVerticalDisplacement()
+        {
+            float displacement = _data.RequestedVerticalDisplacement;
+            _data.RequestedVerticalDisplacement = 0f;
+            return displacement;
+        }
+
         private void ApplySmoothYaw(float targetYaw, float smoothTime)
         {
             // 用 CurrentYaw 做权威 yaw
@@ -518,6 +547,22 @@ namespace BBBNexus
             return _cachedGravity;
         }
 
+        private Vector3 BuildVerticalVelocity(bool skipGravity, float requestedVerticalDisplacement)
+        {
+            Vector3 gravityVelocity = skipGravity ? Vector3.zero : GetGravityThisFrame();
+            if (Mathf.Abs(requestedVerticalDisplacement) <= 0.0001f || Time.deltaTime <= 0.000001f)
+            {
+                return gravityVelocity;
+            }
+
+            float requestedVerticalVelocity = requestedVerticalDisplacement / Time.deltaTime;
+            _data.VerticalVelocity = requestedVerticalVelocity;
+            _cachedGravity = new Vector3(0f, requestedVerticalVelocity, 0f);
+            _gravityFrame = Time.frameCount;
+
+            return gravityVelocity + new Vector3(0f, requestedVerticalVelocity, 0f);
+        }
+
         private void HandleAimModeTransitionIfNeeded()
         {
             if (_data.IsTacticalStance == _loco.WasAiming) return;
@@ -557,7 +602,11 @@ namespace BBBNexus
             _curve.IsInitialized = false;
         }
 
-        private Vector3 ResolveCharacterBlocking(Vector3 horizontalVelocity)
+        /// <param name="hardStop">
+        /// true = 攻击模式：检测到阻挡时整体归零，不产生切线滑移。
+        /// false = 行走模式：剥掉朝向分量，保留切线分量（原有行为）。
+        /// </param>
+        private Vector3 ResolveCharacterBlocking(Vector3 horizontalVelocity, bool hardStop = false)
         {
             if (_cc == null || horizontalVelocity.sqrMagnitude <= 0.0001f)
             {
@@ -614,6 +663,9 @@ namespace BBBNexus
                 {
                     continue;
                 }
+
+                if (hardStop)
+                    return Vector3.zero;
 
                 adjustedVelocity -= toOtherDir * inwardSpeed;
             }

@@ -34,6 +34,32 @@ namespace BBBNexus
         }
     }
 
+    public struct AttackRootMotionPlaybackContext
+    {
+        public bool IsActive;
+        public AttackClipGeometryClipDefinition GeometryClip;
+        public float StartTime;
+        public float Duration;
+        public float NormalizedStart;
+        public float NormalizedEnd;
+        public bool HardStop;
+        public Vector3 LastRootLocalPosition;
+        public float LastRootLocalRotationY;
+
+        public void Clear()
+        {
+            IsActive = false;
+            GeometryClip = null;
+            StartTime = 0f;
+            Duration = 0f;
+            NormalizedStart = 0f;
+            NormalizedEnd = 1f;
+            HardStop = false;
+            LastRootLocalPosition = Vector3.zero;
+            LastRootLocalRotationY = 0f;
+        }
+    }
+
     public struct StatusEffectContext
     {
         public bool IsActive;

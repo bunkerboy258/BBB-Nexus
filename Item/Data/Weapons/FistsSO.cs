@@ -162,7 +162,9 @@ namespace BBBNexus
         public string AttackGeometryId;
 
 #if UNITY_EDITOR
-        [HideInInspector] public GameObject BakingCharacterPrefab;
+        [Tooltip("用于烘焙攻击几何的角色 Prefab，必须包含 BBBCharacterController 组件")]
+        [RequiredComponentAttribute(typeof(BBBCharacterController), "角色 Prefab 必须包含 BBBCharacterController 组件，否则武器挂点不正确")]
+        public GameObject BakingCharacterPrefab;
         [HideInInspector] public GameObject BakingWeaponPrefab;
 #endif
 

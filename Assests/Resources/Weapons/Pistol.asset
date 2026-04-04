@@ -30,7 +30,7 @@ MonoBehaviour:
       _NormalizedTimes: []
       _Callbacks: []
       _Names: []
-    _Clip: {fileID: 3060610079319413300, guid: cb616a03630e6eb49ab02cea946ca3b4, type: 3}
+    _Clip: {fileID: 3060610079319413300, guid: 77c6382f3e4663b4a84f271db29dea44, type: 3}
     _NormalizedStartTime: NaN
   EquipAnimPlayOptions:
     Layer: 1
@@ -45,7 +45,7 @@ MonoBehaviour:
       _NormalizedTimes: []
       _Callbacks: []
       _Names: []
-    _Clip: {fileID: 3060610079319413300, guid: bf58c744cd53e854ea030f677ffd49e7, type: 3}
+    _Clip: {fileID: 3060610079319413300, guid: 77c6382f3e4663b4a84f271db29dea44, type: 3}
     _NormalizedStartTime: NaN
   UnEquipAnimPlayOptions:
     Layer: 1
@@ -88,15 +88,12 @@ MonoBehaviour:
     - {fileID: 8300000, guid: 4e1ff8faed12a475eba9be0e46072269, type: 3}
     ExitAimSounds:
     - {fileID: 8300000, guid: 7478151cf36724a7dada558f746c3633, type: 3}
-    ReloadSounds: []
+    ReloadSounds:
+    - {fileID: 8300000, guid: 2a4845256a65f474a87b27d295c654be, type: 3}
     ShootSounds:
     - {fileID: 8300000, guid: e206a564e54303e4792eefa02841b330, type: 3}
     ProjectileHitSounds:
-    - {fileID: 8300000, guid: b5dd1682e1527704fbabee0208e5ec26, type: 3}
-    - {fileID: 8300000, guid: aaea79465f40b924fbb6bb338a1905da, type: 3}
-    - {fileID: 8300000, guid: 9e91f6b4d22885d4482f895857833f5a, type: 3}
-    - {fileID: 8300000, guid: fbd73e619dcf48e40b55eaebee619403, type: 3}
-    - {fileID: 8300000, guid: 41df8b407c9267e438aaf92bab360832, type: 3}
+    - {fileID: 8300000, guid: 22eab4df0bfb76b439118c30d20e43b9, type: 3}
   EnablesAimState: 1
   UseAimCorrection: 1
   AimAnim:

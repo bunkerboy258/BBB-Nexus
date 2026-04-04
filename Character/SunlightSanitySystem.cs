@@ -60,10 +60,20 @@ namespace BBBNexus
 
         private void TryFindSun()
         {
-            var lights = FindObjectsOfType<Light>();
+            if (RenderSettings.sun != null
+                && RenderSettings.sun.type == LightType.Directional
+                && RenderSettings.sun.isActiveAndEnabled)
+            {
+                _sunLight = RenderSettings.sun;
+                return;
+            }
+
+            var lights = FindObjectsOfType<Light>(true);
             foreach (var l in lights)
             {
-                if (l.type == LightType.Directional && l.isActiveAndEnabled)
+                if (l.type == LightType.Directional
+                    && l.isActiveAndEnabled
+                    && l.gameObject.scene.IsValid())
                 {
                     _sunLight = l;
                     return;
@@ -75,6 +85,9 @@ namespace BBBNexus
 
         private void Update()
         {
+            if (_sunLight == null || !_sunLight.isActiveAndEnabled)
+                TryFindSun();
+
             IsExposedToSun = CheckSunExposure();
 
             if (IsEyesClosed)

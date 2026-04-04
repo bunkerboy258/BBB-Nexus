@@ -3,52 +3,62 @@ using UnityEngine;
 namespace BBBNexus
 {
     /// <summary>
-    /// 盾牌行为组件。
-    /// 挂在盾牌 Prefab 根节点上，同节点需有 Collider。
+    /// 盾牌行为组件。继承 WeaponBehaviour 获得完整的近战/远程/姿态能力，
+    /// 同时实现 IDamageable 叠加格挡逻辑。
     ///
-    /// 工作流：
-    ///   敌人 MeleeHitScanner 扫到盾牌 Collider
-    ///     → GetComponentInParent&lt;IDamageable&gt;() 找到本组件（优先于持盾者）
-    ///     → RequestDamage()
+    /// Prefab 结构约定：
+    ///   Shield (Root)  ← ShieldBehaviour + 格挡 Collider (non-trigger)
+    ///   └── AttackHitbox (Child)  ← FistHitbox + 攻击 Collider（由 FistHitbox 自动刷成 trigger）
+    ///
+    /// 格挡工作流：
+    ///   敌人 MeleeHitScanner 扫到根节点 Collider
+    ///     → GetComponentInParent&lt;IDamageable&gt;() 找到本组件
+    ///     → RequestDamage() → TryBlock()
     ///       1. 通知持盾者本帧已被盾拦截（HealthArbiter 将跳过队列）
     ///       2. 对攻击者施加 BlockedEffect 硬直
     /// </summary>
-    public class ShieldBehaviour : MonoBehaviour, IHoldableItem, IDamageable
+    public class ShieldBehaviour : WeaponBehaviour, IDamageable
     {
         [Header("--- 格挡挂点 ---")]
         [Tooltip("格挡朝向参考点。优先使用这个挂点的 forward 作为盾牌正面，避免骨骼动画导致根节点朝向不稳定。")]
         [SerializeField] private Transform _blockMuzzle;
 
-        private BBBCharacterController _owner;
-        private ShieldSO _config;
+        private ShieldSO _shieldConfig;
+        private BBBCharacterController _shieldOwner;
+
         private int _lastProcessedFrame = -1;
         private int _lastProcessedAttackerId;
         private int _lastProcessedWeaponId;
 
-        public EquipmentSlot CurrentEquipSlot { get; set; }
+        // ─────────────────────────────────────────────────────
+        // IHoldableItem overrides
+        // ─────────────────────────────────────────────────────
 
-        public void Initialize(ItemInstance instanceData)
+        public override void Initialize(ItemInstance instanceData)
         {
-            _config = instanceData?.GetSODataAs<ShieldSO>();
-            if (_config != null)
-                CurrentEquipSlot = _config.EquipSlot;
+            base.Initialize(instanceData);
+            _shieldConfig = instanceData?.GetSODataAs<ShieldSO>();
         }
 
-        public void OnEquipEnter(BBBCharacterController player)
+        public override void OnEquipEnter(BBBCharacterController player)
         {
-            _owner = player;
+            base.OnEquipEnter(player);
+            _shieldOwner = player;
         }
 
-        public void OnUpdateLogic() { }
-
-        public void OnForceUnequip()
+        public override void OnForceUnequip()
         {
-            _owner = null;
+            base.OnForceUnequip();
+            _shieldOwner = null;
         }
+
+        // ─────────────────────────────────────────────────────
+        // IDamageable — 格挡逻辑
+        // ─────────────────────────────────────────────────────
 
         public bool CanBlock(in DamageRequest request)
         {
-            if (_owner == null)
+            if (_shieldOwner == null)
                 return false;
 
             var attackerTransform = request.ResolveAttackerTransform();
@@ -56,7 +66,7 @@ namespace BBBNexus
                 return false;
 
             Transform facingSource = _blockMuzzle != null ? _blockMuzzle : transform;
-            Vector3 blockForward = _config != null && _config.UseNegativeForwardAsBlockFront
+            Vector3 blockForward = _shieldConfig != null && _shieldConfig.UseNegativeForwardAsBlockFront
                 ? -facingSource.forward
                 : facingSource.forward;
             blockForward.y = 0f;
@@ -64,13 +74,13 @@ namespace BBBNexus
                 return false;
             blockForward.Normalize();
 
-            Vector3 toAttacker = attackerTransform.position - _owner.transform.position;
+            Vector3 toAttacker = attackerTransform.position - _shieldOwner.transform.position;
             toAttacker.y = 0f;
             if (toAttacker.sqrMagnitude < 0.0001f)
                 return false;
             toAttacker.Normalize();
 
-            float arcDegrees = _config != null ? Mathf.Clamp(_config.BlockArcDegrees, 0f, 180f) : 150f;
+            float arcDegrees = _shieldConfig != null ? Mathf.Clamp(_shieldConfig.BlockArcDegrees, 0f, 180f) : 150f;
             float minDot = Mathf.Cos(arcDegrees * 0.5f * Mathf.Deg2Rad);
             return Vector3.Dot(blockForward, toAttacker) >= minDot;
         }
@@ -84,12 +94,12 @@ namespace BBBNexus
                 return true;
 
             RememberProcessedRequest(in request);
-            _owner?.NotifyShieldBlocked();
+            _shieldOwner?.NotifyShieldBlocked();
 
-            if (_config?.BlockedEffect != null)
+            if (_shieldConfig?.BlockedEffect != null)
             {
                 var attacker = request.ResolveAttackerController();
-                attacker?.StatusEffects.Apply(_config.BlockedEffect);
+                attacker?.StatusEffects.Apply(_shieldConfig.BlockedEffect);
             }
 
             return true;
@@ -100,8 +110,12 @@ namespace BBBNexus
             if (TryBlock(in request))
                 return;
 
-            _owner?.RequestDamage(in request);
+            _shieldOwner?.RequestDamage(in request);
         }
+
+        // ─────────────────────────────────────────────────────
+        // 去重辅助
+        // ─────────────────────────────────────────────────────
 
         private bool IsDuplicateProcessedRequest(in DamageRequest request)
         {
