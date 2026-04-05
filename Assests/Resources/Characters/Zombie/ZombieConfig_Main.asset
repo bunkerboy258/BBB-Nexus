@@ -16,8 +16,8 @@ MonoBehaviour:
   Core: {fileID: 11400000, guid: 58e37e977b1067b4eaaac3eb1ec817e7, type: 2}
   LocomotionAnims: {fileID: 11400000, guid: 63fce11ae0f62484682b552c8bbf58c4, type: 2}
   JumpAndLanding: {fileID: 11400000, guid: fa517b21ea10ba5419ff4d252d8367aa, type: 2}
-  Aiming: {fileID: 11400000, guid: 9379cc176f4cd1b4bb49b3421cd91238, type: 2}
-  HitReaction: {fileID: 11400000, guid: 3edb0af975bee894d921c8a07d37d1e2, type: 2}
+  TacticalMotionBase: {fileID: 11400000, guid: 9379cc176f4cd1b4bb49b3421cd91238, type: 2}
+  HitReaction: {fileID: 11400000, guid: 50702dd567437eb47ba7d651bae00c15, type: 2}
   Vaulting: {fileID: 11400000, guid: c817245546f047f4eaf477b9f3429f8a, type: 2}
   Dodging: {fileID: 11400000, guid: 73049487dd19b0f40b9d0cf4ffb8fa7a, type: 2}
   Rolling: {fileID: 11400000, guid: b5a26fbe4f8d93f42835b41a4bd1ff44, type: 2}

@@ -40,8 +40,19 @@ namespace BBBNexus
             }
             else if (_selfTransform != null)
             {
-                // AI 模式：从角色眼部沿 AuthorityYaw/Pitch 方向射线
                 origin = _selfTransform.position + Vector3.up * 1.3f;
+
+                // AI 没有玩家相机。若能拿到导航目标，则直接把准星意图写到目标身体上；
+                // 真实遮挡与命中仍由武器从枪口再做一次射线决定。
+                if (TryGetAiTargetPoint(out var aiTargetPoint))
+                {
+                    direction = (aiTargetPoint - origin).normalized;
+                    _data.CameraLookDirection = direction;
+                    _data.TargetAimPoint = aiTargetPoint;
+                    return;
+                }
+
+                // 回退：沿当前权威朝向生成远点，至少保证无目标时协议完整。
                 direction = Quaternion.Euler(_data.AuthorityPitch, _data.AuthorityYaw, 0f) * Vector3.forward;
                 _data.CameraLookDirection = direction;
             }
@@ -54,6 +65,37 @@ namespace BBBNexus
                 _data.TargetAimPoint = hit.point;
             else
                 _data.TargetAimPoint = origin + direction * _maxRange;
+        }
+
+        private bool TryGetAiTargetPoint(out Vector3 point)
+        {
+            point = default;
+
+            var sensor = _selfTransform.GetComponentInChildren<NavigatorSensorBase>();
+            var target = sensor != null ? sensor.Target : null;
+            if (target == null)
+                return false;
+
+            if (target.TryGetComponent<BBBCharacterController>(out var controller))
+            {
+                if (controller.HeadBone != null)
+                {
+                    point = controller.HeadBone.position;
+                    return true;
+                }
+
+                point = controller.transform.position + Vector3.up * 1.3f;
+                return true;
+            }
+
+            if (target.TryGetComponent<Collider>(out var collider))
+            {
+                point = collider.bounds.center;
+                return true;
+            }
+
+            point = target.position + Vector3.up * 1.3f;
+            return true;
         }
     }
 }

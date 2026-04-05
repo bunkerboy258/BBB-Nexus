@@ -23,12 +23,23 @@ namespace BBBNexus
         [Tooltip("格挡朝向参考点。优先使用这个挂点的 forward 作为盾牌正面，避免骨骼动画导致根节点朝向不稳定。")]
         [SerializeField] private Transform _blockMuzzle;
 
+        [Header("--- 破除特效 ---")]
+        [Tooltip("完美弹反期间替换的材质（使用 BBBNexus/ShieldBreakEffect Shader）。\n为空则不切换材质。")]
+        [SerializeField] private Material _breakEffectMaterial;
+
+        [Tooltip("需要切换材质的 Renderer 列表。留空则自动查找自身所有 Renderer（不含子物体攻击判定盒）。")]
+        [SerializeField] private Renderer[] _shieldRenderers;
+
         private ShieldSO _shieldConfig;
         private BBBCharacterController _shieldOwner;
 
         private int _lastProcessedFrame = -1;
         private int _lastProcessedAttackerId;
         private int _lastProcessedWeaponId;
+
+        // 材质切换状态
+        private Material[][] _originalMaterials;   // 每个 Renderer 的原始材质数组
+        private bool         _breakEffectActive;
 
         // ─────────────────────────────────────────────────────
         // IHoldableItem overrides
@@ -44,12 +55,29 @@ namespace BBBNexus
         {
             base.OnEquipEnter(player);
             _shieldOwner = player;
+            CacheRenderers();
         }
 
         public override void OnForceUnequip()
         {
             base.OnForceUnequip();
+            RestoreOriginalMaterials();
             _shieldOwner = null;
+        }
+
+        public override void OnUpdateLogic()
+        {
+            base.OnUpdateLogic();
+            if (_shieldOwner == null || _breakEffectMaterial == null) return;
+
+            bool shouldBreak = _shieldOwner.RuntimeData.Arbitration.BlockShield;
+            if (shouldBreak == _breakEffectActive) return;
+
+            _breakEffectActive = shouldBreak;
+            if (shouldBreak)
+                ApplyBreakMaterials();
+            else
+                RestoreOriginalMaterials();
         }
 
         // ─────────────────────────────────────────────────────
@@ -59,6 +87,9 @@ namespace BBBNexus
         public bool CanBlock(in DamageRequest request)
         {
             if (_shieldOwner == null)
+                return false;
+
+            if (_shieldOwner.RuntimeData.Arbitration.BlockShield)
                 return false;
 
             var attackerTransform = request.ResolveAttackerTransform();
@@ -105,12 +136,12 @@ namespace BBBNexus
             return true;
         }
 
-        public void RequestDamage(in DamageRequest request)
+        public bool RequestDamage(in DamageRequest request)
         {
             if (TryBlock(in request))
-                return;
+                return false;
 
-            _shieldOwner?.RequestDamage(in request);
+            return _shieldOwner != null && _shieldOwner.RequestDamage(in request);
         }
 
         // ─────────────────────────────────────────────────────
@@ -132,6 +163,40 @@ namespace BBBNexus
             _lastProcessedFrame = Time.frameCount;
             _lastProcessedAttackerId = request.Attacker != null ? request.Attacker.GetInstanceID() : 0;
             _lastProcessedWeaponId = request.WeaponTransform != null ? request.WeaponTransform.GetInstanceID() : 0;
+        }
+
+        // ─────────────────────────────────────────────────────
+        // 材质切换辅助
+        // ─────────────────────────────────────────────────────
+
+        private void CacheRenderers()
+        {
+            if (_shieldRenderers == null || _shieldRenderers.Length == 0)
+                _shieldRenderers = GetComponentsInChildren<Renderer>();
+
+            _originalMaterials = new Material[_shieldRenderers.Length][];
+            for (int i = 0; i < _shieldRenderers.Length; i++)
+                _originalMaterials[i] = _shieldRenderers[i].sharedMaterials;
+
+            _breakEffectActive = false;
+        }
+
+        private void ApplyBreakMaterials()
+        {
+            if (_shieldRenderers == null) return;
+            var mats = new Material[] { _breakEffectMaterial };
+            foreach (var r in _shieldRenderers)
+                if (r != null) r.materials = mats;
+        }
+
+        private void RestoreOriginalMaterials()
+        {
+            if (_shieldRenderers == null || _originalMaterials == null) return;
+            for (int i = 0; i < _shieldRenderers.Length; i++)
+                if (_shieldRenderers[i] != null && i < _originalMaterials.Length)
+                    _shieldRenderers[i].materials = _originalMaterials[i];
+
+            _breakEffectActive = false;
         }
     }
 }

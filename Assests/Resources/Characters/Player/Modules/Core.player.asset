@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Core.player
   m_EditorClassIdentifier: 
   MaxHealth: 100
-  DeathAnim: {fileID: 7400122, guid: 914b09da235eea34ebdc4e71d057e815, type: 3}
+  DeathAnim: {fileID: -203655887218126122, guid: de3bc2fb5cc61944c92dfe7da0b62b6c,
+    type: 3}
   LODCheckInterval: 2
   MediumLODDistance: 15
   LowLODDistance: 30

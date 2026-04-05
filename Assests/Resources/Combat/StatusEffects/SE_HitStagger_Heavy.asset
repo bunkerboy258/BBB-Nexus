@@ -1,0 +1,129 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fe45b386eedaf248ab2e7f9313ca125, type: 3}
+  m_Name: SE_HitStagger_Heavy
+  m_EditorClassIdentifier: 
+  DisplayName: "\u53D7\u51FB\u5927\u50F5\u76F4"
+  Description: 
+  Clip:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: 2dee4f7e376e3e146bb15a9c8929533e, type: 3}
+    _NormalizedStartTime: NaN
+  ClipHitFront:
+    _FadeDuration: 0.25
+    _Speed: 1.5
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: 0c7f2fd4efe242c43beb356585bd29e6, type: 3}
+    _NormalizedStartTime: NaN
+  ClipHitBack:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: a9b33c952cfb05a4c8b2cd8221a176a4, type: 3}
+    _NormalizedStartTime: NaN
+  ClipHitLeft:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: 5e0768a4c571879459031fb952c750f7, type: 3}
+    _NormalizedStartTime: NaN
+  ClipHitRight:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: 82b9a4b01ef3e8e46b6109a5fe35f40a, type: 3}
+    _NormalizedStartTime: NaN
+  ClipKnockbackFront:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 0}
+    _NormalizedStartTime: NaN
+  ClipKnockbackBack:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 0}
+    _NormalizedStartTime: NaN
+  ClipKnockbackLeft:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 0}
+    _NormalizedStartTime: NaN
+  ClipKnockbackRight:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 0}
+    _NormalizedStartTime: NaN
+  ClipKnockdown:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 0}
+    _NormalizedStartTime: NaN
+  PlayOptions:
+    Layer: 0
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  FadeOutDuration: 0.2
+  Duration: 0.8
+  CanBeRefreshed: 1
+  Priority: 5
+  InterruptMode: 2
+  BlockInput: 1
+  BlockAction: 1
+  BlockUpperBody: 1
+  BlockInventory: 0
+  BlockIK: 0
+  BlockShield: 0
+  IsHitStop: 0
+  HitStopAnimationSpeed: 0
+  FreezeMotion: 1
+  references:
+    version: 2
+    RefIds: []

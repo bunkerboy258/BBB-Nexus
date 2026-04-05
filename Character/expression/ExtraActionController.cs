@@ -51,12 +51,33 @@ namespace BBBNexus
             ProcessExtraAction4();
         }
 
+        public void TriggerQuickHealFromUi()
+        {
+            TryUseQuickHeal();
+        }
+
+        public int GetQuickHealItemCount()
+        {
+            var healItem = ResolveQuickHealItem();
+            return healItem == null || _player == null ? 0 : ItemPackVfs.GetItemCount(healItem.ItemID, _player);
+        }
+
         private void ProcessToggleEyes()
         {
             bool currentIntent = _runtimeData.WantsToggleEyes;
-            if (currentIntent && !_lastToggleEyes)
-                _eyesClosedManager?.ForceSetEyesClosed(!_eyesClosedManager.IsEyesClosed);
+            bool justPressed = currentIntent && !_lastToggleEyes;
             _lastToggleEyes = currentIntent;
+
+            if (!justPressed || _eyesClosedManager == null) return;
+
+            if (_eyesClosedManager.IsSanityDepleted)
+            {
+                // 理智耗尽：只允许在格挡反应窗口内通过睁眼触发完美格挡，否则忽略输入
+                _eyesClosedManager.TryTriggerDepletedPerfectParry();
+                return;
+            }
+
+            _eyesClosedManager.ForceSetEyesClosed(!_eyesClosedManager.IsEyesClosed);
         }
 
         private void ProcessReload()

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 namespace BBBNexus
@@ -7,6 +7,7 @@ namespace BBBNexus
     public sealed class PlayerDeathState : PlayerBaseState
     {
         private float _deathTimeAt;
+        private bool _respawnStarted = false;
         private const float RESPAWN_DELAY = 3f;
 
         public PlayerDeathState(BBBCharacterController player) : base(player) { }
@@ -31,11 +32,19 @@ namespace BBBNexus
 
             // 记录死亡时间 （用于压测场景）
             _deathTimeAt = Time.time + RESPAWN_DELAY;
+
+            // 死亡时清空理智，触发低理智视觉效果
+            data.CurrentSanity = 0f;
+            if (EyesClosedSystemManager.Instance != null)
+            {
+                EyesClosedSystemManager.Instance.NotifySanityStateChanged();
+            }
         }
 
         protected override void UpdateStateLogic()
         {
-            // 死亡 3 秒后 触发对象池回收(暂时硬编码)
+            if (_respawnStarted) return;
+            // 死亡 3 秒后 触发对象池回收 ( 暂时硬编码 )
             if (Time.time >= _deathTimeAt)
             {
                 TryFinishDeathFlow();
@@ -53,19 +62,26 @@ namespace BBBNexus
         }
 
         /// <summary>
-        /// 尝试通过对象池回收该角色实例（用于压力测试） 
+        /// 尝试通过对象池回收该角色实例（用于压力测试）
         /// 如果不使用池则退避，由外部手动销毁。
         /// </summary>
         private void TryFinishDeathFlow()
         {
+            Debug.Log($"[PlayerDeathState] TryFinishDeathFlow called. player={player != null}, tag={player?.tag}, instance={PlayerRespawnService.Instance != null}");
+            
             if (player != null && player.CompareTag("Player") && PlayerRespawnService.Instance != null)
             {
-                if (PlayerRespawnService.Instance.TryHandleDeath(player))
+                bool result = PlayerRespawnService.Instance.TryHandleDeath(player);
+                Debug.Log($"[PlayerDeathState] TryHandleDeath returned: {result}");
+                
+                if (result)
                 {
+                    _respawnStarted = true;
                     return;
                 }
             }
 
+            Debug.Log("[PlayerDeathState] No respawn, despawning body.");
             if (SimpleObjectPoolSystem.Shared != null)
             {
                 SimpleObjectPoolSystem.Shared.Despawn(player.gameObject);

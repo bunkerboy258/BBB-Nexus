@@ -89,7 +89,8 @@ namespace BBBNexus
                     if (hitReaction != null)
                         _player.StatusEffects.Apply(hitReaction, CalculateHitAngle(in req));
 
-                    HitStopService.Instance?.Request(new HitStopRequest(_player, HitStopKind.Light, req.ResolveAttackerController()));
+                    // HitStop phased rollout:
+                    // keep only attacker-side Light hitstop from Weapon/Fists for feel validation.
                 }
 
                 _head = (_head + 1) % _damageQueue.Length;

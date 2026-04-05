@@ -36,7 +36,9 @@
                 return;
             }
 
-            if (data.CurrentLocomotionState != LocomotionState.Idle)
+            // 只有当玩家有移动输入时才进入移动状态，而不是根据 CurrentLocomotionState 判断
+            // 这样可以避免移动速度异常和状态识别错误喵~
+            if (data.MoveInput.sqrMagnitude > 0.01f)
             {
                 player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerTacticalMoveState>());
             }

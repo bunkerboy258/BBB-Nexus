@@ -8,6 +8,26 @@ namespace BBBNexus
     /// </summary>
     public static class WeaponAudioUtil
     {
+        // 归一化增益表：从 Resources/AudioNormalization 延迟加载
+        private static AudioNormalizationProfile _normProfile;
+        private static bool _normProfileLoaded;
+
+        private static AudioNormalizationProfile NormProfile
+        {
+            get
+            {
+                if (!_normProfileLoaded)
+                {
+                    _normProfile       = Resources.Load<AudioNormalizationProfile>("AudioNormalization");
+                    _normProfileLoaded = true;
+                }
+                return _normProfile;
+            }
+        }
+
+        private static float GetGain(AudioClip clip)
+            => NormProfile != null ? NormProfile.GetGain(clip) : 1f;
+
         public static AudioClip Pick(AudioClip[] clips)
         {
             if (clips == null || clips.Length == 0) return null;
@@ -23,13 +43,18 @@ namespace BBBNexus
         public static void PlayAt(AudioClip[] clips, Vector3 position)
         {
             var clip = Pick(clips);
-            if (clip != null) AudioSource.PlayClipAtPoint(clip, position);
+            if (clip != null) AudioSource.PlayClipAtPoint(clip, position, GetGain(clip));
+        }
+
+        public static void PlayAt(AudioClip clip, Vector3 position)
+        {
+            if (clip != null) AudioSource.PlayClipAtPoint(clip, position, GetGain(clip));
         }
 
         public static void PlayComboAt(ComboSegmentAudio[] combos, int index, Vector3 position)
         {
             var clip = PickCombo(combos, index);
-            if (clip != null) AudioSource.PlayClipAtPoint(clip, position);
+            if (clip != null) AudioSource.PlayClipAtPoint(clip, position, GetGain(clip));
         }
     }
 
@@ -60,6 +85,20 @@ namespace BBBNexus
     {
         [Tooltip("该段攻击可用的音效（随机选一个播放）")]
         public AudioClip[] Clips;
+    }
+
+    /// <summary>
+    /// 格挡/弹反音效配置：普通格挡、完美弹反各自的命中瞬间音效。
+    /// 替身的生命周期音效（生成/贴附/消散）配置在 SubstituteFollower 组件上。
+    /// </summary>
+    [Serializable]
+    public struct ParryAudioProfile
+    {
+        [Tooltip("普通闭眼格挡命中瞬间（随机选一个）")]
+        public AudioClip[] ParrySounds;
+
+        [Tooltip("完美弹反命中瞬间（随机选一个）")]
+        public AudioClip[] PerfectParrySounds;
     }
 
     /// <summary>

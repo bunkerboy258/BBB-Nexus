@@ -28,7 +28,7 @@ namespace BBBNexus
                 return;
             }
 
-            if (_data.StatusControl.IsActive)
+            if (_data.StatusControl.IsActive && _data.StatusControl.InterruptMode == StatusInterruptMode.Hard)
             {
                 _data.CharacterControl.ActiveDomain = CharacterControlDomain.Status;
                 _data.CharacterControl.BlocksAction = _data.StatusControl.BlocksAction;
@@ -58,7 +58,7 @@ namespace BBBNexus
 
         public bool IsUnderStatusControl()
         {
-            return _data.StatusControl.IsActive ||
+            return (_data.StatusControl.IsActive && _data.StatusControl.InterruptMode == StatusInterruptMode.Hard) ||
                    _data.CharacterControl.ActiveDomain == CharacterControlDomain.Status;
         }
 

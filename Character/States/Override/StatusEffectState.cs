@@ -12,11 +12,14 @@ namespace BBBNexus
         public override void Enter()
         {
             _applied = false;
+            var effect = data.StatusEffect.Effect;
+            bool isHardInterrupt = effect != null && effect.InterruptMode == StatusInterruptMode.Hard;
             data.StatusControl.IsActive = data.StatusEffect.IsActive;
-            data.StatusControl.Priority = data.StatusEffect.Effect != null ? data.StatusEffect.Effect.Priority : 0;
-            data.StatusControl.BlocksAction = data.StatusEffect.Effect != null && data.StatusEffect.Effect.BlockAction;
-            data.StatusControl.BlocksLocomotion = data.StatusEffect.Effect != null && data.StatusEffect.Effect.BlockInput;
-            data.StatusControl.BlocksInput = data.StatusEffect.Effect != null && data.StatusEffect.Effect.BlockInput;
+            data.StatusControl.Priority = effect != null ? effect.Priority : 0;
+            data.StatusControl.InterruptMode = effect != null ? effect.InterruptMode : StatusInterruptMode.None;
+            data.StatusControl.BlocksAction = isHardInterrupt && effect.BlockAction;
+            data.StatusControl.BlocksLocomotion = isHardInterrupt;
+            data.StatusControl.BlocksInput = isHardInterrupt && effect.BlockInput;
             data.StatusControl.UsesLegacyStatusState = true;
             Apply();
         }

@@ -29,6 +29,10 @@ namespace BBBNexus
         public float ObstacleDetectRange = 1.5f;
         public LayerMask ObstacleMask;
 
+        [Header("Detection — Occlusion")]
+        [Tooltip("索敌遮挡检测层。玩家被这些层阻挡时不可被感知（包括最近距离警觉）。")]
+        public LayerMask DetectionBlockMask = 1 << 0;
+
         // ── 内部状态 ──────────────────────────────────────────────────────
         private bool  _isAlerted;
         private float _lostTargetTimer;
@@ -77,11 +81,12 @@ namespace BBBNexus
 
             // ── 感知检测 ──────────────────────────────────────────────────
             bool canDetectNow = false;
+            bool hasLineOfSight = HasLineOfSightToTarget();
 
             if (dist <= AlertRange)
             {
-                // 近距离：无条件感知（听觉半径）
-                canDetectNow = true;
+                // 近距离也要受遮挡约束，避免穿墙索敌。
+                canDetectNow = hasLineOfSight;
             }
             else if (dist <= DetectionRange)
             {
@@ -90,9 +95,7 @@ namespace BBBNexus
                 float angle = Vector3.Angle(flatForward, flatDirNorm);
                 if (angle <= DetectionFOV)
                 {
-                    Vector3 eyePos = transform.position + Vector3.up * 1.3f;
-                    Vector3 toTarget = Target.position + Vector3.up * 1.3f - eyePos;
-                    canDetectNow = !Physics.Raycast(eyePos, toTarget.normalized, toTarget.magnitude, LayerMask.GetMask("Default"));
+                    canDetectNow = hasLineOfSight;
                 }
             }
 
@@ -139,6 +142,7 @@ namespace BBBNexus
             if (!ShowGizmos || Target == null) return;
 
             Vector3 pos = transform.position + Vector3.up * 1.3f;
+            var owner = GetComponentInParent<BBBCharacterController>();
 
             // 警觉距离（红圈）
             Gizmos.color = Color.red;
@@ -160,6 +164,25 @@ namespace BBBNexus
             {
                 Gizmos.color = Color.cyan;
                 Gizmos.DrawRay(pos, _currentContext.DesiredWorldDirection * 2f);
+            }
+
+            if (owner?.RuntimeData != null && owner.RuntimeData.AIAimTargetPoint != Vector3.zero)
+            {
+                Vector3 aimPoint = owner.RuntimeData.AIAimTargetPoint;
+
+                Gizmos.color = new Color(1f, 0.2f, 0.8f, 0.95f);
+                Gizmos.DrawLine(pos, aimPoint);
+                Gizmos.DrawSphere(aimPoint, 0.08f);
+
+                Vector3 muzzlePos;
+                if (TryResolveMuzzle(owner.transform, out muzzlePos))
+                {
+                    Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.95f);
+                    Gizmos.DrawSphere(muzzlePos, 0.05f);
+
+                    Gizmos.color = new Color(1f, 0.5f, 0.15f, 0.95f);
+                    Gizmos.DrawLine(muzzlePos, aimPoint);
+                }
             }
         }
 
@@ -189,6 +212,49 @@ namespace BBBNexus
             AlertRange = Config.AlertRange;
             LostTargetCooldown = Config.LostTargetCooldown;
             ObstacleDetectRange = Config.ObstacleDetectRange;
+        }
+
+        private bool HasLineOfSightToTarget()
+        {
+            Vector3 eyePos = transform.position + Vector3.up * 1.3f;
+            Vector3 toTarget = Target.position + Vector3.up * 1.3f - eyePos;
+            float distance = toTarget.magnitude;
+            if (distance <= 0.001f)
+            {
+                return true;
+            }
+
+            return !Physics.Raycast(eyePos, toTarget.normalized, distance, DetectionBlockMask);
+        }
+
+        private static bool TryResolveMuzzle(Transform root, out Vector3 muzzlePos)
+        {
+            muzzlePos = default;
+
+            if (root == null)
+            {
+                return false;
+            }
+
+            Transform[] children = root.GetComponentsInChildren<Transform>(true);
+            for (int i = 0; i < children.Length; i++)
+            {
+                var child = children[i];
+                if (child == null)
+                {
+                    continue;
+                }
+
+                if (!string.Equals(child.name, "Muzzle", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                muzzlePos = child.position;
+                return true;
+            }
+
+            return false;
         }
     }
 }

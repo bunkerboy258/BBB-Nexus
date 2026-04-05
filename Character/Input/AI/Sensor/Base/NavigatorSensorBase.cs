@@ -18,24 +18,21 @@ namespace BBBNexus
 
         protected virtual void Awake()
         {
-            if (_target == null)
-            {
-                var go = GameObject.FindGameObjectWithTag("Player");
-                if (go != null) _target = go.transform;
-            }
+            TryResolveTarget();
         }
 
         protected virtual void OnEnable()
         {
-            if (_target == null)
-            {
-                var go = GameObject.FindGameObjectWithTag("Player");
-                if (go != null) _target = go.transform;
-            }
+            TryResolveTarget();
         }
 
         protected virtual void Update()
         {
+            if (_target == null)
+            {
+                TryResolveTarget();
+            }
+
             if (_target == null)
             {
                 _currentContext = new NavigationContext(Vector3.zero, Vector3.zero, 0f, false, false);
@@ -63,6 +60,26 @@ namespace BBBNexus
             {
                 Gizmos.color = Color.cyan;
                 Gizmos.DrawRay(transform.position + Vector3.up, _currentContext.DesiredWorldDirection * 2f);
+            }
+        }
+
+        private void TryResolveTarget()
+        {
+            if (_target != null)
+            {
+                return;
+            }
+
+            if (BBBCharacterController.PlayerInstance != null)
+            {
+                _target = BBBCharacterController.PlayerInstance.transform;
+                return;
+            }
+
+            var go = GameObject.FindGameObjectWithTag("Player");
+            if (go != null)
+            {
+                _target = go.transform;
             }
         }
     }

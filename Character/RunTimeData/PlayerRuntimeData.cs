@@ -228,6 +228,19 @@ namespace BBBNexus
         public bool WantsToInteract;
         #endregion
 
+        #region AI 瞄准强化状态
+        /// <summary>AI 当前瞄准精度（0-1）。由 AI 瞄准系统每帧更新，考虑距离衰减和稳定时间。</summary>
+        public float CurrentAIAccuracy = 1f;
+        /// <summary>AI 瞄准已稳定时间（秒）。用于计算当前精度。</summary>
+        public float AIAimStabilizationTimer;
+        /// <summary>AI 瞄准是否已完全稳定（达到最大精度）。</summary>
+        public bool IsAIAimStabilized;
+        /// <summary>AI 当前连射计数。用于计算连射精度衰减。</summary>
+        public int AIBurstShotCount;
+        /// <summary>AI 目标瞄准点（经过精度修正后的世界坐标）。</summary>
+        public Vector3 AIAimTargetPoint;
+        #endregion
+
         #region 根运动变形与翻越
         /// <summary>是否处于根运动变形中</summary>
         public bool IsWarping;
@@ -390,6 +403,10 @@ namespace BBBNexus
 
             // 武器相机表现力请求：每帧清零，武器在 Update 阶段重新写入
             CameraExpression.Clear();
+
+            // AI 瞄准状态每帧清理（由 AI 瞄准系统重新计算）
+            AIBurstShotCount = 0;
+            // CurrentAIAccuracy 和 IsAIAimStabilized 由 AimPointParameterProcessor 每帧重新计算
 
             // 注意 音频事件不在这里清理
             // AudioController 在 Update 消费（而 ResetIntetnt 在 LateUpdate）

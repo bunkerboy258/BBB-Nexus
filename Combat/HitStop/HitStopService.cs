@@ -15,12 +15,25 @@ namespace BBBNexus
         public readonly BBBCharacterController Target;
         public readonly HitStopKind Kind;
         public readonly BBBCharacterController Source;
+        public readonly float DurationSeconds;
+        public readonly bool HasCustomDuration;
 
         public HitStopRequest(BBBCharacterController target, HitStopKind kind, BBBCharacterController source = null)
         {
             Target = target;
             Kind = kind;
             Source = source;
+            DurationSeconds = 0f;
+            HasCustomDuration = false;
+        }
+
+        public HitStopRequest(BBBCharacterController target, float durationSeconds, BBBCharacterController source = null)
+        {
+            Target = target;
+            Kind = HitStopKind.Light;
+            Source = source;
+            DurationSeconds = durationSeconds;
+            HasCustomDuration = true;
         }
     }
 
@@ -37,6 +50,7 @@ namespace BBBNexus
         private static StatusEffectSO _medium;
         private static StatusEffectSO _heavy;
         private static StatusEffectSO _perfectParry;
+        private static StatusEffectSO _customDuration;
 
         protected override void Awake()
         {
@@ -51,7 +65,9 @@ namespace BBBNexus
             if (request.Target == null || request.Target.RuntimeData == null || request.Target.RuntimeData.IsDead)
                 return;
 
-            var effect = ResolveEffect(request.Kind);
+            var effect = request.HasCustomDuration
+                ? ResolveCustomDurationEffect(request.DurationSeconds)
+                : ResolveEffect(request.Kind);
             request.Target.StatusEffects?.Apply(effect);
 
             if (_debugLog)
@@ -81,6 +97,14 @@ namespace BBBNexus
             _medium ??= CreateEffect("HitStop_Medium", 0.05f, 8, 0.03f);
             _heavy ??= CreateEffect("HitStop_Heavy", 0.065f, 12, 0.02f);
             _perfectParry ??= CreateEffect("HitStop_PerfectParry", 0.08f, 18, 0f);
+            _customDuration ??= CreateEffect("HitStop_Custom", 0.035f, 5, 0.05f);
+        }
+
+        private static StatusEffectSO ResolveCustomDurationEffect(float durationSeconds)
+        {
+            EnsureInitialized();
+            _customDuration.Duration = Mathf.Clamp(durationSeconds, 0f, 0.2f);
+            return _customDuration;
         }
 
         private static StatusEffectSO CreateEffect(string displayName, float duration, int priority, float animationSpeed)
@@ -91,8 +115,9 @@ namespace BBBNexus
             effect.Duration = duration;
             effect.CanBeRefreshed = true;
             effect.Priority = priority;
-            effect.BlockInput = true;
-            effect.BlockAction = true;
+            effect.InterruptMode = StatusInterruptMode.None;
+            effect.BlockInput = false;
+            effect.BlockAction = false;
             effect.IsHitStop = true;
             effect.HitStopAnimationSpeed = animationSpeed;
             effect.FreezeMotion = true;

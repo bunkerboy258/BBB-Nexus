@@ -411,8 +411,21 @@ namespace BBBNexus
             _activeAttackContext.WindowStartTime = _currentAttackStartTime;
             _activeAttackContext.WindowEndTime = _currentAttackStartTime + actualDuration;
 
+            float dominantEnd = ResolveDominantEndTime(actualDuration, currentComboIndex);
             ApplyDamageWindowTiming(_activeAttackContext, actualDuration, currentComboIndex);
             ApplyAlignmentWindowTiming(_activeAttackContext, actualDuration, currentComboIndex);
+
+            // 注册调试信息供 Gizmo 使用
+            AttackWindowDebugService.RegisterWindow(
+                _currentAttackStartTime,
+                _currentAttackStartTime + actualDuration,
+                _activeAttackContext.WindowStartTimes,
+                _activeAttackContext.WindowEndTimes,
+                _activeAttackContext.AlignmentWindowStartTime,
+                _activeAttackContext.AlignmentWindowEndTime,
+                currentComboIndex,
+                actualDuration,
+                dominantEnd);
 
             if (CurrentEquipSlot == EquipmentSlot.MainHand)
             {
@@ -434,7 +447,7 @@ namespace BBBNexus
             var swingClip = WeaponAudioUtil.PickCombo(_config.MeleeAudio.ComboSwingSounds, comboIndex);
             if (swingClip != null)
             {
-                AudioSource.PlayClipAtPoint(swingClip, transform.position);
+                WeaponAudioUtil.PlayAt(swingClip, transform.position);
                 return;
             }
 
@@ -490,6 +503,7 @@ namespace BBBNexus
             _isHitWindowOpen = false;
             _activeAttackContext = null;
             _autoTargetTransform = null;
+            AttackWindowDebugService.ClearWindow();
         }
 
         private void OnHitRegistered(Collider other, IDamageable damageable, DamageRequest request)
@@ -504,7 +518,10 @@ namespace BBBNexus
             var targetController = damageable as BBBCharacterController ?? other.GetComponentInParent<BBBCharacterController>();
             if (targetController != null && targetController != _player)
             {
-                HitStopService.Instance?.Request(new HitStopRequest(_player, HitStopKind.Light, targetController));
+                if (_config.AttackerHitStopDuration > 0f)
+                {
+                    HitStopService.Instance?.Request(new HitStopRequest(_player, _config.AttackerHitStopDuration, targetController));
+                }
             }
         }
 
@@ -834,11 +851,12 @@ namespace BBBNexus
             context.AlignmentWindowEndTime = _currentAttackStartTime + localEnd;
         }
 
-        private float ResolveDominantEndTime(float actualDuration, int comboIndex)
+        private float ResolveDominantEndTime(float actualDuration, int _)
         {
-            float duration = Mathf.Max(0f, actualDuration);
-            float outgoingFade = ResolveOutgoingFadeDuration(comboIndex);
-            return Mathf.Max(0f, duration - outgoingFade);
+            // Damage/alignment sidecars are authored against the transition's effective
+            // playback span (start->end), not "start->(end-nextFade)".
+            // Keep bridge timing fade-aware elsewhere, but keep window timing aligned with preview.
+            return Mathf.Max(0f, actualDuration);
         }
 
         private float ResolveOutgoingFadeDuration(int comboIndex)

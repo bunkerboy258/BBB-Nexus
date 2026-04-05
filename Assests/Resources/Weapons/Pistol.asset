@@ -30,7 +30,7 @@ MonoBehaviour:
       _NormalizedTimes: []
       _Callbacks: []
       _Names: []
-    _Clip: {fileID: 3060610079319413300, guid: 77c6382f3e4663b4a84f271db29dea44, type: 3}
+    _Clip: {fileID: 1827226128182048838, guid: 85f5eb39b9912674b97d4461a0966575, type: 3}
     _NormalizedStartTime: NaN
   EquipAnimPlayOptions:
     Layer: 1
@@ -45,7 +45,7 @@ MonoBehaviour:
       _NormalizedTimes: []
       _Callbacks: []
       _Names: []
-    _Clip: {fileID: 3060610079319413300, guid: 77c6382f3e4663b4a84f271db29dea44, type: 3}
+    _Clip: {fileID: 1827226128182048838, guid: 85f5eb39b9912674b97d4461a0966575, type: 3}
     _NormalizedStartTime: NaN
   UnEquipAnimPlayOptions:
     Layer: 1
@@ -93,7 +93,7 @@ MonoBehaviour:
     ShootSounds:
     - {fileID: 8300000, guid: e206a564e54303e4792eefa02841b330, type: 3}
     ProjectileHitSounds:
-    - {fileID: 8300000, guid: 22eab4df0bfb76b439118c30d20e43b9, type: 3}
+    - {fileID: 8300000, guid: 110dd8b6112d14ebf8ac308e6bbaffea, type: 3}
   EnablesAimState: 1
   UseAimCorrection: 1
   AimAnim:
@@ -113,17 +113,22 @@ MonoBehaviour:
     ForcePhaseSync: 0
   MaxAmmo: 12
   FireRate: 0.1
+  HeadDamageMultiplier: 1.5
+  TorsoDamageMultiplier: 1
+  ArmDamageMultiplier: 0.9
+  LegDamageMultiplier: 0.85
   MagazineSize: 12
   ReloadTime: 1.5
   TacticalReloadTime: 1.2
   ReloadAnim:
     _FadeDuration: 0.25
-    _Speed: 1
+    _Speed: 1.8
     _Events:
-      _NormalizedTimes: []
+      _NormalizedTimes:
+      - 0.28563857
       _Callbacks: []
       _Names: []
-    _Clip: {fileID: 3060610079319413300, guid: 77c6382f3e4663b4a84f271db29dea44, type: 3}
+    _Clip: {fileID: 1827226128182048838, guid: 85f5eb39b9912674b97d4461a0966575, type: 3}
     _NormalizedStartTime: NaN
   ReloadAnimOptions:
     Layer: 1
@@ -139,7 +144,7 @@ MonoBehaviour:
   IsFullAuto: 0
   ShootInterval: 0.18
   HitScanRange: 80
-  DamageAmount: 10
+  DamageAmount: 5
   TracerDuration: 0.06
   MuzzleVFXPrefab: {fileID: 0}
   RecoilPitchAngle: 1.4

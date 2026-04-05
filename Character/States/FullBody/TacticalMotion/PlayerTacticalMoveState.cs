@@ -44,7 +44,8 @@ namespace BBBNexus
                 return;
             }
 
-            if (data.CurrentLocomotionState == LocomotionState.Idle)
+            // 当移动输入归零时，返回待机状态，避免状态识别错误喵~
+            if (data.MoveInput.sqrMagnitude <= 0.01f)
             {
                 player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerTacticalIdleState>());
                 return;

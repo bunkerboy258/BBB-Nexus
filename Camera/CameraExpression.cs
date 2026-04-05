@@ -10,6 +10,12 @@ namespace BBBNexus
     {
         public bool HasRequest;
 
+        /// <summary>
+        /// 为 true 时各字段表示相对于武器基础状态的 Δ 值，由 CameraExpressionApplicator 叠加解算。
+        /// 武器 Behaviour 写入的帧级表达式始终为 false（绝对值）。
+        /// </summary>
+        public bool IsRelative;
+
         // ── Lens ──────────────────────────────────────────────────────
         public float TargetFov;
 

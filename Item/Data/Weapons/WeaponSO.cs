@@ -64,6 +64,11 @@ namespace BBBNexus
         [Tooltip("Attack Clip Geometry Definition 的 MetaLib ID。留空时回退到 <资产名>_AttackSweep")]
         public string AttackGeometryId;
 
+        [Header("--- HitStop ---")]
+        [Tooltip("近战命中时，对攻击者施加的卡肉时长（秒）。0 = 不触发。")]
+        [Range(0f, 0.2f)]
+        public float AttackerHitStopDuration = 0.035f;
+
         [Tooltip("冲刺时的相机预设（近战）。null = 沿用 CameraPreset")]
         public CameraExpressionSO SprintCameraPreset;
 
@@ -134,6 +139,22 @@ namespace BBBNexus
         [Tooltip("hitscan 单发伤害")]
         public float DamageAmount = 10f;
 
+        [Tooltip("远程命中头部时的伤害倍率。<= 0 时回退到 1.5。")]
+        [Min(0f)]
+        public float HeadDamageMultiplier = 1.5f;
+
+        [Tooltip("远程命中躯干时的伤害倍率。<= 0 时回退到 1。")]
+        [Min(0f)]
+        public float TorsoDamageMultiplier = 1f;
+
+        [Tooltip("远程命中手臂时的伤害倍率。<= 0 时回退到 0.9。")]
+        [Min(0f)]
+        public float ArmDamageMultiplier = 0.9f;
+
+        [Tooltip("远程命中腿部时的伤害倍率。<= 0 时回退到 0.85。")]
+        [Min(0f)]
+        public float LegDamageMultiplier = 0.85f;
+
         [Tooltip("曳光弹可见时长（秒）")]
         public float TracerDuration = 0.06f;
 
@@ -174,6 +195,8 @@ namespace BBBNexus
             if (ComboDamageWindows != null && comboIndex >= 0 && comboIndex < ComboDamageWindows.Length)
             {
                 var s = ComboDamageWindows[comboIndex];
+                if (s.DamageMultiplier <= 0f)
+                    s.DamageMultiplier = 1f;
                 if (s.EndNormalized < s.StartNormalized)
                     (s.StartNormalized, s.EndNormalized) = (s.EndNormalized, s.StartNormalized);
                 return s;
@@ -202,5 +225,28 @@ namespace BBBNexus
 
         public string GetAttackGeometryResourcePath()
             => $"AttackClipGeometry/{GetAttackGeometryId()}";
+
+        public float ResolveComboDamageMultiplier(int comboIndex)
+        {
+            var window = GetDamageWindow(comboIndex);
+            return window.DamageMultiplier > 0f ? window.DamageMultiplier : 1f;
+        }
+
+        public float ResolveHitZoneDamageMultiplier(DamageHitZoneType zone)
+        {
+            switch (zone)
+            {
+                case DamageHitZoneType.Head:
+                    return HeadDamageMultiplier > 0f ? HeadDamageMultiplier : 1.5f;
+                case DamageHitZoneType.Arm:
+                    return ArmDamageMultiplier > 0f ? ArmDamageMultiplier : 0.9f;
+                case DamageHitZoneType.Leg:
+                    return LegDamageMultiplier > 0f ? LegDamageMultiplier : 0.85f;
+                case DamageHitZoneType.Torso:
+                case DamageHitZoneType.Default:
+                default:
+                    return TorsoDamageMultiplier > 0f ? TorsoDamageMultiplier : 1f;
+            }
+        }
     }
 }

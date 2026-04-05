@@ -176,9 +176,10 @@ namespace BBBNexus
                 hitPoint,
                 _owner != null ? _owner.gameObject : null,
                 sourceCollider.transform);
-            onHit?.Invoke(other, damageable, request);
+            bool applied = damageable.RequestDamage(in request);
+            if (applied)
+                onHit?.Invoke(other, damageable, request);
             hitSet.Add(damageable);
-            damageable.RequestDamage(in request);
         }
 
         public bool TryGetQueryBox(out Vector3 center, out Vector3 halfExtents, out Quaternion rotation)

@@ -40,5 +40,16 @@ namespace BBBNexus
         [SerializeField] public float StrafeCooldownMin = 1.5f;
         [Tooltip("迂回的最大间隔（秒）")]
         [SerializeField] public float StrafeCooldownMax = 3.5f;
+
+        [Header("--- AI 瞄准强化 ---")]
+        [Tooltip("AI 瞄准基础精度（0-1）。1 表示完美瞄准，0.8 表示有 20% 的散布误差。")]
+        [Range(0f, 1f)]
+        [SerializeField] public float AimingAccuracy = 0.85f;
+        [Tooltip("距离衰减系数。距离每增加 10 米，精度下降该比例。0 = 不衰减。")]
+        [Range(0f, 0.1f)]
+        [SerializeField] public float AccuracyDistanceDecay = 0.02f;
+        [Tooltip("AI 瞄准稳定时间（秒）。进入射程后需要多长时间才能达到最大精度。")]
+        [Range(0f, 2f)]
+        [SerializeField] public float AimStabilizationTime = 0.5f;
     }
 }

@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fbdde6f2413620344a353ed65943708e, type: 3}
+  m_Script: {fileID: 11500000, guid: 17344c9add4ffea4a9ee7396ee8bcc37, type: 3}
   m_Name: ZombieFists
   m_EditorClassIdentifier: 
   ItemID: ZombieFists
@@ -72,28 +72,17 @@ MonoBehaviour:
     Enabled: 1
     TargetSlot: 2
     ItemId: ZombieFists
-  EquipSounds:
-  - {fileID: 8300000, guid: 9e30c13965a36024280ee460e175fea2, type: 3}
-  - {fileID: 8300000, guid: 420556c91096cd44a914a9c0211c8c7d, type: 3}
+  EquipSounds: []
   UnEquipSounds: []
   MeleeAudio:
     EnterStanceSounds:
-    - {fileID: 8300000, guid: 8f611ba075fbdec44bc8b17c4713ed3f, type: 3}
+    - {fileID: 8300000, guid: d67305a8065b0eb40872d91cbb10d0a9, type: 3}
     ComboSwingSounds:
-    - Clips:
-      - {fileID: 8300000, guid: fbe9310aae517fa48a0f1f0944149e4a, type: 3}
-      - {fileID: 8300000, guid: 2219c6278bc60344ead504533fe2b1f7, type: 3}
-      - {fileID: 8300000, guid: a0b00c650f148774a956db6090ad71d4, type: 3}
-    - Clips:
-      - {fileID: 8300000, guid: fd7b66891fa24a447bb4168326b48564, type: 3}
-      - {fileID: 8300000, guid: 6ebcfb556fd715a4aac323be86ade8cd, type: 3}
-      - {fileID: 8300000, guid: 162be9a122f023849aa448ccdbeeaaf7, type: 3}
-    - Clips:
-      - {fileID: 8300000, guid: 6ebcfb556fd715a4aac323be86ade8cd, type: 3}
-      - {fileID: 8300000, guid: 162be9a122f023849aa448ccdbeeaaf7, type: 3}
-      - {fileID: 8300000, guid: fd7b66891fa24a447bb4168326b48564, type: 3}
+    - Clips: []
+    - Clips: []
+    - Clips: []
     HitSounds:
-    - {fileID: 8300000, guid: 89808380c247649d48585a154c75e6ae, type: 3}
+    - {fileID: 8300000, guid: f2eb3e6af7bd24b8ca850af37226037b, type: 3}
     ExitStanceSounds: []
   RangedAudio:
     EnterAimSounds: []
@@ -101,6 +90,8 @@ MonoBehaviour:
     ReloadSounds: []
     ShootSounds: []
     ProjectileHitSounds: []
+  EquipEndTime: 0.5
+  EnableIK: 0
   EnterStanceAnim:
     _FadeDuration: 0.25
     _Speed: 1
@@ -154,14 +145,17 @@ MonoBehaviour:
   ComboAttackHands: 020000000000000000000000
   ComboDamageWindows:
   - Enabled: 1
+    DamageMultiplier: 1
     StartNormalized: 0.36231154
     EndNormalized: 0.5900502
     ExtraWindows: []
   - Enabled: 1
+    DamageMultiplier: 1
     StartNormalized: 0.44502518
     EndNormalized: 0.7050252
     ExtraWindows: []
   - Enabled: 1
+    DamageMultiplier: 1
     StartNormalized: 0.4082413
     EndNormalized: 0.6579899
     ExtraWindows: []
@@ -178,13 +172,69 @@ MonoBehaviour:
   ComboWindowStart: 0.42
   ComboLateBuffer: 0.15
   ComboPriority: 30
-  SprintCameraPreset: {fileID: 0}
   AutoTargetTurnSpeed: 540
   AttackGeometryId: 
+  AttackerHitStopDuration: 0.035
+  SprintCameraPreset: {fileID: 0}
   BakingCharacterPrefab: {fileID: 5072967131725150976, guid: 47bbb2566b64272459c1bf8dfefcb767,
     type: 3}
   BakingWeaponPrefab: {fileID: 7004216108275635573, guid: cc362d2da1ff42b49b850055347a6182,
     type: 3}
+  EnablesAimState: 1
+  UseAimCorrection: 0
+  AimAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 0}
+    _NormalizedStartTime: NaN
+  AimAnimPlayOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  MaxAmmo: 30
+  FireRate: 0.1
+  MagazineSize: 12
+  ReloadTime: 1.5
+  TacticalReloadTime: 1.2
+  ReloadAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 0}
+    _NormalizedStartTime: NaN
+  ReloadAnimOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  AmmoItem: {fileID: 0}
+  ProjectilePrefab: {fileID: 0}
+  ProjectileSpeed: 24
+  IsFullAuto: 0
+  ShootInterval: 0.18
+  HitScanRange: 80
+  DamageAmount: 10
+  HeadDamageMultiplier: 1.5
+  TorsoDamageMultiplier: 1
+  ArmDamageMultiplier: 0.9
+  LegDamageMultiplier: 0.85
+  TracerDuration: 0.06
+  MuzzleVFXPrefab: {fileID: 0}
+  RecoilPitchAngle: 1.4
+  RecoilYawAngle: 0.8
+  RecoilPitchRandomRange: 0.35
+  RecoilYawRandomRange: 0.35
+  AimingCameraPreset: {fileID: 0}
   references:
     version: 2
     RefIds: []

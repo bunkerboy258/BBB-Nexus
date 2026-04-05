@@ -76,8 +76,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 792be152b215a48fdb3d086593b0111b, type: 3}
   UnEquipSounds: []
   MeleeAudio:
-    EnterStanceSounds:
-    - {fileID: 8300000, guid: 0c81ae95d73724800ab386a76a55cf99, type: 3}
+    EnterStanceSounds: []
     ComboSwingSounds:
     - Clips:
       - {fileID: 8300000, guid: a385c70d216064017a30e2de9ceb4eb9, type: 3}
@@ -153,14 +152,17 @@ MonoBehaviour:
   ComboAttackHands: 000000000000000000000000
   ComboDamageWindows:
   - Enabled: 1
+    DamageMultiplier: 5
     StartNormalized: 0.35963556
     EndNormalized: 0.7391509
     ExtraWindows: []
   - Enabled: 1
+    DamageMultiplier: 5
     StartNormalized: 0.3434673
     EndNormalized: 0.7597992
     ExtraWindows: []
   - Enabled: 1
+    DamageMultiplier: 5
     StartNormalized: 0.38023677
     EndNormalized: 0.6026503
     ExtraWindows:
@@ -181,6 +183,7 @@ MonoBehaviour:
   ComboPriority: 25
   AutoTargetTurnSpeed: 540
   AttackGeometryId: 
+  AttackerHitStopDuration: 0.15
   SprintCameraPreset: {fileID: 11400000, guid: 7d284d21bb04e824aba09ad91963a1b8, type: 2}
   BakingCharacterPrefab: {fileID: 5498192701711643705, guid: 138fd718d5117e8468bd92c91b87ea44,
     type: 3}
@@ -230,6 +233,10 @@ MonoBehaviour:
   ShootInterval: 0.18
   HitScanRange: 0
   DamageAmount: 10
+  HeadDamageMultiplier: 1.5
+  TorsoDamageMultiplier: 1
+  ArmDamageMultiplier: 0.9
+  LegDamageMultiplier: 0.85
   TracerDuration: 0.06
   MuzzleVFXPrefab: {fileID: 0}
   RecoilPitchAngle: 1.4

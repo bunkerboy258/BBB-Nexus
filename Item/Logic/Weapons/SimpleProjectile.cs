@@ -194,7 +194,7 @@ namespace BBBNexus
             }
 
             if (hitSound != null)
-                AudioSource.PlayClipAtPoint(hitSound, hitPoint);
+                WeaponAudioUtil.PlayAt(hitSound, hitPoint);
         }
 
         private void ApplyAreaDamage(Vector3 center)

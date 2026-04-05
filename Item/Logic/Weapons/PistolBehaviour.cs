@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace BBBNexus
 {
@@ -8,6 +9,8 @@ namespace BBBNexus
         private const float DefaultHitScanRange = 80f;
         private const float DefaultDamageAmount = 10f;
         private const float DefaultTracerDuration = 0.06f;
+        private const bool DebugHitScan = true;
+        private static readonly RaycastHit[] HitBuffer = new RaycastHit[16];
 
         [Header("--- 表现与挂点 ---")]
         [Tooltip("枪口瞄准参考点（枪口空物体，Z 轴朝出弹方向）")]
@@ -234,7 +237,7 @@ namespace BBBNexus
                 }
                 else
                 {
-                    muzzleVfx = Object.Instantiate(_config.MuzzleVFXPrefab, _muzzle.position, _muzzle.rotation);
+                    muzzleVfx = UnityEngine.Object.Instantiate(_config.MuzzleVFXPrefab, _muzzle.position, _muzzle.rotation);
                     muzzleVfx.transform.parent = _muzzle;
                 }
             }
@@ -254,11 +257,11 @@ namespace BBBNexus
                 return;
             }
 
-            float pitchNoise = Random.Range(-_config.RecoilPitchRandomRange, _config.RecoilPitchRandomRange);
-            float yawNoise = Random.Range(-_config.RecoilYawRandomRange, _config.RecoilYawRandomRange);
+            float pitchNoise = UnityEngine.Random.Range(-_config.RecoilPitchRandomRange, _config.RecoilPitchRandomRange);
+            float yawNoise = UnityEngine.Random.Range(-_config.RecoilYawRandomRange, _config.RecoilYawRandomRange);
             float finalPitch = _config.RecoilPitchAngle + pitchNoise;
             float finalYaw = _config.RecoilYawAngle + yawNoise;
-            float yawSign = Random.value > 0.5f ? 1f : -1f;
+            float yawSign = UnityEngine.Random.value > 0.5f ? 1f : -1f;
 
             _player.RuntimeData.ViewPitch -= finalPitch;
             _player.RuntimeData.ViewYaw += yawSign * finalYaw;
@@ -276,36 +279,147 @@ namespace BBBNexus
             }
 
             float hitScanRange = _config.HitScanRange > 0f ? _config.HitScanRange : DefaultHitScanRange;
-            float damageAmount = _config.DamageAmount > 0f ? _config.DamageAmount : DefaultDamageAmount;
+
+            float baseDamage = _config.DamageAmount > 0f ? _config.DamageAmount : DefaultDamageAmount;
 
             Vector3 origin = _muzzle.position;
-            Vector3 direction = (_player.RuntimeData.TargetAimPoint - origin).normalized;
+            Vector3 direction = ResolveFireDirection(origin);
             Vector3 endPoint = origin + direction * hitScanRange;
 
-            if (Physics.Raycast(origin, direction, out RaycastHit hit, hitScanRange, ~0, QueryTriggerInteraction.Ignore))
+            int hitCount = Physics.RaycastNonAlloc(origin, direction, HitBuffer, hitScanRange, ~0, QueryTriggerInteraction.Ignore);
+            if (hitCount > 0)
             {
-                endPoint = hit.point;
+                System.Array.Sort(HitBuffer, 0, hitCount, RaycastHitDistanceComparer.Instance);
 
-                // 跳过自身：hit 到的 transform 属于射手自己的层级
-                bool isSelf = hit.transform.IsChildOf(_player.transform) || hit.transform == _player.transform;
-                if (!isSelf)
+                bool foundValidHit = false;
+                for (int i = 0; i < hitCount; i++)
                 {
-                    var damageable = FindDamageable(hit.collider);
+                    RaycastHit hit = HitBuffer[i];
+                    if (hit.collider == null)
+                    {
+                        continue;
+                    }
+
+                    bool isSelf = hit.transform.IsChildOf(_player.transform) || hit.transform == _player.transform;
+                    var damageable = isSelf ? null : FindDamageable(hit.collider);
+
+                    if (DebugHitScan)
+                    {
+                        Debug.Log(
+                            $"[PistolHitScan] shooter={_player.name} hit={hit.collider.name} layer={LayerMask.LayerToName(hit.collider.gameObject.layer)} " +
+                            $"distance={hit.distance:F2} isSelf={isSelf} damageable={(damageable != null ? damageable.GetType().Name : "null")} " +
+                            $"origin={origin} dir={direction} point={hit.point}",
+                            hit.collider);
+                    }
+
+                    if (isSelf)
+                    {
+                        continue;
+                    }
+
+                    endPoint = hit.point;
+                    foundValidHit = true;
+
+                    bool applied = true;
                     if (damageable != null)
                     {
+                        DamageHitZoneType hitZone = RangedHitZoneUtility.ResolveHitZone(hit.collider);
+                        float damageAmount = baseDamage * _config.ResolveHitZoneDamageMultiplier(hitZone);
                         var request = new DamageRequest(
                             damageAmount,
                             hit.point,
                             _player.gameObject,
                             _muzzle);
-                        damageable.RequestDamage(in request);
+                        applied = damageable.RequestDamage(in request);
                     }
 
-                    WeaponAudioUtil.PlayAt(_config.RangedAudio.ProjectileHitSounds, hit.point);
+                    if (applied)
+                    {
+                        WeaponAudioUtil.PlayAt(_config.RangedAudio.ProjectileHitSounds, hit.point);
+                    }
+
+                    break;
                 }
+
+                if (!foundValidHit && DebugHitScan)
+                {
+                    Debug.Log(
+                        $"[PistolHitScan] shooter={_player.name} miss hit=self-only origin={origin} dir={direction} range={hitScanRange:F2}",
+                        _player);
+                }
+            }
+            else if (DebugHitScan)
+            {
+                Debug.Log(
+                    $"[PistolHitScan] shooter={_player.name} miss hit=none origin={origin} dir={direction} range={hitScanRange:F2}",
+                    _player);
             }
 
             SpawnTracer(origin, endPoint);
+        }
+
+        private Vector3 ResolveFireDirection(Vector3 origin)
+        {
+            if (_player?.RuntimeData == null)
+            {
+                return transform.forward;
+            }
+
+            if (TryResolveAiHorizontalDirection(out var horizontalDir))
+            {
+                return horizontalDir;
+            }
+
+            if (_player.RuntimeData.CameraTransform == null)
+            {
+                Vector3 aiAimDelta = _player.RuntimeData.AIAimTargetPoint - origin;
+                aiAimDelta.y = 0f;
+                if (aiAimDelta.sqrMagnitude > 0.0001f)
+                {
+                    return aiAimDelta.normalized;
+                }
+            }
+            else
+            {
+                Vector3 toAimPoint = _player.RuntimeData.TargetAimPoint - origin;
+                if (toAimPoint.sqrMagnitude > 0.0001f)
+                {
+                    return toAimPoint.normalized;
+                }
+            }
+
+            return transform.forward;
+        }
+
+        private bool TryResolveAiHorizontalDirection(out Vector3 direction)
+        {
+            direction = Vector3.zero;
+
+            var sensor = _player != null ? _player.GetComponentInChildren<NavigatorSensorBase>() : null;
+            if (sensor == null)
+            {
+                return false;
+            }
+
+            ref readonly var context = ref sensor.GetCurrentContext();
+            Vector3 flatDir = Vector3.ProjectOnPlane(context.TargetWorldDirection, Vector3.up);
+            if (flatDir.sqrMagnitude <= 0.0001f)
+            {
+                return false;
+            }
+
+            direction = flatDir.normalized;
+            return true;
+        }
+
+        private sealed class RaycastHitDistanceComparer : IComparer<RaycastHit>
+        {
+            internal static readonly RaycastHitDistanceComparer Instance = new RaycastHitDistanceComparer();
+
+            public int Compare(RaycastHit x, RaycastHit y)
+            {
+                return x.distance.CompareTo(y.distance);
+            }
         }
 
         private void SpawnTracer(Vector3 start, Vector3 end)

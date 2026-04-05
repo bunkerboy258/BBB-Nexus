@@ -32,6 +32,14 @@ namespace BBBNexus
         [SerializeField] private int _singleGeometryClipIndex = 0;
         [SerializeField] private string _attackGeometryIdOverride;
 
+        [Header("Debug - Attack Window Visualization")]
+        [Tooltip("是否使用运行时攻击窗口数据来绘制 Gizmo。启用后，只会显示当前伤害窗口内的几何体。")]
+        [SerializeField] private bool _useRuntimeAttackWindowForGizmo = false;
+        [Tooltip("伤害窗口 Gizmo 颜色")]
+        [SerializeField] private Color _damageWindowGizmoColor = new Color(1f, 0.18f, 0.18f, 0.25f);
+        [Tooltip("对齐窗口 Gizmo 颜色")]
+        [SerializeField] private Color _alignmentWindowGizmoColor = new Color(0.18f, 0.55f, 0.92f, 0.2f);
+
         private readonly List<Collider> _detectionColliders = new List<Collider>();
         private MeleeHitScanner _scanner;
         private string _runtimeAttackGeometryId;
@@ -275,8 +283,57 @@ namespace BBBNexus
             Gizmos.DrawWireCube(capsule.center, size);
         }
 
+        private static void DrawCapsuleApprox(AttackGeometryShapeDefinition shape, Color color)
+        {
+            Vector3 size = new Vector3(
+                Mathf.Max(0.001f, shape.Radius * 2f),
+                Mathf.Max(shape.Radius * 2f, shape.Height),
+                Mathf.Max(0.001f, shape.Radius * 2f));
+
+            if (color.a > 0f)
+                Gizmos.DrawCube(Vector3.zero, size);
+
+            Gizmos.color = new Color(color.r, color.g, color.b, Mathf.Min(1f, color.a + 0.2f));
+            Gizmos.DrawWireCube(Vector3.zero, size);
+        }
+
+        private static void DrawRuntimeSphere(AttackGeometryShapeDefinition shape, Color fillColor)
+        {
+            float radius = Mathf.Max(0.001f, shape.Radius);
+            if (fillColor.a > 0f)
+            {
+                Gizmos.DrawSphere(Vector3.zero, radius);
+            }
+
+            Gizmos.color = new Color(fillColor.r, fillColor.g, fillColor.b, Mathf.Min(1f, fillColor.a + 0.24f));
+            Gizmos.DrawWireSphere(Vector3.zero, radius);
+        }
+
+        private static void DrawRuntimeBox(AttackGeometryShapeDefinition shape, Color fillColor)
+        {
+            Vector3 size = (Vector3)shape.HalfExtents * 2f;
+            size.x = Mathf.Max(0.001f, size.x);
+            size.y = Mathf.Max(0.001f, size.y);
+            size.z = Mathf.Max(0.001f, size.z);
+
+            if (fillColor.a > 0f)
+            {
+                Gizmos.DrawCube(Vector3.zero, size);
+            }
+
+            Gizmos.color = new Color(fillColor.r, fillColor.g, fillColor.b, Mathf.Min(1f, fillColor.a + 0.24f));
+            Gizmos.DrawWireCube(Vector3.zero, size);
+        }
+
         private void DrawAttackGeometryGizmo(bool selected)
         {
+            // 如果启用了运行时攻击窗口可视化，优先使用调试服务的数据
+            if (_useRuntimeAttackWindowForGizmo && AttackWindowDebugService.HasActiveWindow)
+            {
+                DrawRuntimeAttackWindowGizmo(selected);
+                return;
+            }
+
             if (_attackGeometryRenderMode == AttackGeometryRenderMode.None)
                 return;
 
@@ -299,6 +356,162 @@ namespace BBBNexus
                     AttackClipGeometryGizmoRenderer.DrawUnified(root, definition, selected);
                     break;
             }
+        }
+
+        private void DrawRuntimeAttackWindowGizmo(bool selected)
+        {
+            if (!AttackWindowDebugService.ActiveContext.HasValue)
+                return;
+
+            var context = AttackWindowDebugService.ActiveContext.Value;
+            float currentTime = Time.time;
+
+            // 绘制当前时间对应的伤害窗口几何体
+            int currentWindowIndex = AttackWindowDebugService.GetCurrentDamageWindowIndex(currentTime);
+            float normalizedProgress = AttackWindowDebugService.GetNormalizedProgress(currentTime);
+
+            string geometryId = ResolveAttackGeometryId();
+            if (string.IsNullOrWhiteSpace(geometryId))
+                return;
+
+            AttackClipGeometryDefinition definition = AttackClipGeometryLibrary.LoadOrNull(geometryId);
+            if (definition == null)
+                return;
+
+            AttackClipGeometryClipDefinition clip = definition.GetClip(context.ComboIndex);
+            if (clip == null || clip.Samples == null)
+                return;
+
+            Transform root = transform.root != null ? transform.root : transform;
+
+            // 绘制所有在归一化进度之前的采样点 (表示已经过的攻击轨迹)
+            for (int i = 0; i < clip.Samples.Count; i++)
+            {
+                AttackGeometrySampleDefinition sample = clip.Samples[i];
+                if (sample?.Shapes == null)
+                    continue;
+
+                // 只绘制在当前归一化进度之前的采样点
+                if (sample.SweepProgressNormalized > normalizedProgress)
+                    continue;
+
+                // 根据当前伤害窗口索引调整颜色
+                Color sampleColor = _damageWindowGizmoColor;
+                float sampleProgress = sample.SweepProgressNormalized;
+                if (currentWindowIndex >= 0)
+                {
+                    // 如果该采样点在当前伤害窗口内，使用更亮的颜色
+                    float windowStartNorm = context.DominantEnd > 0f ?
+                        (context.WindowStartTimes[currentWindowIndex] - context.StartTime) / context.DominantEnd : 0f;
+                    float windowEndNorm = context.DominantEnd > 0f ?
+                        (context.WindowEndTimes[currentWindowIndex] - context.StartTime) / context.DominantEnd : 1f;
+
+                    if (sampleProgress >= windowStartNorm && sampleProgress <= windowEndNorm)
+                    {
+                        sampleColor = _activeGizmoColor;
+                        sampleColor.a = selected ? 0.35f : 0.25f;
+                    }
+                    else
+                    {
+                        sampleColor = _damageWindowGizmoColor;
+                        sampleColor.a = selected ? 0.18f : 0.12f;
+                    }
+                }
+                else
+                {
+                    sampleColor = _inactiveGizmoColor;
+                    sampleColor.a = selected ? 0.15f : 0.08f;
+                }
+
+                DrawRuntimeSample(root, sample, sampleColor, selected,
+                    $"{context.ComboIndex} {Mathf.RoundToInt(sampleProgress * 100f)}%");
+            }
+
+            // 绘制对齐窗口指示器 (使用蓝色线框)
+            if (context.AlignmentEndTime > context.AlignmentStartTime)
+            {
+                DrawAlignmentWindowIndicator(root, context, selected);
+            }
+        }
+
+        private void DrawRuntimeSample(
+            Transform root,
+            AttackGeometrySampleDefinition sample,
+            Color fillColor,
+            bool selected,
+            string label)
+        {
+            if (sample.Shapes == null)
+                return;
+
+            Matrix4x4 previousMatrix = Gizmos.matrix;
+            Color previousColor = Gizmos.color;
+
+            for (int i = 0; i < sample.Shapes.Count; i++)
+            {
+                AttackGeometryShapeDefinition shape = sample.Shapes[i];
+                Matrix4x4 matrix = Matrix4x4.TRS(
+                    root.TransformPoint((Vector3)shape.LocalPosition),
+                    root.rotation * shape.LocalRotation,
+                    Vector3.one);
+
+                Gizmos.matrix = matrix;
+                Gizmos.color = fillColor;
+
+                switch (shape.ShapeType)
+                {
+                    case AttackGeometryShapeType.Sphere:
+                        DrawRuntimeSphere(shape, fillColor);
+                        break;
+
+                    case AttackGeometryShapeType.Capsule:
+                        DrawCapsuleApprox(shape, fillColor);
+                        break;
+
+                    case AttackGeometryShapeType.Box:
+                    default:
+                        DrawRuntimeBox(shape, fillColor);
+                        break;
+                }
+
+#if UNITY_EDITOR
+                if (selected && i == 0)
+                {
+                    Handles.color = WithAlpha(fillColor, 0.95f);
+                    Handles.Label(root.TransformPoint((Vector3)shape.LocalPosition) + root.up * 0.04f, label);
+                }
+#endif
+            }
+
+            Gizmos.matrix = previousMatrix;
+            Gizmos.color = previousColor;
+        }
+
+        private void DrawAlignmentWindowIndicator(Transform root, AttackWindowDebugService.AttackWindowDebugContext context, bool selected)
+        {
+            // 在对齐窗口的起始和结束位置绘制蓝色圆环标记
+            float alignStartNorm = context.DominantEnd > 0f ? 
+                (context.AlignmentStartTime - context.StartTime) / context.DominantEnd : 0f;
+            float alignEndNorm = context.DominantEnd > 0f ? 
+                (context.AlignmentEndTime - context.StartTime) / context.DominantEnd : 0f;
+
+            Color alignColor = _alignmentWindowGizmoColor;
+            alignColor.a = selected ? 0.3f : 0.2f;
+
+            // 绘制对齐窗口范围的文字标签
+#if UNITY_EDITOR
+            Vector3 labelPos = root.position + Vector3.up * 1.5f;
+            Handles.color = alignColor;
+            Handles.Label(labelPos, 
+                $"对齐窗口：{alignStartNorm:F2} - {alignEndNorm:F2}\n" +
+                $"伤害窗口：{context.WindowStartTimes.Length} 个");
+#endif
+        }
+
+        private static Color WithAlpha(Color color, float alpha)
+        {
+            color.a = alpha;
+            return color;
         }
 
         private string ResolveAttackGeometryId()

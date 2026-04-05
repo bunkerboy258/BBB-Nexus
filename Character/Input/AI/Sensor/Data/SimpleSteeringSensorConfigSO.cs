@@ -23,5 +23,11 @@ namespace BBBNexus
         [Header("Steering — Obstacle Avoidance")]
         [Tooltip("障碍物射线检测距离（米）。")]
         public float ObstacleDetectRange = 1.5f;
+
+        [Header("Detection — Occlusion")]
+        [Tooltip("索敌遮挡检测层。玩家被这些层阻挡时不可被感知。0 = 不检测遮挡（可以隔墙发现）。")]
+        public LayerMask DetectionBlockMask;
+        [Tooltip("绕障检测层。用于 AI 导航时避开障碍物。")]
+        public LayerMask ObstacleMask;
     }
 }

@@ -13,12 +13,12 @@ namespace BBBNexus
 
         private StatusEffectSO _current;
         private float _remainingTime;
-        private StatusEffectSO _suspended;
-        private float _suspendedRemainingTime;
-        private BaseState _suspendedReturnState;
-        private float _suspendedHitAngle = float.NaN;
+        private StatusEffectSO _hitStopOverlay;
+        private float _hitStopOverlayRemainingTime;
 
         public StatusEffectSO Current => _current;
+        public bool IsHitStopActive => _hitStopOverlay != null && (_hitStopOverlay.Duration <= 0f || _hitStopOverlayRemainingTime > 0f);
+        public bool IsHitStopMotionFrozen => IsHitStopActive && _hitStopOverlay != null && _hitStopOverlay.FreezeMotion;
         public bool IsActive => _current != null && (_current.Duration <= 0f || _remainingTime > 0f);
 
         public StatusEffectArbiter(BBBCharacterController player)
@@ -34,13 +34,7 @@ namespace BBBNexus
 
             if (effect.IsHitStop)
             {
-                ApplyHitStop(effect, hitAngle);
-                return;
-            }
-
-            if (_current != null && _current.IsHitStop)
-            {
-                QueueSuspended(effect, hitAngle);
+                ApplyHitStopOverlay(effect);
                 return;
             }
 
@@ -59,7 +53,8 @@ namespace BBBNexus
                 return;
             }
 
-            _player.ArbiterPipeline?.Action?.CancelActiveAction(stopAnimation: false);
+            if (effect.InterruptMode == StatusInterruptMode.Hard)
+                _player.ArbiterPipeline?.Action?.CancelActiveAction(stopAnimation: false);
 
             _current = effect;
             _remainingTime = effect.Duration;
@@ -74,30 +69,40 @@ namespace BBBNexus
 
         public void Clear()
         {
-            bool wasHitStop = _current != null && _current.IsHitStop;
-            if (wasHitStop)
+            if (_hitStopOverlay != null)
             {
                 _player.AnimFacade?.ExitHitStop();
             }
-            else
-            {
-                _player.AnimFacade?.ClearOverrideOnEndCallback();
-                _player.AnimFacade?.StopFullBodyAction();
-            }
+            _player.AnimFacade?.ClearOverrideOnEndCallback();
+            _player.AnimFacade?.StopFullBodyAction();
 
             _current = null;
             _remainingTime = 0f;
+            _hitStopOverlay = null;
+            _hitStopOverlayRemainingTime = 0f;
             _data.StatusEffect.Clear();
             _data.StatusControl.Clear();
-
-            if (wasHitStop && _suspended != null)
-            {
-                RestoreSuspended();
-            }
         }
 
         public void Arbitrate()
         {
+            if (_hitStopOverlay != null)
+            {
+                if (_hitStopOverlay.Duration > 0f)
+                {
+                    _hitStopOverlayRemainingTime -= Time.deltaTime;
+                    if (_hitStopOverlayRemainingTime <= 0f)
+                    {
+                        _player.AnimFacade?.ExitHitStop();
+                        _hitStopOverlay = null;
+                        _hitStopOverlayRemainingTime = 0f;
+                    }
+                }
+
+                if (_hitStopOverlay != null)
+                    _player.AnimFacade?.EnterHitStop(_hitStopOverlay.HitStopAnimationSpeed);
+            }
+
             if (_current == null)
                 return;
 
@@ -119,12 +124,6 @@ namespace BBBNexus
             if (!_data.StatusEffect.IsActive || _current == null)
                 return;
 
-            if (_current.IsHitStop)
-            {
-                _player.AnimFacade?.EnterHitStop(_current.HitStopAnimationSpeed);
-                return;
-            }
-
             var transition = _current.SelectHitClip(_data.StatusEffect.HitAngle);
             if (transition?.Clip == null)
             {
@@ -142,77 +141,31 @@ namespace BBBNexus
             if (_current == null)
                 return;
 
-            Clear();
+            if (_current.Duration <= 0f || _remainingTime <= 0f)
+                Clear();
+            else
+                ApplyCurrentEffect(); // 还有剩余时间，重播动画（loop）
         }
 
         private void SyncStatusControl(StatusEffectSO effect, bool usesLegacyStatusState)
         {
+            bool isHardInterrupt = effect != null && effect.InterruptMode == StatusInterruptMode.Hard;
             _data.StatusControl.IsActive = effect != null;
             _data.StatusControl.Priority = effect != null ? effect.Priority : 0;
-            _data.StatusControl.BlocksAction = effect != null && effect.BlockAction;
-            _data.StatusControl.BlocksLocomotion = effect != null;
-            _data.StatusControl.BlocksInput = effect != null && effect.BlockInput;
+            _data.StatusControl.InterruptMode = effect != null ? effect.InterruptMode : StatusInterruptMode.None;
+            _data.StatusControl.BlocksAction = isHardInterrupt && effect.BlockAction;
+            _data.StatusControl.BlocksLocomotion = isHardInterrupt;
+            _data.StatusControl.BlocksInput = isHardInterrupt && effect.BlockInput;
             _data.StatusControl.UsesLegacyStatusState = usesLegacyStatusState;
         }
 
-        private void ApplyHitStop(StatusEffectSO effect, float hitAngle)
+        private void ApplyHitStopOverlay(StatusEffectSO effect)
         {
-            if (_current != null && !_current.IsHitStop)
-            {
-                SuspendCurrent();
-            }
-            else if (_current != null && _current.IsHitStop && effect.Priority < _current.Priority)
-            {
-                return;
-            }
-
-            _current = effect;
-            _remainingTime = effect.Duration;
-
-            _data.StatusEffect.IsActive = true;
-            _data.StatusEffect.Effect = effect;
-            _data.StatusEffect.HitAngle = hitAngle;
-            _data.StatusEffect.ReturnState = _player.StateMachine.CurrentState;
-            SyncStatusControl(effect, usesLegacyStatusState: false);
-            ApplyCurrentEffect();
-        }
-
-        private void SuspendCurrent()
-        {
-            _suspended = _current;
-            _suspendedRemainingTime = _remainingTime;
-            _suspendedReturnState = _data.StatusEffect.ReturnState;
-            _suspendedHitAngle = _data.StatusEffect.HitAngle;
-        }
-
-        private void QueueSuspended(StatusEffectSO effect, float hitAngle)
-        {
-            if (_suspended != null && effect.Priority < _suspended.Priority)
+            if (_hitStopOverlay != null && effect.Priority < _hitStopOverlay.Priority)
                 return;
 
-            _suspended = effect;
-            _suspendedRemainingTime = effect.Duration;
-            _suspendedReturnState = _player.StateMachine.CurrentState;
-            _suspendedHitAngle = hitAngle;
-        }
-
-        private void RestoreSuspended()
-        {
-            _current = _suspended;
-            _remainingTime = _suspendedRemainingTime;
-
-            _data.StatusEffect.IsActive = true;
-            _data.StatusEffect.Effect = _suspended;
-            _data.StatusEffect.HitAngle = _suspendedHitAngle;
-            _data.StatusEffect.ReturnState = _suspendedReturnState;
-            SyncStatusControl(_suspended, usesLegacyStatusState: false);
-
-            _suspended = null;
-            _suspendedRemainingTime = 0f;
-            _suspendedReturnState = null;
-            _suspendedHitAngle = float.NaN;
-
-            ApplyCurrentEffect();
+            _hitStopOverlay = effect;
+            _hitStopOverlayRemainingTime = effect.Duration;
         }
     }
 }

@@ -11,8 +11,13 @@ namespace BBBNexus
     public class GunnerBrain : AITacticalBrainBase
     {
         private const float AimFacingAngle = 20f;
+        private const float DefaultMinAccuracy = 0.33f;
+        private const float DefaultMaxAccuracy = 1f;
+        private const float DefaultMinAccuracyDistance = 5f;
+        private const float DefaultMaxAccuracyDistance = 15f;
 
         private GunnerTacticalConfigSO _gunnerConfig;
+        private BBBCharacterController _owner;
 
         // 状态机
         private GunnerPhase _phase;
@@ -38,6 +43,29 @@ namespace BBBNexus
                 Debug.LogWarning("[GunnerBrain] 配置类型应为 GunnerTacticalConfigSO，将使用内置默认值。");
 
             _phase = GunnerPhase.Approach;
+            _owner = selfTransform.GetComponentInParent<BBBCharacterController>();
+        }
+
+        private static Vector3 ResolveTargetAimPoint(NavigatorSensorBase navigatorSensor)
+        {
+            var target = navigatorSensor != null ? navigatorSensor.Target : null;
+            if (target == null)
+                return Vector3.zero;
+
+            var controller = target.GetComponent<BBBCharacterController>();
+            if (controller != null)
+            {
+                if (controller.HeadBone != null)
+                    return controller.HeadBone.position;
+
+                return controller.transform.position + Vector3.up * 1.3f;
+            }
+
+            var collider = target.GetComponent<Collider>();
+            if (collider != null)
+                return collider.bounds.center;
+
+            return target.position + Vector3.up * 1.3f;
         }
 
         protected override void ProcessTactics(in NavigationContext context)
@@ -54,6 +82,7 @@ namespace BBBNexus
 
             var targetDir = context.DesiredWorldDirection;
             var distance = context.DistanceToTarget;
+            var lookInput = CalculateLookInput(context.TargetWorldDirection);
             var facingAngle = Vector3.Angle(
                 Vector3.ProjectOnPlane(_selfTransform.forward, Vector3.up),
                 Vector3.ProjectOnPlane(context.TargetWorldDirection, Vector3.up));
@@ -64,6 +93,8 @@ namespace BBBNexus
             var wantsToAttack = false;
             var wantsToAim = false;
             var moveWorldDir = Vector3.zero;
+
+            UpdateAiAimSolution(context);
 
             switch (_phase)
             {
@@ -148,11 +179,13 @@ namespace BBBNexus
                     break;
             }
 
-            var moveInput = moveWorldDir != Vector3.zero ? Vector2.one : Vector2.zero;
+            var moveInput = moveWorldDir.sqrMagnitude > 0.0001f
+                ? ConvertWorldDirToJoystick(moveWorldDir)
+                : Vector2.zero;
 
             _currentIntent = new TacticalIntent(
                 moveInput,
-                Vector2.zero,
+                lookInput,
                 wantsToAttack,
                 wantsToAim,
                 false,
@@ -182,6 +215,38 @@ namespace BBBNexus
             if (_gunnerConfig != null)
                 return UnityEngine.Random.Range(_gunnerConfig.RecoveryDurationMin, _gunnerConfig.RecoveryDurationMax);
             return UnityEngine.Random.Range(1.5f, 3f);
+        }
+
+        private void UpdateAiAimSolution(in NavigationContext context)
+        {
+            if (_owner?.RuntimeData == null)
+            {
+                return;
+            }
+
+            if (!context.HasValidTarget)
+            {
+                _owner.RuntimeData.CurrentAIAccuracy = 0f;
+                _owner.RuntimeData.AIAimTargetPoint = Vector3.zero;
+                _owner.RuntimeData.IsAIAimStabilized = false;
+                return;
+            }
+
+            var navigatorSensor = _owner.GetComponent<NavigatorSensorBase>();
+            Vector3 targetPoint = ResolveTargetAimPoint(navigatorSensor);
+            if (targetPoint == Vector3.zero)
+            {
+                _owner.RuntimeData.CurrentAIAccuracy = 0f;
+                _owner.RuntimeData.AIAimTargetPoint = Vector3.zero;
+                _owner.RuntimeData.IsAIAimStabilized = false;
+                return;
+            }
+
+            float t = Mathf.InverseLerp(DefaultMinAccuracyDistance, DefaultMaxAccuracyDistance, context.DistanceToTarget);
+            float accuracy = Mathf.Lerp(DefaultMaxAccuracy, DefaultMinAccuracy, t);
+            _owner.RuntimeData.CurrentAIAccuracy = accuracy;
+            _owner.RuntimeData.AIAimTargetPoint = targetPoint;
+            _owner.RuntimeData.IsAIAimStabilized = accuracy >= 0.95f;
         }
     }
 }

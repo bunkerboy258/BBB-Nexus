@@ -89,6 +89,7 @@ namespace BBBNexus
         public IKController IkController { get; private set; }
         public PlayerInventoryController InventoryController { get; private set; }
         public PlayerInventoryOverlay InventoryOverlay { get; private set; }
+        public QuickHealOverlay QuickHealOverlay { get; private set; }
         public ActionController ActionController { get; private set; }
         public AudioController AudioController { get; private set; }
         public ExtraActionController ExtraActionController { get; private set; }
@@ -250,6 +251,14 @@ namespace BBBNexus
             {
                 Debug.Log("[InventoryTrace] InventoryOverlay initialized.", this);
             }
+
+            QuickHealOverlay = GetComponent<QuickHealOverlay>();
+            if (QuickHealOverlay == null && CompareTag("Player"))
+            {
+                QuickHealOverlay = gameObject.AddComponent<QuickHealOverlay>();
+            }
+            QuickHealOverlay?.Initialize(this);
+
             UpperBodyCtrl = new UpperBodyController(this);
             FacialController = new FacialController(this);
             IkController = new IKController(this);
@@ -427,6 +436,11 @@ namespace BBBNexus
                     RestoreLocomotionPresentation();
                 }
 
+                StateMachine.CurrentState.LogicUpdate();
+            }
+            else if (RuntimeData.IsDead)
+            {
+                // 死亡状态下仍然需要更新状态逻辑（等待复活倒计时）
                 StateMachine.CurrentState.LogicUpdate();
             }
 
@@ -1004,6 +1018,15 @@ namespace BBBNexus
             SetCurrentSanity(CurrentSanity + delta);
         }
 
+        /// <summary>
+        /// 直接将伤害加入 HealthArbiter 队列，跳过闭眼格挡拦截。
+        /// 供 EyesClosedSystemManager 在格挡反应窗口超时时调用。
+        /// </summary>
+        public void EnqueueDamageDirectly(in DamageRequest request)
+        {
+            ArbiterPipeline?.Health?.Enqueue(in request);
+        }
+
         public bool TryHeal(float amount)
         {
             if (amount <= 0f)
@@ -1043,15 +1066,15 @@ namespace BBBNexus
         }
 
         #region IDamageable 接口实现
-        public void RequestDamage(in DamageRequest request)
+        public bool RequestDamage(in DamageRequest request)
         {
             if (IsDuplicateIncomingDamage(in request))
-                return;
+                return false;
 
             RememberIncomingDamage(in request);
 
             if (TryInterceptByShield(in request))
-                return;
+                return false;
 
             // 闭眼格挡：拦截伤害，生成替身并对攻击者施加僵直
             var eyesMgr = EyesClosedSystemManager.Instance;
@@ -1078,17 +1101,25 @@ namespace BBBNexus
 
                 eyesMgr.RewardPerfectParrySanity();
                 ParryHandler.TriggerPerfectParry(in request);
-                return;
+                return false;
             }
 
             if (hasParryHandler && eyesClosed)
             {
-                if (DebugParryTrace)
-                    Debug.Log("[ParryTrace] intercept damage and trigger parry.", this);
+                // 理智耗尽时，ConsumeParrySanity 返回 false，格挡失败，伤害穿透
+                if (eyesMgr.ConsumeParrySanity())
+                {
+                    if (DebugParryTrace)
+                        Debug.Log("[ParryTrace] intercept damage and trigger parry.", this);
+                    ParryHandler.TriggerParry(in request);
+                    return false;
+                }
 
-                eyesMgr.ConsumeParrySanity();
-                ParryHandler.TriggerParry(in request);
-                return;
+                // 理智耗尽：开启完美格挡反应窗口，暂挂本次伤害，等待玩家反应
+                if (DebugParryTrace)
+                    Debug.Log("[ParryTrace] sanity depleted — started depleted parry reaction window.", this);
+                eyesMgr.StartDepletedParryWindow(in request);
+                return false;
             }
 
             if (DebugParryTrace)
@@ -1102,9 +1133,10 @@ namespace BBBNexus
             }
 
             var health = ArbiterPipeline?.Health;
-            if (health == null) return;
+            if (health == null) return false;
 
             health.Enqueue(in request);
+            return true;
         }
 
         #endregion

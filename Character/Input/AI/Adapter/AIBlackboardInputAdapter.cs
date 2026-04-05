@@ -30,6 +30,7 @@ namespace BBBNexus
         public float SprintDistanceMultiplier = 2f;
 
         private BBBCharacterController _player;
+        private MainProcessorPipeline _mainProcessor;
         private bool _lastJumpIntent;
         private bool _lastDodgeIntent;
         private bool _lastRollIntent;
@@ -69,6 +70,7 @@ namespace BBBNexus
                 NavigatorSensor = GetComponent<NavigatorSensorBase>();
 
             _player = GetComponentInParent<BBBCharacterController>();
+            _mainProcessor = _player?.MainProcessorPipeline;
         }
 
         private void InitializeBrain()
@@ -166,17 +168,12 @@ namespace BBBNexus
                 return -1;
             }
 
+            // 使用默认换弹参数喵~
             float attackRange = TacticalConfig != null ? Mathf.Max(0.01f, TacticalConfig.AttackRange) : 10f;
             float distance01 = Mathf.Clamp01(distanceToTarget / attackRange);
             float nearRatio = 0.4f;
             float farRatio = 1f;
             float variancePercent = 0.2f;
-            if (TacticalConfig is GunnerTacticalConfigSO gunnerConfig)
-            {
-                nearRatio = gunnerConfig.ReloadNearRatio;
-                farRatio = gunnerConfig.ReloadFarRatio;
-                variancePercent = gunnerConfig.ReloadVariancePercent;
-            }
 
             float baseRatio = Mathf.Lerp(nearRatio, farRatio, distance01);
             float variance = magazineCapacity * variancePercent;

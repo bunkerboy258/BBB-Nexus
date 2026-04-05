@@ -27,6 +27,17 @@ namespace BBBNexus
         [Tooltip("施加给攻击者的完美弹反状态（击倒/knockdown）")]
         public StatusEffectSO PerfectParriedEffect;
 
+        [Header("镜头冲击")]
+        [Tooltip("普通格挡时的镜头冲击 Δ 预设（null = 不触发）")]
+        public CameraImpulseDeltaSO ParryImpulsePreset;
+
+        [Tooltip("完美弹反时的镜头冲击 Δ 预设（null = 不触发）")]
+        public CameraImpulseDeltaSO PerfectImpulsePreset;
+
+        [Header("格挡音效")]
+        [Tooltip("格挡/弹反命中瞬间的音效配置")]
+        public ParryAudioProfile ParryAudio;
+
         [Header("Debug")]
         public bool DebugLog = false;
 
@@ -74,7 +85,15 @@ namespace BBBNexus
 
                 if (follower != null)
                 {
-                    follower.Init(bakedMesh, req.WeaponTransform, attackerController);
+                    // 烘焙瞬间玩家主手相对玩家根节点的本地偏移，用于替身贴手对齐
+                    var    selfCtrl           = GetComponent<BBBCharacterController>();
+                    var    selfMainhand       = selfCtrl != null ? selfCtrl.MainhandWeaponContainer : null;
+                    Vector3 mainhandLocalOffset = Vector3.zero;
+                    if (selfMainhand != null)
+                        mainhandLocalOffset = Quaternion.Inverse(transform.rotation)
+                                             * (selfMainhand.position - transform.position);
+
+                    follower.Init(bakedMesh, req.WeaponTransform, attackerController, mainhandLocalOffset, label == "perfect parry");
                 }
                 else
                 {
@@ -91,14 +110,29 @@ namespace BBBNexus
                 Debug.LogWarning($"[ParryHandler] SubstitutePrefab 未赋值，{label} 无视觉表现。", this);
             }
 
+            // ── Step 2.5: 镜头冲击 ──
+            var impulsePreset = label == "perfect parry" ? PerfectImpulsePreset : ParryImpulsePreset;
+            if (impulsePreset != null)
+                CameraImpulseService.Instance?.Request(impulsePreset);
+
+            // ── Step 2.6: 播放格挡音效 ──
+            var parryClips = label == "perfect parry" ? ParryAudio.PerfectParrySounds : ParryAudio.ParrySounds;
+            Vector3 parrySfxPos = req.HitPoint != Vector3.zero ? req.HitPoint : transform.position;
+            if (parryClips == null || parryClips.Length == 0)
+            {
+                Debug.LogWarning($"[ParryHandler] {label} audio clips are not configured.", this);
+            }
+            else
+            {
+                WeaponAudioUtil.PlayAt(parryClips, parrySfxPos);
+            }
+
             // ── Step 3: 对攻击者施加状态 ──
             if (attackerController != null && effect != null)
             {
                 attackerController.StatusEffects.Apply(effect);
-                HitStopService.Instance?.Request(new HitStopRequest(
-                    attackerController,
-                    label == "perfect parry" ? HitStopKind.PerfectParry : HitStopKind.Heavy,
-                    GetComponent<BBBCharacterController>()));
+                // HitStop phased rollout:
+                // keep only attacker-side Light hitstop from Weapon/Fists for feel validation.
                 Debug.Log($"[ParryTrace] applied status '{effect.DisplayName}' ({label}) to '{attackerController.name}'.", attackerController);
 
                 if (DebugLog)

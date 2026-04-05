@@ -20,6 +20,13 @@ namespace BBBNexus
         Death = 4,
     }
 
+    public enum StatusInterruptMode
+    {
+        None = 0,
+        Soft = 1,
+        Hard = 2,
+    }
+
     public struct OverrideContext
     {
         public bool IsActive;
@@ -98,6 +105,7 @@ namespace BBBNexus
     {
         public bool IsActive;
         public int Priority;
+        public StatusInterruptMode InterruptMode;
         public bool BlocksAction;
         public bool BlocksLocomotion;
         public bool BlocksInput;
@@ -107,6 +115,7 @@ namespace BBBNexus
         {
             IsActive = false;
             Priority = 0;
+            InterruptMode = StatusInterruptMode.None;
             BlocksAction = false;
             BlocksLocomotion = false;
             BlocksInput = false;
@@ -140,6 +149,8 @@ namespace BBBNexus
         public bool BlockAudio;
         public bool IsDead;
         public bool BlockAction;
+        /// <summary>状态期间盾牌格挡判定失效（用于完美弹反后卸甲效果）。</summary>
+        public bool BlockShield;
 
         public void Clear()
         {
@@ -151,6 +162,7 @@ namespace BBBNexus
             BlockAudio = false;
             IsDead = false;
             BlockAction = false;
+            BlockShield = false;
         }
     }
 

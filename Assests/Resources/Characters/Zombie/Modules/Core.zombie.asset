@@ -16,8 +16,8 @@ MonoBehaviour:
   DeathAnim: {fileID: 3060610079319413300, guid: 198306c1209c75d45a2115e0cf9ff8ed,
     type: 3}
   LODCheckInterval: 0.5
-  MediumLODDistance: 15
-  LowLODDistance: 30
+  MediumLODDistance: 30
+  LowLODDistance: 70
   LookSensitivity: {x: 150, y: 150}
   PitchLimits: {x: -70, y: 70}
   RotationSmoothTime: 0.16

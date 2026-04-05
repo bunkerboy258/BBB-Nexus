@@ -528,6 +528,7 @@ namespace BBBNexus
             float speed = transition.Speed > 0f ? transition.Speed : 1f;
             float normStart = float.IsNaN(transition.NormalizedStartTime) ? 0f : transition.NormalizedStartTime;
             float actualDuration = clip.length * (transition.Events.GetRealNormalizedEndTime(speed) - normStart) / speed;
+            ApplyCurrentComboDamage(idx);
 
             PlaySwingSound(idx);
 
@@ -553,6 +554,19 @@ namespace BBBNexus
 
             ApplyDamageWindowTiming(_activeAttackContext, actualDuration, idx);
             ApplyAlignmentWindowTiming(_activeAttackContext, actualDuration, idx);
+
+            // 注册调试信息供 Gizmo 使用
+            float dominantEnd = ResolveDominantEndTime(actualDuration, idx);
+            AttackWindowDebugService.RegisterWindow(
+                _currentAttackStartTime,
+                _currentAttackStartTime + actualDuration,
+                _activeAttackContext.WindowStartTimes,
+                _activeAttackContext.WindowEndTimes,
+                _activeAttackContext.AlignmentWindowStartTime,
+                _activeAttackContext.AlignmentWindowEndTime,
+                idx,
+                actualDuration,
+                dominantEnd);
 
             if (CurrentEquipSlot == EquipmentSlot.MainHand)
                 PostSystem.Instance.Send("Weapon.AttackStart", _activeAttackContext);
@@ -591,6 +605,7 @@ namespace BBBNexus
             _isHitWindowOpen = false;
             _activeAttackContext = null;
             _autoTargetTransform = null;
+            AttackWindowDebugService.ClearWindow();
         }
 
         private void OnHitRegistered(Collider other, IDamageable damageable, DamageRequest request)
@@ -601,7 +616,10 @@ namespace BBBNexus
             var targetController = damageable as BBBCharacterController ?? other.GetComponentInParent<BBBCharacterController>();
             if (targetController != null && targetController != _player)
             {
-                HitStopService.Instance?.Request(new HitStopRequest(_player, HitStopKind.Light, targetController));
+                if (_config.AttackerHitStopDuration > 0f)
+                {
+                    HitStopService.Instance?.Request(new HitStopRequest(_player, _config.AttackerHitStopDuration, targetController));
+                }
             }
         }
 
@@ -610,6 +628,7 @@ namespace BBBNexus
             var context = data as MeleeAttackWindowContext;
             if (context == null || context.Owner != _player) { CloseHitWindow(); return; }
             _activeAttackContext = context;
+            ApplyCurrentComboDamage(context.ComboIndex);
             if (!MatchesCurrentHand(context.AttackHand)) _hitbox?.Deactivate();
         }
 
@@ -849,11 +868,12 @@ namespace BBBNexus
             }
         }
 
-        private float ResolveDominantEndTime(float actualDuration, int comboIndex)
+        private float ResolveDominantEndTime(float actualDuration, int _)
         {
-            float duration = Mathf.Max(0f, actualDuration);
-            float outgoingFade = ResolveOutgoingFadeDuration(comboIndex);
-            return Mathf.Max(0f, duration - outgoingFade);
+            // Damage/alignment sidecars are authored against the transition's effective
+            // playback span (start->end), not "start->(end-nextFade)".
+            // Keep bridge timing fade-aware elsewhere, but keep window timing aligned with preview.
+            return Mathf.Max(0f, actualDuration);
         }
 
         private float ResolveOutgoingFadeDuration(int comboIndex)
@@ -872,7 +892,7 @@ namespace BBBNexus
         private void PlaySwingSound(int comboIndex)
         {
             var clip = WeaponAudioUtil.PickCombo(_config.MeleeAudio.ComboSwingSounds, comboIndex);
-            if (clip != null) { AudioSource.PlayClipAtPoint(clip, transform.position); return; }
+            if (clip != null) { WeaponAudioUtil.PlayAt(clip, transform.position); return; }
             WeaponAudioUtil.PlayAt(_config.MeleeAudio.EnterStanceSounds, transform.position);
         }
 
@@ -1125,10 +1145,24 @@ namespace BBBNexus
         {
             if (_player == null || _config == null || _muzzle == null) return;
             float range = _config.HitScanRange > 0f ? _config.HitScanRange : DefaultHitScanRange;
-            float damage = _config.DamageAmount > 0f ? _config.DamageAmount : DefaultDamageAmount;
+            float baseDamage = _config.DamageAmount > 0f ? _config.DamageAmount : DefaultDamageAmount;
 
             Vector3 origin = _muzzle.position;
-            Vector3 dir = (_player.RuntimeData.TargetAimPoint - origin).normalized;
+            
+            // AI 瞄准强化：使用 AI 专用瞄准点
+            Vector3 targetPoint;
+            if (_player.RuntimeData.CurrentAIAccuracy > 0f && _player.RuntimeData.AIAimTargetPoint != Vector3.zero)
+            {
+                // AI 模式：使用经过精度计算的瞄准点
+                targetPoint = _player.RuntimeData.AIAimTargetPoint;
+            }
+            else
+            {
+                // 玩家模式：使用原始目标点
+                targetPoint = _player.RuntimeData.TargetAimPoint;
+            }
+            
+            Vector3 dir = (targetPoint - origin).normalized;
             Vector3 end = origin + dir * range;
 
             if (Physics.Raycast(origin, dir, out RaycastHit hit, range, ~0, QueryTriggerInteraction.Ignore))
@@ -1138,8 +1172,16 @@ namespace BBBNexus
                 if (!isSelf)
                 {
                     var dmg = FindDamageable(hit.collider);
-                    if (dmg != null) dmg.RequestDamage(new DamageRequest(damage, hit.point, _player.gameObject, _muzzle));
-                    WeaponAudioUtil.PlayAt(_config.RangedAudio.ProjectileHitSounds, hit.point);
+                    bool applied = true;
+                    if (dmg != null)
+                    {
+                        DamageHitZoneType hitZone = RangedHitZoneUtility.ResolveHitZone(hit.collider);
+                        float damage = baseDamage * _config.ResolveHitZoneDamageMultiplier(hitZone);
+                        applied = dmg.RequestDamage(new DamageRequest(damage, hit.point, _player.gameObject, _muzzle));
+                    }
+
+                    if (applied)
+                        WeaponAudioUtil.PlayAt(_config.RangedAudio.ProjectileHitSounds, hit.point);
                 }
             }
 
@@ -1295,5 +1337,26 @@ namespace BBBNexus
 
         private static bool ResolveIsSprinting(BBBCharacterController player)
             => player.RuntimeData.CurrentLocomotionState == LocomotionState.Sprint;
+
+        private void ApplyCurrentComboDamage(int comboIndex)
+        {
+            if (_hitbox == null || _config == null)
+                return;
+
+            float baseDamage = ResolveBaseMeleeDamage();
+            float multiplier = _config.ResolveComboDamageMultiplier(comboIndex);
+            _hitbox.Damage = baseDamage * multiplier;
+        }
+
+        private float ResolveBaseMeleeDamage()
+        {
+            if (_config != null && _config.DamageAmount > 0f)
+                return _config.DamageAmount;
+
+            if (_hitbox != null && _hitbox.Damage > 0f)
+                return _hitbox.Damage;
+
+            return DefaultDamageAmount;
+        }
     }
 }

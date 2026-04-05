@@ -30,7 +30,7 @@ MonoBehaviour:
       _NormalizedTimes: []
       _Callbacks: []
       _Names: []
-    _Clip: {fileID: -203655887218126122, guid: 4164a56d404bf2e4e8bacbf5ab72789f, type: 3}
+    _Clip: {fileID: -203655887218126122, guid: 6066196bfee6b9b4d84396a799fdb77e, type: 3}
     _NormalizedStartTime: NaN
   ClipHitBack:
     _FadeDuration: 0.25
@@ -39,7 +39,7 @@ MonoBehaviour:
       _NormalizedTimes: []
       _Callbacks: []
       _Names: []
-    _Clip: {fileID: -203655887218126122, guid: 6066196bfee6b9b4d84396a799fdb77e, type: 3}
+    _Clip: {fileID: -203655887218126122, guid: a9b33c952cfb05a4c8b2cd8221a176a4, type: 3}
     _NormalizedStartTime: NaN
   ClipHitLeft:
     _FadeDuration: 0.25
@@ -48,7 +48,7 @@ MonoBehaviour:
       _NormalizedTimes: []
       _Callbacks: []
       _Names: []
-    _Clip: {fileID: -203655887218126122, guid: 82b9a4b01ef3e8e46b6109a5fe35f40a, type: 3}
+    _Clip: {fileID: -203655887218126122, guid: 5e0768a4c571879459031fb952c750f7, type: 3}
     _NormalizedStartTime: NaN
   ClipHitRight:
     _FadeDuration: 0.25
@@ -57,7 +57,7 @@ MonoBehaviour:
       _NormalizedTimes: []
       _Callbacks: []
       _Names: []
-    _Clip: {fileID: -203655887218126122, guid: 87252084f199452428a63f657a5c9be7, type: 3}
+    _Clip: {fileID: -203655887218126122, guid: 82b9a4b01ef3e8e46b6109a5fe35f40a, type: 3}
     _NormalizedStartTime: NaN
   ClipKnockbackFront:
     _FadeDuration: 0.25
@@ -111,14 +111,19 @@ MonoBehaviour:
     NormalizedTime: -1
     ForcePhaseSync: 0
   FadeOutDuration: 0.2
-  Duration: 0.4
+  Duration: 0.5
   CanBeRefreshed: 1
   Priority: 5
-  BlockInput: 0
+  InterruptMode: 2
+  BlockInput: 1
   BlockAction: 1
-  BlockUpperBody: 0
+  BlockUpperBody: 1
   BlockInventory: 0
   BlockIK: 0
+  BlockShield: 0
+  IsHitStop: 0
+  HitStopAnimationSpeed: 0
+  FreezeMotion: 1
   references:
     version: 2
     RefIds: []

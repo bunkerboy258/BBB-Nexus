@@ -282,6 +282,7 @@ namespace BBBNexus.Editor
         private static void InitializeDamageWindowSlot(SerializedProperty element, int _)
         {
             element.FindPropertyRelative("Enabled").boolValue = false;
+            element.FindPropertyRelative("DamageMultiplier").floatValue = 1f;
             element.FindPropertyRelative("StartNormalized").floatValue = 0.15f;
             element.FindPropertyRelative("EndNormalized").floatValue = 0.45f;
         }
@@ -356,6 +357,15 @@ namespace BBBNexus.Editor
 
             SerializedProperty enabled = window.FindPropertyRelative("Enabled");
             if (!enabled.boolValue) return;
+
+            SerializedProperty multiplier = window.FindPropertyRelative("DamageMultiplier");
+            if (multiplier != null)
+            {
+                float value = multiplier.floatValue;
+                multiplier.floatValue = EditorGUILayout.FloatField("Damage Multiplier", value > 0f ? value : 1f);
+                if (multiplier.floatValue <= 0f)
+                    multiplier.floatValue = 1f;
+            }
 
             SerializedProperty extraWindows = window.FindPropertyRelative("ExtraWindows");
             if (extraWindows == null) return;

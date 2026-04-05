@@ -94,6 +94,11 @@ namespace BBBNexus
         [Min(0)]
         public int Priority = 10;
 
+        [Header("仲裁语义")]
+
+        [Tooltip("None = 不断连段；Soft = 受影响但尽量不断连段；Hard = 明确断连段并接管状态域。")]
+        public StatusInterruptMode InterruptMode = StatusInterruptMode.Hard;
+
         #endregion
 
         #region 仲裁标志（状态期间阻断哪些系统）
@@ -114,6 +119,9 @@ namespace BBBNexus
 
         [Tooltip("是否阻断 IK 解算")]
         public bool BlockIK = false;
+
+        [Tooltip("是否使盾牌格挡失效（用于完美弹反后卸甲效果）")]
+        public bool BlockShield = false;
 
         [Header("HitStop")]
 
@@ -142,6 +150,7 @@ namespace BBBNexus
             if (BlockUpperBody)  flags.BlockUpperBody  = true;
             if (BlockInventory)  flags.BlockInventory  = true;
             if (BlockIK)         flags.BlockIK         = true;
+            if (BlockShield)     flags.BlockShield     = true;
         }
 
         /// <summary>

@@ -77,6 +77,6 @@ namespace BBBNexus
 
     public interface IDamageable
     {
-        void RequestDamage(in DamageRequest request);
+        bool RequestDamage(in DamageRequest request);
     }
 }

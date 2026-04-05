@@ -114,11 +114,16 @@ MonoBehaviour:
   Duration: 0.8
   CanBeRefreshed: 1
   Priority: 10
+  InterruptMode: 2
   BlockInput: 1
   BlockAction: 1
   BlockUpperBody: 0
   BlockInventory: 0
   BlockIK: 0
+  BlockShield: 0
+  IsHitStop: 0
+  HitStopAnimationSpeed: 0
+  FreezeMotion: 1
   references:
     version: 2
     RefIds: []

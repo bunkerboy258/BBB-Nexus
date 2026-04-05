@@ -159,17 +159,12 @@ namespace BBBNexus
                 return false;
             }
 
+            // 使用默认换弹参数喵~
             float attackRange = TacticalConfig != null ? Mathf.Max(0.01f, TacticalConfig.AttackRange) : 10f;
             float distance01 = Mathf.Clamp01(context.DistanceToTarget / attackRange);
             float nearRatio = 0.4f;
             float farRatio = 1f;
             float variancePercent = 0.2f;
-            if (TacticalConfig is GunnerTacticalConfigSO gunnerConfig)
-            {
-                nearRatio = gunnerConfig.ReloadNearRatio;
-                farRatio = gunnerConfig.ReloadFarRatio;
-                variancePercent = gunnerConfig.ReloadVariancePercent;
-            }
 
             float baseRatio = Mathf.Lerp(nearRatio, farRatio, distance01);
             float variance = reloadable.MagazineCapacity * variancePercent;

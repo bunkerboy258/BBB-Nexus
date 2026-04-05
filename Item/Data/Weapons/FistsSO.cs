@@ -32,6 +32,10 @@ namespace BBBNexus
         [Tooltip("是否启用该伤害窗口侧链。关闭时运行时可回退到旧逻辑。")]
         public bool Enabled;
 
+        [Tooltip("该连招段的伤害倍率。1 = 使用基础伤害；2 = 双倍伤害。")]
+        [Min(0f)]
+        public float DamageMultiplier;
+
         [Tooltip("相对动画实际统治时间的归一化起点。0 表示实际统治时间开始，1 表示结束。")]
         [Range(0f, 1f)]
         public float StartNormalized;
@@ -47,6 +51,7 @@ namespace BBBNexus
             new FistsDamageWindowSidecar
             {
                 Enabled = false,
+                DamageMultiplier = 1f,
                 StartNormalized = 0.15f,
                 EndNormalized = 0.45f,
                 ExtraWindows = null,
@@ -160,6 +165,11 @@ namespace BBBNexus
         [Header("攻击几何定义")]
         [Tooltip("Attack Clip Geometry Definition 的 MetaLib ID。留空时回退到 <资产名>_AttackSweep。")]
         public string AttackGeometryId;
+
+        [Header("HitStop")]
+        [Tooltip("近战命中时，对攻击者施加的卡肉时长（秒）。0 = 不触发。")]
+        [Range(0f, 0.2f)]
+        public float AttackerHitStopDuration = 0.035f;
 
 #if UNITY_EDITOR
         [Tooltip("用于烘焙攻击几何的角色 Prefab，必须包含 BBBCharacterController 组件")]

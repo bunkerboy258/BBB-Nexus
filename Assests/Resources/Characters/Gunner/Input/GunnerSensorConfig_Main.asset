@@ -11,9 +11,9 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d87c3df91bb20bb459754f27a66950dd, type: 3}
   m_Name: GunnerSensorConfig_Main
-  m_EditorClassIdentifier: 
-  DetectionRange: 12
+  m_EditorClassIdentifier:
+  DetectionRange: 30
   DetectionFOV: 60
-  AlertRange: 3
+  AlertRange: 5
   LostTargetCooldown: 4
   ObstacleDetectRange: 1.5

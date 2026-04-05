@@ -228,11 +228,7 @@ namespace BBBNexus
 
         private bool IsHitStopMotionFrozen()
         {
-            var effect = _data.StatusEffect.Effect;
-            return _data.StatusEffect.IsActive &&
-                   effect != null &&
-                   effect.IsHitStop &&
-                   effect.FreezeMotion;
+            return _player.StatusEffects != null && _player.StatusEffects.IsHitStopMotionFrozen;
         }
 
         #region Warp API
