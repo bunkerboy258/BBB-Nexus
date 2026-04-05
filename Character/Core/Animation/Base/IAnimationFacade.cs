@@ -22,5 +22,8 @@ namespace BBBNexus
         void PlayFullBodyAction(AnimationClip clip, float fadeDuration = 0.2f, float speed = -1f);
         void PlayFullBodyActionTransition(object transitionObj);
         void StopFullBodyAction();
+        void EnterHitStop(float speed = 0f);
+        void ExitHitStop();
+        bool IsInHitStop { get; }
     }
 }

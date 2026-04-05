@@ -13,6 +13,10 @@ namespace BBBNexus
 
         private StatusEffectSO _current;
         private float _remainingTime;
+        private StatusEffectSO _suspended;
+        private float _suspendedRemainingTime;
+        private BaseState _suspendedReturnState;
+        private float _suspendedHitAngle = float.NaN;
 
         public StatusEffectSO Current => _current;
         public bool IsActive => _current != null && (_current.Duration <= 0f || _remainingTime > 0f);
@@ -27,6 +31,18 @@ namespace BBBNexus
         {
             if (effect == null || _data.IsDead)
                 return;
+
+            if (effect.IsHitStop)
+            {
+                ApplyHitStop(effect, hitAngle);
+                return;
+            }
+
+            if (_current != null && _current.IsHitStop)
+            {
+                QueueSuspended(effect, hitAngle);
+                return;
+            }
 
             if (_current != null && effect.Priority < _current.Priority)
                 return;
@@ -58,12 +74,26 @@ namespace BBBNexus
 
         public void Clear()
         {
-            _player.AnimFacade?.ClearOverrideOnEndCallback();
-            _player.AnimFacade?.StopFullBodyAction();
+            bool wasHitStop = _current != null && _current.IsHitStop;
+            if (wasHitStop)
+            {
+                _player.AnimFacade?.ExitHitStop();
+            }
+            else
+            {
+                _player.AnimFacade?.ClearOverrideOnEndCallback();
+                _player.AnimFacade?.StopFullBodyAction();
+            }
+
             _current = null;
             _remainingTime = 0f;
             _data.StatusEffect.Clear();
             _data.StatusControl.Clear();
+
+            if (wasHitStop && _suspended != null)
+            {
+                RestoreSuspended();
+            }
         }
 
         public void Arbitrate()
@@ -88,6 +118,12 @@ namespace BBBNexus
         {
             if (!_data.StatusEffect.IsActive || _current == null)
                 return;
+
+            if (_current.IsHitStop)
+            {
+                _player.AnimFacade?.EnterHitStop(_current.HitStopAnimationSpeed);
+                return;
+            }
 
             var transition = _current.SelectHitClip(_data.StatusEffect.HitAngle);
             if (transition?.Clip == null)
@@ -117,6 +153,66 @@ namespace BBBNexus
             _data.StatusControl.BlocksLocomotion = effect != null;
             _data.StatusControl.BlocksInput = effect != null && effect.BlockInput;
             _data.StatusControl.UsesLegacyStatusState = usesLegacyStatusState;
+        }
+
+        private void ApplyHitStop(StatusEffectSO effect, float hitAngle)
+        {
+            if (_current != null && !_current.IsHitStop)
+            {
+                SuspendCurrent();
+            }
+            else if (_current != null && _current.IsHitStop && effect.Priority < _current.Priority)
+            {
+                return;
+            }
+
+            _current = effect;
+            _remainingTime = effect.Duration;
+
+            _data.StatusEffect.IsActive = true;
+            _data.StatusEffect.Effect = effect;
+            _data.StatusEffect.HitAngle = hitAngle;
+            _data.StatusEffect.ReturnState = _player.StateMachine.CurrentState;
+            SyncStatusControl(effect, usesLegacyStatusState: false);
+            ApplyCurrentEffect();
+        }
+
+        private void SuspendCurrent()
+        {
+            _suspended = _current;
+            _suspendedRemainingTime = _remainingTime;
+            _suspendedReturnState = _data.StatusEffect.ReturnState;
+            _suspendedHitAngle = _data.StatusEffect.HitAngle;
+        }
+
+        private void QueueSuspended(StatusEffectSO effect, float hitAngle)
+        {
+            if (_suspended != null && effect.Priority < _suspended.Priority)
+                return;
+
+            _suspended = effect;
+            _suspendedRemainingTime = effect.Duration;
+            _suspendedReturnState = _player.StateMachine.CurrentState;
+            _suspendedHitAngle = hitAngle;
+        }
+
+        private void RestoreSuspended()
+        {
+            _current = _suspended;
+            _remainingTime = _suspendedRemainingTime;
+
+            _data.StatusEffect.IsActive = true;
+            _data.StatusEffect.Effect = _suspended;
+            _data.StatusEffect.HitAngle = _suspendedHitAngle;
+            _data.StatusEffect.ReturnState = _suspendedReturnState;
+            SyncStatusControl(_suspended, usesLegacyStatusState: false);
+
+            _suspended = null;
+            _suspendedRemainingTime = 0f;
+            _suspendedReturnState = null;
+            _suspendedHitAngle = float.NaN;
+
+            ApplyCurrentEffect();
         }
     }
 }

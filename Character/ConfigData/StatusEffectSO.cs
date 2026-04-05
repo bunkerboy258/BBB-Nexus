@@ -115,6 +115,19 @@ namespace BBBNexus
         [Tooltip("是否阻断 IK 解算")]
         public bool BlockIK = false;
 
+        [Header("HitStop")]
+
+        [HideInInspector]
+        [Tooltip("是否为卡肉状态。启用后不会播放新的受击动画，而是冻结角色当前时间。")]
+        public bool IsHitStop = false;
+
+        [Tooltip("角色动画速度倍率。0 = 完全暂停，0.05 = 极慢推进。")]
+        [Range(0f, 1f)]
+        public float HitStopAnimationSpeed = 0f;
+
+        [Tooltip("是否冻结角色运动。")]
+        public bool FreezeMotion = true;
+
         #endregion
 
         #region 工具方法

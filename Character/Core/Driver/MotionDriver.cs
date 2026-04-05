@@ -160,7 +160,7 @@ namespace BBBNexus
             // 即使只做重力，也要消费并阻挡水平位移请求（攻击对齐/根运动等），防止撞入其他角色
             Vector3 hv = Vector3.zero;
             Vector3 requestedDisplacement = ConsumeRequestedHorizontalDisplacement();
-            if (requestedDisplacement.sqrMagnitude > 0.0001f && Time.deltaTime > 0.000001f)
+            if (!IsHitStopMotionFrozen() && requestedDisplacement.sqrMagnitude > 0.0001f && Time.deltaTime > 0.000001f)
             {
                 hv = requestedDisplacement / Time.deltaTime;
             }
@@ -177,7 +177,7 @@ namespace BBBNexus
         public Vector3 ApplyRootMotionHorizontal(Vector3 horizontalDisplacement, bool hardStop)
         {
             horizontalDisplacement.y = 0f;
-            if (horizontalDisplacement.sqrMagnitude <= 0.0001f || Time.deltaTime <= 0.000001f)
+            if (IsHitStopMotionFrozen() || horizontalDisplacement.sqrMagnitude <= 0.0001f || Time.deltaTime <= 0.000001f)
             {
                 return Vector3.zero;
             }
@@ -191,6 +191,12 @@ namespace BBBNexus
             HandleAimModeTransitionIfNeeded();
             AutoHandleCurveDrivenEnter(clipData, stateTime);
 
+            if (IsHitStopMotionFrozen())
+            {
+                ExecuteMovement(Vector3.zero);
+                return;
+            }
+
             Vector3 hv = clipData == null
                 ? CalculateInputDrivenVelocity(1f)
                 : CalculateClipDrivenVelocity(clipData, stateTime);
@@ -201,6 +207,11 @@ namespace BBBNexus
         public void UpdateLocomotionFromInput(float speedMult = 1f)
         {
             HandleAimModeTransitionIfNeeded();
+            if (IsHitStopMotionFrozen())
+            {
+                ExecuteMovement(Vector3.zero);
+                return;
+            }
             ExecuteMovement(CalculateInputDrivenVelocity(speedMult));
         }
 
@@ -214,6 +225,15 @@ namespace BBBNexus
         }
 
         #endregion
+
+        private bool IsHitStopMotionFrozen()
+        {
+            var effect = _data.StatusEffect.Effect;
+            return _data.StatusEffect.IsActive &&
+                   effect != null &&
+                   effect.IsHitStop &&
+                   effect.FreezeMotion;
+        }
 
         #region Warp API
 

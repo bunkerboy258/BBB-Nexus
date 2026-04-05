@@ -500,6 +500,12 @@ namespace BBBNexus
             }
 
             WeaponAudioUtil.PlayAt(_config.MeleeAudio.HitSounds, request.HitPoint);
+
+            var targetController = damageable as BBBCharacterController ?? other.GetComponentInParent<BBBCharacterController>();
+            if (targetController != null && targetController != _player)
+            {
+                HitStopService.Instance?.Request(new HitStopRequest(_player, HitStopKind.Light, targetController));
+            }
         }
 
         private void UpdateHitWindowState()

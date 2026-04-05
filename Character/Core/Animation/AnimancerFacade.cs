@@ -66,6 +66,13 @@ namespace BBBNexus
 
         private bool _fullBodyRootMotionEnabled;
         public override bool IsFullBodyRootMotionEnabled => _fullBodyRootMotionEnabled;
+        public override bool IsInHitStop => _isInHitStop;
+
+        private bool _isInHitStop;
+        private AnimancerState _hitStopLayer0State;
+        private AnimancerState _hitStopLayer1State;
+        private float _hitStopLayer0Speed = 1f;
+        private float _hitStopLayer1Speed = 1f;
 
         private void Awake()
         {
@@ -363,6 +370,48 @@ namespace BBBNexus
         public override void StopFullBodyAction()
         {
             _fullBodyRootMotionEnabled = false;
+        }
+
+        public override void EnterHitStop(float speed = 0f)
+        {
+            EnsureAnimancer();
+            if (_animancer == null) return;
+
+            var layer0 = GetLayerOrFallback(0);
+            var layer1 = GetLayerOrFallback(1);
+
+            if (!_isInHitStop)
+            {
+                _hitStopLayer0State = layer0?.CurrentState;
+                _hitStopLayer1State = layer1?.CurrentState;
+                _hitStopLayer0Speed = _hitStopLayer0State != null ? _hitStopLayer0State.Speed : 1f;
+                _hitStopLayer1Speed = _hitStopLayer1State != null ? _hitStopLayer1State.Speed : 1f;
+                _isInHitStop = true;
+            }
+
+            if (_hitStopLayer0State != null)
+                _hitStopLayer0State.Speed = speed;
+
+            if (_hitStopLayer1State != null)
+                _hitStopLayer1State.Speed = speed;
+        }
+
+        public override void ExitHitStop()
+        {
+            if (!_isInHitStop)
+                return;
+
+            if (_hitStopLayer0State != null)
+                _hitStopLayer0State.Speed = _hitStopLayer0Speed;
+
+            if (_hitStopLayer1State != null)
+                _hitStopLayer1State.Speed = _hitStopLayer1Speed;
+
+            _hitStopLayer0State = null;
+            _hitStopLayer1State = null;
+            _hitStopLayer0Speed = 1f;
+            _hitStopLayer1Speed = 1f;
+            _isInHitStop = false;
         }
 
         // 基础层当前的播放进度

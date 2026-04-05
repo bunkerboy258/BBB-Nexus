@@ -95,6 +95,10 @@ namespace BBBNexus
             if (attackerController != null && effect != null)
             {
                 attackerController.StatusEffects.Apply(effect);
+                HitStopService.Instance?.Request(new HitStopRequest(
+                    attackerController,
+                    label == "perfect parry" ? HitStopKind.PerfectParry : HitStopKind.Heavy,
+                    GetComponent<BBBCharacterController>()));
                 Debug.Log($"[ParryTrace] applied status '{effect.DisplayName}' ({label}) to '{attackerController.name}'.", attackerController);
 
                 if (DebugLog)

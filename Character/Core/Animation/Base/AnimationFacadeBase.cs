@@ -91,6 +91,21 @@ namespace BBBNexus
         public abstract void StopFullBodyAction();
 
         /// <summary>
+        /// 进入卡肉，冻结或极低速推进当前角色动画。
+        /// </summary>
+        public abstract void EnterHitStop(float speed = 0f);
+
+        /// <summary>
+        /// 退出卡肉，恢复角色动画速度。
+        /// </summary>
+        public abstract void ExitHitStop();
+
+        /// <summary>
+        /// 当前是否处于卡肉中。
+        /// </summary>
+        public abstract bool IsInHitStop { get; }
+
+        /// <summary>
         /// 当前是否处于全身根运动状态（由 PlayFullBodyAction 系列开启，StopFullBodyAction 关闭）
         /// </summary>
         public virtual bool IsFullBodyRootMotionEnabled => false;
