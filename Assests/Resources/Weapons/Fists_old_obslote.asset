@@ -163,14 +163,17 @@ MonoBehaviour:
   ComboAttackHands: 00000000010000000200000000000000
   ComboDamageWindows:
   - Enabled: 1
+    DamageMultiplier: 1
     StartNormalized: 0.4842708
     EndNormalized: 0.920958
     ExtraWindows: []
   - Enabled: 1
+    DamageMultiplier: 1
     StartNormalized: 0.4789888
     EndNormalized: 0.72017103
     ExtraWindows: []
   - Enabled: 1
+    DamageMultiplier: 1
     StartNormalized: 0.30756527
     EndNormalized: 0.3942915
     ExtraWindows:
@@ -181,6 +184,7 @@ MonoBehaviour:
     - StartNormalized: 0.71436036
       EndNormalized: 0.81253266
   - Enabled: 1
+    DamageMultiplier: 1
     StartNormalized: 0.45552766
     EndNormalized: 0.75351757
     ExtraWindows: []
@@ -203,6 +207,7 @@ MonoBehaviour:
   SprintCameraPreset: {fileID: 11400000, guid: 7d284d21bb04e824aba09ad91963a1b8, type: 2}
   AutoTargetTurnSpeed: 540
   AttackGeometryId: 
+  AttackerHitStopDuration: 0.035
   BakingCharacterPrefab: {fileID: 5498192701711643705, guid: 138fd718d5117e8468bd92c91b87ea44,
     type: 3}
   BakingWeaponPrefab: {fileID: 7004216108275635573, guid: cc362d2da1ff42b49b850055347a6182,

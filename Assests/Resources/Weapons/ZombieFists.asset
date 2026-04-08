@@ -17,7 +17,7 @@ MonoBehaviour:
   Icon: {fileID: 0}
   Description: Zombie melee combo using the shared fists hitbox pipeline.
   MaxStack: 1
-  Prefab: {fileID: 7004216108275635573, guid: cc362d2da1ff42b49b850055347a6182, type: 3}
+  Prefab: {fileID: 7004216108275635573, guid: bfc941eec5f24284d92bcc3ce69d1c43, type: 3}
   EquipSlot: 1
   HoldPositionOffset: {x: 0, y: 0, z: 0}
   HoldRotationOffset: {x: 0, y: 0, z: 0, w: 1}
@@ -146,18 +146,18 @@ MonoBehaviour:
   ComboDamageWindows:
   - Enabled: 1
     DamageMultiplier: 1
-    StartNormalized: 0.36231154
-    EndNormalized: 0.5900502
+    StartNormalized: 0.4599718
+    EndNormalized: 0.5758081
     ExtraWindows: []
   - Enabled: 1
     DamageMultiplier: 1
-    StartNormalized: 0.44502518
-    EndNormalized: 0.7050252
+    StartNormalized: 0.54268545
+    EndNormalized: 0.6724718
     ExtraWindows: []
   - Enabled: 1
     DamageMultiplier: 1
-    StartNormalized: 0.4082413
-    EndNormalized: 0.6579899
+    StartNormalized: 0.4957286
+    EndNormalized: 0.6315403
     ExtraWindows: []
   ComboAlignmentWindows:
   - Enabled: 1

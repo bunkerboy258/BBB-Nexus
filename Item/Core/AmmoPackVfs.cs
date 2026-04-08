@@ -14,6 +14,23 @@ namespace BBBNexus
     {
         public const string AmmoPackId = "ammo";
 
+        public static string BuildWeaponStateKey(ItemInstance instance, EquipmentSlot slot)
+        {
+            if (instance == null)
+            {
+                throw new ArgumentNullException(nameof(instance));
+            }
+
+            if (instance.BaseData != null &&
+                !string.IsNullOrWhiteSpace(instance.BaseData.ItemID) &&
+                slot != EquipmentSlot.None)
+            {
+                return $"{NormalizeSegment(instance.BaseData.ItemID)}_{slot}";
+            }
+
+            return NormalizeSegment(instance.InstanceID);
+        }
+
         /// <summary>
         /// 确保 AmmoPack 存在喵~
         /// </summary>
@@ -66,20 +83,43 @@ namespace BBBNexus
         public static bool TryGetAmmoState(string weaponSoName, string weaponInstanceId, out AmmoStateData data,
             BBBCharacterController owner)
         {
+            return TryGetAmmoState(weaponSoName, out data, owner, weaponInstanceId);
+        }
+
+        public static bool TryGetAmmoState(string weaponSoName, out AmmoStateData data,
+            BBBCharacterController owner, params string[] weaponStateKeys)
+        {
             data = null;
             if (owner == null) throw new InvalidOperationException("owner cannot be null.");
-            
+
             var analyser = PackVfs.GetAnalyser(owner, AmmoPackId);
-            var path = $"/{NormalizeSegment(weaponSoName)}/{NormalizeSegment(weaponInstanceId)}.ammo";
-            
-            var node = analyser.GetNode(AmmoPackId, path, PackAccessSubjects.SystemMin) as VFSNodeData;
-            if (node == null || string.IsNullOrWhiteSpace(node.DataJson))
+            if (weaponStateKeys == null || weaponStateKeys.Length == 0)
             {
                 return false;
             }
 
-            data = JsonConvert.DeserializeObject<AmmoStateData>(node.DataJson);
-            return data != null;
+            for (int i = 0; i < weaponStateKeys.Length; i++)
+            {
+                if (string.IsNullOrWhiteSpace(weaponStateKeys[i]))
+                {
+                    continue;
+                }
+
+                var path = $"/{NormalizeSegment(weaponSoName)}/{NormalizeSegment(weaponStateKeys[i])}.ammo";
+                var node = analyser.GetNode(AmmoPackId, path, PackAccessSubjects.SystemMin) as VFSNodeData;
+                if (node == null || string.IsNullOrWhiteSpace(node.DataJson))
+                {
+                    continue;
+                }
+
+                data = JsonConvert.DeserializeObject<AmmoStateData>(node.DataJson);
+                if (data != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -105,20 +145,43 @@ namespace BBBNexus
         public static bool TryGetReloadState(string weaponSoName, string weaponInstanceId, out ReloadStateData data,
             BBBCharacterController owner)
         {
+            return TryGetReloadState(weaponSoName, out data, owner, weaponInstanceId);
+        }
+
+        public static bool TryGetReloadState(string weaponSoName, out ReloadStateData data,
+            BBBCharacterController owner, params string[] weaponStateKeys)
+        {
             data = null;
             if (owner == null) throw new InvalidOperationException("owner cannot be null.");
-            
+
             var analyser = PackVfs.GetAnalyser(owner, AmmoPackId);
-            var path = $"/{NormalizeSegment(weaponSoName)}/{NormalizeSegment(weaponInstanceId)}.reload";
-            
-            var node = analyser.GetNode(AmmoPackId, path, PackAccessSubjects.SystemMin) as VFSNodeData;
-            if (node == null || string.IsNullOrWhiteSpace(node.DataJson))
+            if (weaponStateKeys == null || weaponStateKeys.Length == 0)
             {
                 return false;
             }
 
-            data = JsonConvert.DeserializeObject<ReloadStateData>(node.DataJson);
-            return data != null;
+            for (int i = 0; i < weaponStateKeys.Length; i++)
+            {
+                if (string.IsNullOrWhiteSpace(weaponStateKeys[i]))
+                {
+                    continue;
+                }
+
+                var path = $"/{NormalizeSegment(weaponSoName)}/{NormalizeSegment(weaponStateKeys[i])}.reload";
+                var node = analyser.GetNode(AmmoPackId, path, PackAccessSubjects.SystemMin) as VFSNodeData;
+                if (node == null || string.IsNullOrWhiteSpace(node.DataJson))
+                {
+                    continue;
+                }
+
+                data = JsonConvert.DeserializeObject<ReloadStateData>(node.DataJson);
+                if (data != null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         // =========================================================

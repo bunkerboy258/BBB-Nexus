@@ -175,7 +175,10 @@ namespace BBBNexus
                 damage,
                 hitPoint,
                 _owner != null ? _owner.gameObject : null,
-                sourceCollider.transform);
+                sourceCollider.transform,
+                DamageDeliveryKind.Melee,
+                true,
+                true);
             bool applied = damageable.RequestDamage(in request);
             if (applied)
                 onHit?.Invoke(other, damageable, request);

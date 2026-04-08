@@ -1068,6 +1068,9 @@ namespace BBBNexus
         #region IDamageable 接口实现
         public bool RequestDamage(in DamageRequest request)
         {
+            if (ShouldIgnoreFriendlyFire(in request))
+                return false;
+
             if (IsDuplicateIncomingDamage(in request))
                 return false;
 
@@ -1143,6 +1146,11 @@ namespace BBBNexus
 
         private bool TryInterceptByShield(in DamageRequest request)
         {
+            // 远程攻击不允许在角色总入口被“代格挡”。
+            // 只有真正命中盾牌碰撞体时，才由 ShieldBehaviour.RequestDamage 负责拦截。
+            if (request.IsRanged || !request.UsesShieldBlockArc)
+                return false;
+
             var equippedItems = EquipmentDriver?.AllEquippedItems;
             if (equippedItems == null)
                 return false;
@@ -1154,6 +1162,19 @@ namespace BBBNexus
             }
 
             return false;
+        }
+
+        private bool ShouldIgnoreFriendlyFire(in DamageRequest request)
+        {
+            var attacker = request.ResolveAttackerController();
+            if (attacker == null || attacker == this)
+                return false;
+
+            int enemyLayer = LayerMask.NameToLayer("Enemy");
+            if (enemyLayer < 0)
+                return false;
+
+            return gameObject.layer == enemyLayer && attacker.gameObject.layer == enemyLayer;
         }
 
         private bool IsDuplicateIncomingDamage(in DamageRequest request)

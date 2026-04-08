@@ -92,6 +92,9 @@ namespace BBBNexus
             if (_shieldOwner.RuntimeData.Arbitration.BlockShield)
                 return false;
 
+            if (!request.UsesShieldBlockArc || request.IsRanged)
+                return true;
+
             var attackerTransform = request.ResolveAttackerTransform();
             if (attackerTransform == null)
                 return false;
@@ -125,9 +128,14 @@ namespace BBBNexus
                 return true;
 
             RememberProcessedRequest(in request);
-            _shieldOwner?.NotifyShieldBlocked();
 
-            if (_shieldConfig?.BlockedEffect != null)
+            if (!request.IsRanged)
+            {
+                _shieldOwner?.NotifyShieldBlocked();
+                WeaponAudioUtil.PlayAt(_shieldConfig?.MeleeDeflectSounds, request.HitPoint);
+            }
+
+            if (request.TriggersShieldBlockedEffect && _shieldConfig?.BlockedEffect != null)
             {
                 var attacker = request.ResolveAttackerController();
                 attacker?.StatusEffects.Apply(_shieldConfig.BlockedEffect);
@@ -138,10 +146,34 @@ namespace BBBNexus
 
         public bool RequestDamage(in DamageRequest request)
         {
+            if (ShouldIgnoreFriendlyFire(in request))
+                return false;
+
+            if (_shieldOwner == null)
+                return false;
+
+            // 完美格挡后的破盾期不再触发格挡/反震，
+            // 但命中盾牌碰撞体的伤害也不应透传到角色本体。
+            if (_shieldOwner.RuntimeData.Arbitration.BlockShield)
+                return false;
+
             if (TryBlock(in request))
                 return false;
 
-            return _shieldOwner != null && _shieldOwner.RequestDamage(in request);
+            return _shieldOwner.RequestDamage(in request);
+        }
+
+        private bool ShouldIgnoreFriendlyFire(in DamageRequest request)
+        {
+            var attacker = request.ResolveAttackerController();
+            if (attacker == null || attacker == _shieldOwner)
+                return false;
+
+            int enemyLayer = LayerMask.NameToLayer("Enemy");
+            if (enemyLayer < 0 || _shieldOwner == null)
+                return false;
+
+            return _shieldOwner.gameObject.layer == enemyLayer && attacker.gameObject.layer == enemyLayer;
         }
 
         // ─────────────────────────────────────────────────────

@@ -225,7 +225,14 @@ namespace BBBNexus
             _damagedTargetIds.Clear();
 
             var hitCount = 0;
-            var req = new DamageRequest(DamageAmount, transform.position, _shooter, transform);
+            var req = new DamageRequest(
+                DamageAmount,
+                transform.position,
+                _shooter,
+                transform,
+                DamageDeliveryKind.Ranged,
+                false,
+                false);
 
             for (int i = 0; i < count; i++)
             {

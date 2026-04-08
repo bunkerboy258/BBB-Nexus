@@ -234,6 +234,8 @@ MonoBehaviour:
   RecoilYawRandomRange: 0.35
   AimingCameraPreset: {fileID: 0}
   BlockedEffect: {fileID: 11400000, guid: c5a4ab6514504b04f9b42cc002173e58, type: 2}
+  MeleeDeflectSounds:
+  - {fileID: 8300000, guid: cfddb5cb5539340a2970ad9473e7d3e9, type: 3}
   BlockArcDegrees: 150
   UseNegativeForwardAsBlockFront: 0
   references:

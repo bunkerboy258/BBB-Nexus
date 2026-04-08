@@ -15,6 +15,9 @@ namespace BBBNexus
         [Tooltip("盾牌被击中时，施加给攻击者的硬直状态")]
         public StatusEffectSO BlockedEffect;
 
+        [Tooltip("近战攻击打在盾牌上、被弹开时播放的音效")]
+        public AudioClip[] MeleeDeflectSounds;
+
         [Header("--- 格挡判定 ---")]
         [Tooltip("以盾牌朝向为中心的格挡扇区角度。处于该角度内的攻击一律视为被盾牌拦截。")]
         [Range(0f, 180f)]

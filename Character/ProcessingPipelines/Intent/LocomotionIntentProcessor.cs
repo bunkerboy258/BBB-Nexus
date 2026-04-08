@@ -64,7 +64,6 @@ namespace BBBNexus
                 _data.WantsToDodge = true;
             }
 
-            // Shift 短按/长按分流：短按 → 闪避，长按 → 冲刺
             bool sprintHeld = input.SprintHeld;
             if (sprintHeld)
             {
@@ -81,6 +80,18 @@ namespace BBBNexus
 
             // 持续性移动状态判定
             bool isMoving = _data.MoveInput.sqrMagnitude > 0.01f;
+            bool sprintActive = sprintHeld &&
+                _sprintHeldTime >= SprintTapThreshold &&
+                !_data.IsStaminaDepleted &&
+                _data.CurrentStamina > 0f;
+
+            // Sprint 与 Aim/Tactical 明确互斥：Sprint 优先，直接打断 Aim，
+            // 避免两条意图链同帧同时成立。
+            if (sprintActive)
+            {
+                _data.IsTacticalStance = false;
+                _data.WantsToSecondaryAction = false;
+            }
 
             // 体力耗尽后的恢复阈值判定
             if (_data.IsStaminaDepleted && _data.CurrentStamina > _data.MaxStamina * _config.Core.StaminaRecoverThreshold)
@@ -102,7 +113,7 @@ namespace BBBNexus
                 _data.CurrentLocomotionState = LocomotionState.Idle;
                 _data.WantToRun = false;
             }
-            else if (sprintHeld && _sprintHeldTime >= SprintTapThreshold && !_data.IsStaminaDepleted && _data.CurrentStamina > 0)
+            else if (sprintActive)
             {
                 _data.CurrentLocomotionState = LocomotionState.Sprint;
                 _data.WantToRun = true;

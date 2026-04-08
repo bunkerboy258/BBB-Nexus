@@ -17,9 +17,13 @@
 
         public void Update(in ProcessedInputData input)
         {
+            bool sprintActive = input.SprintHeld &&
+                _data.MoveInput.sqrMagnitude > 0.01f &&
+                !_data.IsStaminaDepleted &&
+                _data.CurrentStamina > 0f;
             bool wantsSecondary = input.AimHeld || input.SecondaryAttackHeld;
-            _data.WantsToSecondaryAction = wantsSecondary;
-            _data.IsTacticalStance = wantsSecondary && CanCurrentMainhandEnterTacticalMotionBase();
+            _data.WantsToSecondaryAction = !sprintActive && wantsSecondary;
+            _data.IsTacticalStance = !sprintActive && wantsSecondary && CanCurrentMainhandEnterTacticalMotionBase();
 
             if (_data.Arbitration.BlockAction)
             {

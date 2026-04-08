@@ -1177,7 +1177,14 @@ namespace BBBNexus
                     {
                         DamageHitZoneType hitZone = RangedHitZoneUtility.ResolveHitZone(hit.collider);
                         float damage = baseDamage * _config.ResolveHitZoneDamageMultiplier(hitZone);
-                        applied = dmg.RequestDamage(new DamageRequest(damage, hit.point, _player.gameObject, _muzzle));
+                        applied = dmg.RequestDamage(new DamageRequest(
+                            damage,
+                            hit.point,
+                            _player.gameObject,
+                            _muzzle,
+                            DamageDeliveryKind.Ranged,
+                            false,
+                            false));
                     }
 
                     if (applied)
@@ -1298,27 +1305,44 @@ namespace BBBNexus
         {
             if (_instance == null) return;
             string name = _config.name;
-            if (AmmoPackVfs.TryGetAmmoState(name, _instance.InstanceID, out var ammo, _player))
+            string primaryStateKey = ResolveAmmoStateKey();
+            string legacyStateKey = ResolveLegacyAmmoStateKey();
+            if (AmmoPackVfs.TryGetAmmoState(name, out var ammo, _player, primaryStateKey, legacyStateKey))
             { _cachedAmmoState = ammo; _hasCachedAmmo = true; }
             else
             { _cachedAmmoState = new AmmoStateData { CurrentMagazine = 0, ReserveAmmo = 0, ShotsFired = 0 }; _hasCachedAmmo = true; SaveAmmoState(); }
 
-            if (AmmoPackVfs.TryGetReloadState(name, _instance.InstanceID, out var reload, _player))
+            if (AmmoPackVfs.TryGetReloadState(name, out var reload, _player, primaryStateKey, legacyStateKey))
                 _cachedReloadState = reload;
             else
                 _cachedReloadState = new ReloadStateData();
+
+            if (_hasCachedAmmo)
+                SaveAmmoState();
+            if (_cachedReloadState != null)
+                SaveReloadState();
         }
 
         private void SaveAmmoState()
         {
             if (_instance == null || !_hasCachedAmmo) return;
-            AmmoPackVfs.SetAmmoState(_config.name, _instance.InstanceID, _cachedAmmoState, _player);
+            AmmoPackVfs.SetAmmoState(_config.name, ResolveAmmoStateKey(), _cachedAmmoState, _player);
         }
 
         private void SaveReloadState()
         {
             if (_instance == null || _cachedReloadState == null) return;
-            AmmoPackVfs.SetReloadState(_config.name, _instance.InstanceID, _cachedReloadState, _player);
+            AmmoPackVfs.SetReloadState(_config.name, ResolveAmmoStateKey(), _cachedReloadState, _player);
+        }
+
+        private string ResolveAmmoStateKey()
+        {
+            return AmmoPackVfs.BuildWeaponStateKey(_instance, CurrentEquipSlot);
+        }
+
+        private string ResolveLegacyAmmoStateKey()
+        {
+            return _instance != null ? _instance.InstanceID : null;
         }
 
         // ─────────────────────────────────────────────────────

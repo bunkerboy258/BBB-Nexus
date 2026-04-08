@@ -85,6 +85,8 @@ namespace BBBNexus
                 // 受击僵直：非致命伤害时施加 HitReaction 状态
                 if (_data.CurrentHealth > 0f)
                 {
+                    _data.SfxQueue.Enqueue(PlayerSfxEvent.Hurt);
+
                     var hitReaction = _player.Config?.HitReaction;
                     if (hitReaction != null)
                         _player.StatusEffects.Apply(hitReaction, CalculateHitAngle(in req));

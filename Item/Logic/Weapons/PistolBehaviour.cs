@@ -329,7 +329,10 @@ namespace BBBNexus
                             damageAmount,
                             hit.point,
                             _player.gameObject,
-                            _muzzle);
+                            _muzzle,
+                            DamageDeliveryKind.Ranged,
+                            false,
+                            false);
                         applied = damageable.RequestDamage(in request);
                     }
 
@@ -484,18 +487,18 @@ namespace BBBNexus
         {
             if (_instance == null) return;
 
-            // 获取武器 SO 名称作为目录名喵~
             string weaponSoName = _config.name;
+            string primaryStateKey = ResolveAmmoStateKey();
+            string legacyStateKey = ResolveLegacyAmmoStateKey();
 
-            // 尝试读取弹药状态
-            if (AmmoPackVfs.TryGetAmmoState(weaponSoName, _instance.InstanceID, out var ammoState, _player))
+            if (AmmoPackVfs.TryGetAmmoState(weaponSoName, out var ammoState, _player, primaryStateKey, legacyStateKey))
             {
                 _cachedAmmoState = ammoState;
                 _hasCachedAmmo = true;
+                SaveAmmoState();
             }
             else
             {
-                // 首次装备，初始化弹药状态
                 _cachedAmmoState = new AmmoStateData
                 {
                     CurrentMagazine = 0,
@@ -506,10 +509,10 @@ namespace BBBNexus
                 SaveAmmoState();
             }
 
-            // 尝试读取换弹状态
-            if (AmmoPackVfs.TryGetReloadState(weaponSoName, _instance.InstanceID, out var reloadState, _player))
+            if (AmmoPackVfs.TryGetReloadState(weaponSoName, out var reloadState, _player, primaryStateKey, legacyStateKey))
             {
                 _cachedReloadState = reloadState;
+                SaveReloadState();
             }
             else
             {
@@ -524,7 +527,7 @@ namespace BBBNexus
         {
             if (_instance == null || !_hasCachedAmmo) return;
             string weaponSoName = _config.name;
-            AmmoPackVfs.SetAmmoState(weaponSoName, _instance.InstanceID, _cachedAmmoState, _player);
+            AmmoPackVfs.SetAmmoState(weaponSoName, ResolveAmmoStateKey(), _cachedAmmoState, _player);
         }
 
         /// <summary>
@@ -534,7 +537,17 @@ namespace BBBNexus
         {
             if (_instance == null || _cachedReloadState == null) return;
             string weaponSoName = _config.name;
-            AmmoPackVfs.SetReloadState(weaponSoName, _instance.InstanceID, _cachedReloadState, _player);
+            AmmoPackVfs.SetReloadState(weaponSoName, ResolveAmmoStateKey(), _cachedReloadState, _player);
+        }
+
+        private string ResolveAmmoStateKey()
+        {
+            return AmmoPackVfs.BuildWeaponStateKey(_instance, CurrentEquipSlot);
+        }
+
+        private string ResolveLegacyAmmoStateKey()
+        {
+            return _instance != null ? _instance.InstanceID : null;
         }
 
         /// <summary>

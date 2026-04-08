@@ -2,6 +2,13 @@
 
 namespace BBBNexus
 {
+    public enum DamageDeliveryKind
+    {
+        Unspecified = 0,
+        Melee = 1,
+        Ranged = 2,
+    }
+
     public struct DamageRequest
     {
         public float Amount;
@@ -11,6 +18,15 @@ namespace BBBNexus
         public GameObject Attacker;
         /// <summary>具体武器的 Transform（替身贴靠目标）</summary>
         public Transform WeaponTransform;
+        /// <summary>伤害来源类型。用于盾牌、友伤等统一判定。</summary>
+        public DamageDeliveryKind DeliveryKind;
+        /// <summary>是否使用盾牌方向角判定。近战=true，远程=false。</summary>
+        public bool UsesShieldBlockArc;
+        /// <summary>命中盾牌时是否对攻击者施加反震/负面效果。</summary>
+        public bool TriggersShieldBlockedEffect;
+
+        public bool IsMelee => DeliveryKind == DamageDeliveryKind.Melee;
+        public bool IsRanged => DeliveryKind == DamageDeliveryKind.Ranged;
 
         public DamageRequest(float amount)
         {
@@ -18,6 +34,9 @@ namespace BBBNexus
             HitPoint        = Vector3.zero;
             Attacker        = null;
             WeaponTransform = null;
+            DeliveryKind = DamageDeliveryKind.Unspecified;
+            UsesShieldBlockArc = true;
+            TriggersShieldBlockedEffect = true;
         }
 
         public DamageRequest(float amount, Vector3 hitPoint)
@@ -26,14 +45,32 @@ namespace BBBNexus
             HitPoint        = hitPoint;
             Attacker        = null;
             WeaponTransform = null;
+            DeliveryKind = DamageDeliveryKind.Unspecified;
+            UsesShieldBlockArc = true;
+            TriggersShieldBlockedEffect = true;
         }
 
         public DamageRequest(float amount, Vector3 hitPoint, GameObject attacker, Transform weaponTransform)
+            : this(amount, hitPoint, attacker, weaponTransform, DamageDeliveryKind.Unspecified, true, true)
+        {
+        }
+
+        public DamageRequest(
+            float amount,
+            Vector3 hitPoint,
+            GameObject attacker,
+            Transform weaponTransform,
+            DamageDeliveryKind deliveryKind,
+            bool usesShieldBlockArc,
+            bool triggersShieldBlockedEffect)
         {
             Amount          = amount;
             HitPoint        = hitPoint;
             Attacker        = attacker;
             WeaponTransform = weaponTransform;
+            DeliveryKind = deliveryKind;
+            UsesShieldBlockArc = usesShieldBlockArc;
+            TriggersShieldBlockedEffect = triggersShieldBlockedEffect;
         }
 
         /// <summary>

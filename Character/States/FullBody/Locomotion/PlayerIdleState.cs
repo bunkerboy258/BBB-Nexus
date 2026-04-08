@@ -20,6 +20,15 @@ namespace BBBNexus
         // 跳跃由全局拦截器统一处理，避免各状态重复判断
         protected override void UpdateStateLogic()
         {
+            if (data.IsTacticalStance)
+            {
+                player.StateMachine.ChangeState(
+                    data.CurrentLocomotionState == LocomotionState.Idle
+                        ? player.StateRegistry.GetState<PlayerTacticalIdleState>()
+                        : player.StateRegistry.GetState<PlayerTacticalMoveState>());
+                return;
+            }
+
             if (data.CurrentLocomotionState != LocomotionState.Idle)
             {
                 if (config.LocomotionAnims.SkipStartAnimations)
