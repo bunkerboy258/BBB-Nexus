@@ -1,9 +1,9 @@
-﻿using System.Linq;
+using System.Linq;
 using UnityEngine;
 
 namespace BBBNexus
 {
-    public static class EquipmentCommands
+    /*public static class EquipmentCommands
     {
         [CommandInfo("get_player", "获取玩家", "Entity", new[] { "targetName?" })]
         public static CommandOutput GetPlayer(IConsoleController console, int subjectLevel, string[] args, object payload)
@@ -174,5 +174,5 @@ namespace BBBNexus
                     return "BothHands";
             }
         }
-    }
+    }*/
 }

@@ -5,11 +5,12 @@ using UnityEngine;
 
 namespace BBBNexus
 {
-    /// <summary>
+    /*/// <summary>
     /// 装备 Pack VFS 工具喵~
     /// 负责在 equipment pack 中写入 / 删除 .equipid 文件
     /// 使用 PackVfs 统一层进行路由
     /// </summary>
+    [Obsolete("EquipmentPackVfs 是旧版实现，已被 IEquipmentService + NekoEquipmentService 取代。请使用新的装备服务接口。", false)]
     public static class EquipmentPackVfs
     {
         public const string EquipmentPackId = "equipment";
@@ -411,5 +412,5 @@ namespace BBBNexus
                 .Replace('\\', '_')
                 .Replace(':', '_');
         }
-    }
+    }*/
 }

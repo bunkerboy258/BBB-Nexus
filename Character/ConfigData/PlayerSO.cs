@@ -49,5 +49,9 @@ namespace BBBNexus
         public StatusArbiterSO StatusArbiterConfig;
         public LocomotionAudioSO Audio;
         public EmjSO Emj;
+
+        [Header("装备系统")]
+        [Tooltip("角色可用的装备槽位列表配置")]
+        public EquipmentSlotRegistrySO SlotRegistry;
     }
 }

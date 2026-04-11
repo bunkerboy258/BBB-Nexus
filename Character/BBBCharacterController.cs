@@ -40,6 +40,12 @@ namespace BBBNexus
         public Transform PlayerCamera;
         public HealingItemSO QuickHealItem;
 
+        [Header("--- 数据服务 ---")]
+        [Tooltip("IHub 实例 - 用于装备数据存储（如 NekoGraphHub）")]
+        public IHub EquipmentHub;
+        [Tooltip("IEquipmentService 实例 - 装备槽位管理器")]
+        public IEquipmentService EquipmentService;
+
         [Header("--- 表现与挂点 ---")]
         public Transform MainhandWeaponContainer;   // 主手（右手）武器容器
         public Transform OffhandWeaponContainer;    // 副手（左手）武器容器
@@ -56,16 +62,15 @@ namespace BBBNexus
         public EquippableItemSO DebugMainhandEquipment3;
         public EquippableItemSO DebugMainhandEquipment4;
         public EquippableItemSO DebugMainhandEquipment5;
-        public EquippableItemSO DebugOffhandEquipment;
         public bool DebugParryTrace = true;
         [HideInInspector]
-        [System.Obsolete("Use DebugMainhandEquipment1~5/DebugOffhandEquipment instead.")]
+        [System.Obsolete("Use DebugMainhandEquipment1~5 instead.")]
         public EquippableItemSO DefaultEquipment1;
         [HideInInspector]
-        [System.Obsolete("Use DebugMainhandEquipment1~5/DebugOffhandEquipment instead.")]
+        [System.Obsolete("Use DebugMainhandEquipment1~5 instead.")]
         public EquippableItemSO DefaultEquipment2;
         [HideInInspector]
-        [System.Obsolete("Use DebugMainhandEquipment1~5/DebugOffhandEquipment instead.")]
+        [System.Obsolete("Use DebugMainhandEquipment1~5 instead.")]
         public EquippableItemSO DefaultEquipment3;
         public bool statedebug = false;
         public bool DebugShowCurrentClipOverlay = false;
@@ -850,8 +855,8 @@ namespace BBBNexus
         {
             InitializeMaxCoreState();
             InventoryController.Initialize();
-            InitializeEquipmentPackDefaults();
-            RestoreEquippedItemsFromPack();
+            InitializeEquipmentServiceDefaults();
+            RestoreEquippedItemsFromService();
         }
 
         private void InitializeMaxCoreState()
@@ -860,88 +865,107 @@ namespace BBBNexus
             CharMaxStatePackVfs.ApplyToOwner(this, refillCurrent: true);
         }
 
-        private void InitializeEquipmentPackDefaults()
+        private void InitializeEquipmentServiceDefaults()
         {
-            EquipmentPackVfs.EnsureLayout(this);
-            SeedDebugMainSlotIfMissing(DebugMainhandEquipment1, 1);
-            SeedDebugMainSlotIfMissing(DebugMainhandEquipment2, 2);
-            SeedDebugMainSlotIfMissing(DebugMainhandEquipment3, 3);
-            SeedDebugMainSlotIfMissing(DebugMainhandEquipment4, 4);
-            SeedDebugMainSlotIfMissing(DebugMainhandEquipment5, 5);
-            SeedDebugEquipmentIfMissing(DebugOffhandEquipment, EquipmentSlot.OffHand);
+            if (EquipmentService == null)
+            {
+                Debug.LogWarning("[BBBCharacterController] EquipmentService 未配置，跳过装备初始化");
+                return;
+            }
+
+            // 初始化 EquipmentService（确保 Pack 和目录结构存在）
+            EquipmentService.Initialize();
+
+            var registry = Config?.SlotRegistry;
+            if (registry == null)
+            {
+                Debug.LogWarning("[BBBCharacterController] SlotRegistry 未配置，使用默认全部启用");
+            }
+
+            // 初始化配置槽位（只初始化启用的槽位）
+            if (IsConfigSlotEnabled("weapon:1")) SeedDebugConfigSlot(DebugMainhandEquipment1, "weapon:1");
+            if (IsConfigSlotEnabled("weapon:2")) SeedDebugConfigSlot(DebugMainhandEquipment2, "weapon:2");
+            if (IsConfigSlotEnabled("weapon:3")) SeedDebugConfigSlot(DebugMainhandEquipment3, "weapon:3");
+            if (IsConfigSlotEnabled("weapon:4")) SeedDebugConfigSlot(DebugMainhandEquipment4, "weapon:4");
+            if (IsConfigSlotEnabled("weapon:5")) SeedDebugConfigSlot(DebugMainhandEquipment5, "weapon:5");
         }
 
-        private void SeedDebugMainSlotIfMissing(EquippableItemSO equipment, int mainSlotIndex)
+        private bool IsConfigSlotEnabled(string key)
         {
-            if (equipment == null)
-            {
-                return;
-            }
-
-            if (EquipmentPackVfs.TryGetMainSlotItemId(mainSlotIndex, out _, this))
-            {
-                return;
-            }
-
-            EquipmentPackVfs.SetMainSlotItem(mainSlotIndex, equipment.name, this);
+            return Config?.SlotRegistry?.IsConfigSlotEnabled(key) ?? true; // 默认启用
         }
 
-        private void SeedDebugEquipmentIfMissing(EquippableItemSO equipment, EquipmentSlot slot)
+        private bool IsInstanceSlotEnabled(string key)
         {
-            if (equipment == null)
-            {
-                return;
-            }
-
-            if (EquipmentPackVfs.TryGetOtherSlotItemId(slot, out _, this))
-            {
-                return;
-            }
-
-            string itemId = equipment.name;
-            EquipmentPackVfs.SetOtherSlot(slot, itemId, this);
+            return Config?.SlotRegistry?.IsInstanceSlotEnabled(key) ?? true; // 默认启用
         }
 
-        private void RestoreEquippedItemsFromPack()
+        private void SeedDebugConfigSlot(EquippableItemSO equipment, string configSlotKey)
         {
-            EquipIdData mainhandData = null;
-            if (!EquipmentPackVfs.TryGetOtherSlotData(EquipmentSlot.MainHand, out mainhandData, this))
+            if (equipment == null) return;
+            if (EquipmentService.HasEquipped(configSlotKey)) return;
+
+            EquipmentService.TrySetEquipSO(configSlotKey, equipment.name);
+        }
+
+        private void RestoreEquippedItemsFromService()
+        {
+            if (EquipmentService == null)
             {
-                if (TryGetFirstAvailableMainSlotIndex(out var defaultMainSlotIndex) &&
-                    EquipmentPackVfs.SwapMainHandWithMainSlot(defaultMainSlotIndex, this) &&
-                    EquipmentPackVfs.TryGetOtherSlotData(EquipmentSlot.MainHand, out var swappedMainhandData, this))
+                Debug.LogWarning("[BBBCharacterController] EquipmentService 未配置，跳过后续装备恢复");
+                return;
+            }
+
+            // 恢复主手装备（如果槽位启用）
+            if (IsInstanceSlotEnabled("instance:mainhand"))
+            {
+                var mainhandId = EquipmentService.GetEquippedSO("instance:mainhand");
+                if (string.IsNullOrWhiteSpace(mainhandId))
                 {
-                    mainhandData = swappedMainhandData;
+                    // 尝试从启用的配置槽位找一个默认装备
+                    for (int i = 1; i <= 5; i++)
+                    {
+                        var configKey = $"weapon:{i}";
+                        if (!IsConfigSlotEnabled(configKey)) continue;
+
+                        var configId = EquipmentService.GetEquippedSO(configKey);
+                        if (!string.IsNullOrWhiteSpace(configId))
+                        {
+                            // 复制模式：配置槽位保留，实例槽位设置
+                            EquipmentService.TrySetEquipSO("instance:mainhand", configId);
+                            mainhandId = configId;
+                            break;
+                        }
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(mainhandId))
+                {
+                    // 直接通过 EquipmentDriver 装备
+                    var itemSO = MetaLib.GetObject<EquippableItemSO>(mainhandId);
+                    if (itemSO != null)
+                    {
+                        var instance = new ItemInstance(itemSO, null, 1);
+                        EquipmentDriver.EquipItemToSlot(instance, EquipmentSlot.MainHand);
+                        RuntimeData.CurrentItem = instance;
+                    }
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(mainhandData?.Id))
+            // 恢复副手装备（如果槽位启用）
+            if (IsInstanceSlotEnabled("instance:offhand"))
             {
-                EquipmentManager.EquipById(this, mainhandData.Id, EquipmentSlot.MainHand, instanceId: mainhandData.InstanceId);
-            }
-
-            if (EquipmentPackVfs.TryGetOtherSlotData(EquipmentSlot.OffHand, out var offhandData, this) &&
-                !string.IsNullOrWhiteSpace(offhandData?.Id))
-            {
-                EquipmentManager.EquipById(this, offhandData.Id, EquipmentSlot.OffHand, instanceId: offhandData.InstanceId);
-            }
-        }
-
-        private bool TryGetFirstAvailableMainSlotIndex(out int index)
-        {
-            index = -1;
-            for (int i = 1; i <= 5; i++)
-            {
-                if (EquipmentPackVfs.TryGetMainSlotItemId(i, out var itemId, this) &&
-                    !string.IsNullOrWhiteSpace(itemId) &&
-                    !string.Equals(itemId, EquipmentPackVfs.MainSlotOccupierId, System.StringComparison.Ordinal))
+                var offhandId = EquipmentService.GetEquippedSO("instance:offhand");
+                if (!string.IsNullOrWhiteSpace(offhandId))
                 {
-                    index = i;
-                    return true;
+                    var itemSO = MetaLib.GetObject<EquippableItemSO>(offhandId);
+                    if (itemSO != null)
+                    {
+                        var instance = new ItemInstance(itemSO, null, 1);
+                        EquipmentDriver.EquipItemToSlot(instance, EquipmentSlot.OffHand);
+                    }
                 }
             }
-
-            return false;
         }
 
         private void BootUpStateMachines()

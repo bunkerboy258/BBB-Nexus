@@ -13,8 +13,8 @@ namespace BBBNexus
         [Tooltip("主武器切换时要接管的 otherslot。")]
         public EquipmentSlot TargetSlot;
 
-        [Tooltip("virtualpack 中不存在托管文件时，默认创建/装入的另一半装备 id。")]
-        public string ItemId;
+        [Tooltip("主武器装备时，自动装备到 otherslot 的另一半装备。")]
+        public EquippableItemSO LinkedItem;
     }
 
     /// <summary>

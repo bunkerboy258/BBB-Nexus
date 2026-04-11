@@ -1,11 +1,15 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace BBBNexus
 {
-    /// <summary>
+    /*/// <summary>
     /// Static entry point for equipping and resolving runtime item instances.
     /// Keeps BBB's existing EquipmentDriver as the execution backend.
+    ///
+    /// 已废弃：VirtualOtherSlot 逻辑已迁移到 PlayerInventoryController，
+    /// 请直接使用 PlayerInventoryController 和 EquipmentDriver 进行装备操作。
     /// </summary>
+    [System.Obsolete("EquipmentManager 已废弃。请使用 PlayerInventoryController + EquipmentService + EquipmentDriver 替代。", false)]
     public static class EquipmentManager
     {
         private readonly struct VirtualLinkPlan
@@ -212,10 +216,10 @@ namespace BBBNexus
         private static bool TryGetVirtualOtherSlotLink(
             EquippableItemSO itemSo,
             out EquipmentSlot targetSlot,
-            out string linkedItemId)
+            out EquippableItemSO linkedItem)
         {
             targetSlot = EquipmentSlot.None;
-            linkedItemId = null;
+            linkedItem = null;
 
             if (itemSo == null || !itemSo.VirtualOtherSlot.Enabled)
             {
@@ -223,20 +227,20 @@ namespace BBBNexus
             }
 
             targetSlot = itemSo.VirtualOtherSlot.TargetSlot;
-            linkedItemId = itemSo.VirtualOtherSlot.ItemId;
+            linkedItem = itemSo.VirtualOtherSlot.LinkedItem;
             if (targetSlot == EquipmentSlot.None || targetSlot == EquipmentSlot.MainHand)
             {
                 Debug.LogWarning($"[EquipmentManager] Invalid virtual otherslot target on '{itemSo.name}'.");
                 return false;
             }
 
-            if (string.IsNullOrWhiteSpace(linkedItemId))
+            if (linkedItem == null)
             {
-                Debug.LogWarning($"[EquipmentManager] Missing virtual otherslot item id on '{itemSo.name}'.");
+                Debug.LogWarning($"[EquipmentManager] Missing virtual otherslot item on '{itemSo.name}'.");
                 return false;
             }
 
             return true;
         }
-    }
+    }*/
 }
