@@ -1,4 +1,5 @@
 using Animancer;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using NekoGraph;
@@ -41,10 +42,18 @@ namespace BBBNexus
         public HealingItemSO QuickHealItem;
 
         [Header("--- 数据服务 ---")]
-        [Tooltip("IHub 实例 - 用于装备数据存储（如 NekoGraphHub）")]
-        public IHub EquipmentHub;
-        [Tooltip("IEquipmentService 实例 - 装备槽位管理器")]
-        public IEquipmentService EquipmentService;
+        [Tooltip("Hub 实现类（如 NekoGraphHub）— 装备/库存/角色状态共用一个 Hub")]
+        [ServiceTypeField(typeof(IHub))]
+        public string HubTypeName;
+        [Tooltip("装备槽位服务实现类（如 NekoEquipmentService）")]
+        [ServiceTypeField(typeof(IEquipmentService))]
+        public string EquipmentServiceTypeName;
+        [Tooltip("背包物品服务实现类（如 NekoInventoryService）")]
+        [ServiceTypeField(typeof(IInventoryService))]
+        public string InventoryServiceTypeName;
+        [Tooltip("角色最大属性服务实现类（如 NekoCharStateService）")]
+        [ServiceTypeField(typeof(ICharStateService))]
+        public string CharStateServiceTypeName;
 
         [Header("--- 表现与挂点 ---")]
         public Transform MainhandWeaponContainer;   // 主手（右手）武器容器
@@ -77,6 +86,12 @@ namespace BBBNexus
         public bool DebugFullBodyRootMotion = false;
         public Vector3 DebugClipOverlayWorldOffset = new Vector3(0f, 0.12f, 0f);
 
+
+        // 数据服务运行时实例（非序列化，由 InstantiateServices() 反射创建）
+        public IHub Hub { get; private set; }
+        public IEquipmentService EquipmentService { get; private set; }
+        public IInventoryService InventoryService { get; private set; }
+        public ICharStateService CharStateService { get; private set; }
 
         // 运行时核心引用
         public StateMachine StateMachine { get; private set; }
@@ -853,16 +868,114 @@ namespace BBBNexus
 
         private void InitializeEquipments()
         {
+            InstantiateServices();
             InitializeMaxCoreState();
             InventoryController.Initialize();
+            InitializeInventoryService();
             InitializeEquipmentServiceDefaults();
             RestoreEquippedItemsFromService();
         }
 
+        /// <summary>
+        /// 根据 Inspector 中存储的类型全名，通过反射创建各服务实例
+        /// Hub 先创建，各 Service 通过无参构造函数创建，然后通过 Initialize(IHub) 初始化
+        /// </summary>
+        private void InstantiateServices()
+        {
+            Hub = InstantiateHubByTypeName(HubTypeName);
+            EquipmentService = InstantiateServiceByTypeName<IEquipmentService>(EquipmentServiceTypeName);
+            InventoryService = InstantiateServiceByTypeName<IInventoryService>(InventoryServiceTypeName);
+            CharStateService = InstantiateServiceByTypeName<ICharStateService>(CharStateServiceTypeName);
+
+            // 使用 IHubService.Initialize(IHub) 初始化服务
+            (EquipmentService as IHubService)?.Initialize(Hub);
+            (InventoryService as IHubService)?.Initialize(Hub);
+            (CharStateService as IHubService)?.Initialize(Hub);
+        }
+
+        private static IHub InstantiateHubByTypeName(string typeName)
+        {
+            if (string.IsNullOrWhiteSpace(typeName)) return null;
+            var type = ResolveServiceType(typeName);
+            if (type == null)
+            {
+                Debug.LogError($"[BBBCharacterController] Hub 类型找不到: {typeName}");
+                return null;
+            }
+            try
+            {
+                return (IHub)Activator.CreateInstance(type);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[BBBCharacterController] Hub 实例化失败 ({typeName}): {ex.Message}");
+                return null;
+            }
+        }
+
+        private static T InstantiateServiceByTypeName<T>(string typeName) where T : class
+        {
+            if (string.IsNullOrWhiteSpace(typeName)) return null;
+            var type = ResolveServiceType(typeName);
+            if (type == null)
+            {
+                Debug.LogError($"[BBBCharacterController] 服务类型找不到: {typeName}");
+                return null;
+            }
+            try
+            {
+                // 使用无参构造函数创建服务实例
+                return (T)Activator.CreateInstance(type);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[BBBCharacterController] 服务实例化失败 ({typeName}): {ex.Message}");
+                return null;
+            }
+        }
+
+        private static Type ResolveServiceType(string typeName)
+        {
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                try
+                {
+                    var t = assembly.GetType(typeName);
+                    if (t != null) return t;
+                }
+                catch { }
+            }
+            return null;
+        }
+
+        private void InitializeInventoryService()
+        {
+            if (InventoryService == null)
+            {
+                Debug.LogWarning("[BBBCharacterController] InventoryService 未配置，跳过背包初始化");
+                return;
+            }
+            InventoryService.Initialize();
+        }
+
         private void InitializeMaxCoreState()
         {
-            CharMaxStatePackVfs.EnsureDefaultMaxCoreState(this);
-            CharMaxStatePackVfs.ApplyToOwner(this, refillCurrent: true);
+            if (CharStateService == null)
+            {
+                Debug.LogWarning("[BBBCharacterController] CharStateService 未配置，使用 Config 默认值");
+                ApplyMaxCoreState(CreateDefaultMaxCoreStateData(), refillCurrent: true);
+                return;
+            }
+
+            CharStateService.Initialize();
+
+            if (!CharStateService.TryGetMaxCoreState(out var data))
+            {
+                data = CreateDefaultMaxCoreStateData();
+                CharStateService.SetMaxCoreState(data);
+            }
+
+            ApplyMaxCoreState(data, refillCurrent: true);
         }
 
         private void InitializeEquipmentServiceDefaults()
@@ -883,11 +996,11 @@ namespace BBBNexus
             }
 
             // 初始化配置槽位（只初始化启用的槽位）
-            if (IsConfigSlotEnabled("weapon:1")) SeedDebugConfigSlot(DebugMainhandEquipment1, "weapon:1");
-            if (IsConfigSlotEnabled("weapon:2")) SeedDebugConfigSlot(DebugMainhandEquipment2, "weapon:2");
-            if (IsConfigSlotEnabled("weapon:3")) SeedDebugConfigSlot(DebugMainhandEquipment3, "weapon:3");
-            if (IsConfigSlotEnabled("weapon:4")) SeedDebugConfigSlot(DebugMainhandEquipment4, "weapon:4");
-            if (IsConfigSlotEnabled("weapon:5")) SeedDebugConfigSlot(DebugMainhandEquipment5, "weapon:5");
+            if (IsConfigSlotEnabled("config:weapon1")) SeedDebugConfigSlot(DebugMainhandEquipment1, "config:weapon1");
+            if (IsConfigSlotEnabled("config:weapon2")) SeedDebugConfigSlot(DebugMainhandEquipment2, "config:weapon2");
+            if (IsConfigSlotEnabled("config:weapon3")) SeedDebugConfigSlot(DebugMainhandEquipment3, "config:weapon3");
+            if (IsConfigSlotEnabled("config:weapon4")) SeedDebugConfigSlot(DebugMainhandEquipment4, "config:weapon4");
+            if (IsConfigSlotEnabled("config:weapon5")) SeedDebugConfigSlot(DebugMainhandEquipment5, "config:weapon5");
         }
 
         private bool IsConfigSlotEnabled(string key)
@@ -925,7 +1038,7 @@ namespace BBBNexus
                     // 尝试从启用的配置槽位找一个默认装备
                     for (int i = 1; i <= 5; i++)
                     {
-                        var configKey = $"weapon:{i}";
+                        var configKey = $"config:weapon{i}";
                         if (!IsConfigSlotEnabled(configKey)) continue;
 
                         var configId = EquipmentService.GetEquippedSO(configKey);
@@ -983,11 +1096,6 @@ namespace BBBNexus
             LocalGraphHub ??= new LocalGraphHub(GraphInstanceSlot.System);
             LocalPackDataDict ??= new Dictionary<string, BasePackData>();
             LocalGraphHub.SetPackDataDict(LocalPackDataDict);
-        }
-
-        public void EnsureLocalPackReady(string packId)
-        {
-            PackVfs.EnsurePackExists(this, packId);
         }
 
         public MaxCoreStateData CreateDefaultMaxCoreStateData()

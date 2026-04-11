@@ -9,11 +9,11 @@ namespace BBBNexus
     public enum ConfigSlotFlags
     {
         None = 0,
-        Weapon1 = 1 << 0,   // weapon:1
-        Weapon2 = 1 << 1,   // weapon:2
-        Weapon3 = 1 << 2,   // weapon:3
-        Weapon4 = 1 << 3,   // weapon:4
-        Weapon5 = 1 << 4,   // weapon:5
+        Weapon1 = 1 << 0,   // config:weapon1
+        Weapon2 = 1 << 1,   // config:weapon2
+        Weapon3 = 1 << 2,   // config:weapon3
+        Weapon4 = 1 << 3,   // config:weapon4
+        Weapon5 = 1 << 4,   // config:weapon5
         All = Weapon1 | Weapon2 | Weapon3 | Weapon4 | Weapon5
     }
 
@@ -56,11 +56,11 @@ namespace BBBNexus
         public string[] GetEnabledConfigSlotKeys()
         {
             var slots = new System.Collections.Generic.List<string>();
-            if ((EnabledConfigSlots & ConfigSlotFlags.Weapon1) != 0) slots.Add("weapon:1");
-            if ((EnabledConfigSlots & ConfigSlotFlags.Weapon2) != 0) slots.Add("weapon:2");
-            if ((EnabledConfigSlots & ConfigSlotFlags.Weapon3) != 0) slots.Add("weapon:3");
-            if ((EnabledConfigSlots & ConfigSlotFlags.Weapon4) != 0) slots.Add("weapon:4");
-            if ((EnabledConfigSlots & ConfigSlotFlags.Weapon5) != 0) slots.Add("weapon:5");
+            if ((EnabledConfigSlots & ConfigSlotFlags.Weapon1) != 0) slots.Add("config:weapon1");
+            if ((EnabledConfigSlots & ConfigSlotFlags.Weapon2) != 0) slots.Add("config:weapon2");
+            if ((EnabledConfigSlots & ConfigSlotFlags.Weapon3) != 0) slots.Add("config:weapon3");
+            if ((EnabledConfigSlots & ConfigSlotFlags.Weapon4) != 0) slots.Add("config:weapon4");
+            if ((EnabledConfigSlots & ConfigSlotFlags.Weapon5) != 0) slots.Add("config:weapon5");
             return slots.ToArray();
         }
 
@@ -84,11 +84,11 @@ namespace BBBNexus
         {
             return key switch
             {
-                "weapon:1" => (EnabledConfigSlots & ConfigSlotFlags.Weapon1) != 0,
-                "weapon:2" => (EnabledConfigSlots & ConfigSlotFlags.Weapon2) != 0,
-                "weapon:3" => (EnabledConfigSlots & ConfigSlotFlags.Weapon3) != 0,
-                "weapon:4" => (EnabledConfigSlots & ConfigSlotFlags.Weapon4) != 0,
-                "weapon:5" => (EnabledConfigSlots & ConfigSlotFlags.Weapon5) != 0,
+                "config:weapon1" => (EnabledConfigSlots & ConfigSlotFlags.Weapon1) != 0,
+                "config:weapon2" => (EnabledConfigSlots & ConfigSlotFlags.Weapon2) != 0,
+                "config:weapon3" => (EnabledConfigSlots & ConfigSlotFlags.Weapon3) != 0,
+                "config:weapon4" => (EnabledConfigSlots & ConfigSlotFlags.Weapon4) != 0,
+                "config:weapon5" => (EnabledConfigSlots & ConfigSlotFlags.Weapon5) != 0,
                 _ => false
             };
         }
@@ -115,11 +115,11 @@ namespace BBBNexus
         {
             return key switch
             {
-                "weapon:1" => "快捷栏1",
-                "weapon:2" => "快捷栏2",
-                "weapon:3" => "快捷栏3",
-                "weapon:4" => "快捷栏4",
-                "weapon:5" => "快捷栏5",
+                "config:weapon1" => "快捷栏1",
+                "config:weapon2" => "快捷栏2",
+                "config:weapon3" => "快捷栏3",
+                "config:weapon4" => "快捷栏4",
+                "config:weapon5" => "快捷栏5",
                 "instance:mainhand" => "主手",
                 "instance:offhand" => "副手",
                 "instance:head" => "头部",

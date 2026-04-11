@@ -59,7 +59,7 @@ namespace BBBNexus
         public int GetQuickHealItemCount()
         {
             var healItem = ResolveQuickHealItem();
-            return healItem == null || _player == null ? 0 : ItemPackVfs.GetItemCount(healItem.ItemID, _player);
+            return healItem == null || _player?.InventoryService == null ? 0 : _player.InventoryService.GetCount(healItem);
         }
 
         private void ProcessToggleEyes()
@@ -157,7 +157,7 @@ namespace BBBNexus
                 return;
             }
 
-            if (!ItemPackVfs.TryConsumeItem(healItem.ItemID, 1, _player))
+            if (_player.InventoryService == null || !_player.InventoryService.TryRemove(healItem, 1))
             {
                 ShowMessage(healItem.EmptyMessageTitle, healItem.EmptyMessageBody);
                 return;
@@ -165,7 +165,7 @@ namespace BBBNexus
 
             if (!_player.TryHeal(healItem.HealAmount))
             {
-                ItemPackVfs.TryAddItem(healItem.ItemID, 1, _player);
+                _player.InventoryService.TryAdd(healItem, 1);
             }
         }
 

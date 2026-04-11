@@ -6,7 +6,7 @@ namespace BBBNexus
     /// <summary>
     /// 库存系统接口 - 无序物品管理器喵~
     /// 不负责物品实例化，只代理 IHub 数据库访问
-    /// 对外暴露 SO 接口，内部存储 ItemId
+    /// 对外暴露 SO 接口，内部存储请自己实现。
     /// </summary>
     public interface IInventoryService
     {

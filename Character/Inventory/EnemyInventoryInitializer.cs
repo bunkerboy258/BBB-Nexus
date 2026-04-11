@@ -76,7 +76,7 @@ namespace BBBNexus
                 int addCount = entry.Count;
                 if (_seedMode == SeedMode.EnsureMinimum)
                 {
-                    int currentCount = ItemPackVfs.GetItemCount(itemId, _owner);
+                    int currentCount = _owner.InventoryService?.GetCount(entry.Item) ?? 0;
                     addCount = Mathf.Max(0, entry.Count - currentCount);
                 }
 
@@ -85,7 +85,7 @@ namespace BBBNexus
                     continue;
                 }
 
-                if (!ItemPackVfs.TryAddItem(itemId, addCount, _owner))
+                if (_owner.InventoryService == null || _owner.InventoryService.TryAdd(entry.Item, addCount) == 0)
                 {
                     Debug.LogWarning($"[EnemyInventoryInitializer] Failed to add item '{itemId}' x{addCount}.", this);
                 }

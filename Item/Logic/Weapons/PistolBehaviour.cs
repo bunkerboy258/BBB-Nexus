@@ -486,69 +486,14 @@ namespace BBBNexus
         private void LoadAmmoState()
         {
             if (_instance == null) return;
-
-            string weaponSoName = _config.name;
-            string primaryStateKey = ResolveAmmoStateKey();
-            string legacyStateKey = ResolveLegacyAmmoStateKey();
-
-            if (AmmoPackVfs.TryGetAmmoState(weaponSoName, out var ammoState, _player, primaryStateKey, legacyStateKey))
-            {
-                _cachedAmmoState = ammoState;
-                _hasCachedAmmo = true;
-                SaveAmmoState();
-            }
-            else
-            {
-                _cachedAmmoState = new AmmoStateData
-                {
-                    CurrentMagazine = 0,
-                    ReserveAmmo = 0,
-                    ShotsFired = 0
-                };
-                _hasCachedAmmo = true;
-                SaveAmmoState();
-            }
-
-            if (AmmoPackVfs.TryGetReloadState(weaponSoName, out var reloadState, _player, primaryStateKey, legacyStateKey))
-            {
-                _cachedReloadState = reloadState;
-                SaveReloadState();
-            }
-            else
-            {
-                _cachedReloadState = new ReloadStateData();
-            }
+            _cachedAmmoState = new AmmoStateData { CurrentMagazine = 0, ReserveAmmo = 0, ShotsFired = 0 };
+            _hasCachedAmmo = true;
+            _cachedReloadState = new ReloadStateData();
         }
 
-        /// <summary>
-        /// 保存弹药状态到 AmmoPack喵~
-        /// </summary>
-        private void SaveAmmoState()
-        {
-            if (_instance == null || !_hasCachedAmmo) return;
-            string weaponSoName = _config.name;
-            AmmoPackVfs.SetAmmoState(weaponSoName, ResolveAmmoStateKey(), _cachedAmmoState, _player);
-        }
+        private void SaveAmmoState() { }
 
-        /// <summary>
-        /// 保存换弹状态到 AmmoPack喵~
-        /// </summary>
-        private void SaveReloadState()
-        {
-            if (_instance == null || _cachedReloadState == null) return;
-            string weaponSoName = _config.name;
-            AmmoPackVfs.SetReloadState(weaponSoName, ResolveAmmoStateKey(), _cachedReloadState, _player);
-        }
-
-        private string ResolveAmmoStateKey()
-        {
-            return AmmoPackVfs.BuildWeaponStateKey(_instance, CurrentEquipSlot);
-        }
-
-        private string ResolveLegacyAmmoStateKey()
-        {
-            return _instance != null ? _instance.InstanceID : null;
-        }
+        private void SaveReloadState() { }
 
         /// <summary>
         /// 尝试换弹喵~
@@ -613,43 +558,15 @@ namespace BBBNexus
 
         private int ResolveReserveAmmo()
         {
-            if (_player == null || _config == null)
-            {
-                return _hasCachedAmmo && _cachedAmmoState != null ? _cachedAmmoState.ReserveAmmo : 0;
-            }
-
-            if (_config.AmmoItem == null || string.IsNullOrWhiteSpace(_config.AmmoItem.ItemID))
-            {
-                return _hasCachedAmmo && _cachedAmmoState != null ? _cachedAmmoState.ReserveAmmo : 0;
-            }
-
-            return ItemPackVfs.GetItemCount(_config.AmmoItem.ItemID, _player);
+            if (_player == null || _config == null) return 0;
+            return AmmoService.GetReserveAmmo(_player.InventoryService, _config.AmmoItem);
         }
 
         private bool TryConsumeReserveAmmo(int amount)
         {
-            if (amount <= 0)
-            {
-                return true;
-            }
-
-            if (_player == null || _config == null)
-            {
-                return false;
-            }
-
-            if (_config.AmmoItem == null || string.IsNullOrWhiteSpace(_config.AmmoItem.ItemID))
-            {
-                if (_cachedAmmoState == null || _cachedAmmoState.ReserveAmmo < amount)
-                {
-                    return false;
-                }
-
-                _cachedAmmoState.ReserveAmmo -= amount;
-                return true;
-            }
-
-            return ItemPackVfs.TryConsumeItem(_config.AmmoItem.ItemID, amount, _player);
+            if (amount <= 0) return true;
+            if (_player == null || _config == null) return false;
+            return AmmoService.TryConsumeReserveAmmo(_player.InventoryService, _config.AmmoItem, amount);
         }
 
         public void OnSpawned()

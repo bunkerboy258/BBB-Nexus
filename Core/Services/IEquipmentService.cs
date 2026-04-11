@@ -16,7 +16,7 @@ namespace BBBNexus
         /// 甲：获取【某栏目】的装备SO配置喵~
         /// 通常在准备实例化时调用
         /// </summary>
-        /// <param name="slotKey">栏目key，如 "weapon:1", "armor:head"</param>
+        /// <param name="slotKey">栏目key，如 "config:weapon1", "instance:mainhand"</param>
         /// <returns>EquippableItemSO 的名字（ItemId），null 表示空槽</returns>
         string GetEquippedSO(string slotKey);
 
@@ -72,6 +72,28 @@ namespace BBBNexus
         /// 初始化装备服务，确保在任何访问前完成注册和准备喵~
         /// </summary>
         void Initialize();
+
+        // ========== 配置槽位快捷操作（新增） ==========
+
+        /// <summary>
+        /// 将指定配置槽位的装备复制到实例槽位（主手）
+        /// </summary>
+        /// <param name="configSlotIndex">配置槽位索引 0-4 对应 weapon1-5</param>
+        /// <returns>是否成功</returns>
+        bool TryEquipFromConfig(int configSlotIndex);
+
+        /// <summary>
+        /// 获取配置槽位当前的装备ID
+        /// </summary>
+        /// <param name="configSlotIndex">配置槽位索引 0-4</param>
+        /// <returns>ItemId 或 null</returns>
+        string GetConfigSlotItemId(int configSlotIndex);
+
+        /// <summary>
+        /// 卸下当前主手装备（清空 instance:mainhand）
+        /// </summary>
+        /// <returns>是否成功</returns>
+        bool TryUnequipMainHand();
     }
 
     /// <summary>
@@ -79,7 +101,7 @@ namespace BBBNexus
     /// </summary>
     public class SlotDefinition
     {
-        /// <summary>栏目Key，如 "weapon:1", "armor:head"</summary>
+        /// <summary>栏目Key，如 "config:weapon1", "instance:mainhand"</summary>
         public string Key { get; set; }
 
         /// <summary>显示名称，如 "主手武器", "头部护甲"</summary>

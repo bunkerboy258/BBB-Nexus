@@ -22,7 +22,8 @@ public static class PrefabExeHandler
         SignalContext context,
         BasePackData pack,
         GraphRunner runner,
-        string packInstanceID)
+        string packInstanceID,
+        System.Action continueAction)
     {
         var data = JsonConvert.DeserializeObject<PrefabSpawnData>(dataJson);
         if (data == null)

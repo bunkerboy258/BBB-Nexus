@@ -1283,67 +1283,28 @@ namespace BBBNexus
 
         private int ResolveReserveAmmo()
         {
-            if (_player == null || _config == null) return _hasCachedAmmo && _cachedAmmoState != null ? _cachedAmmoState.ReserveAmmo : 0;
-            if (_config.AmmoItem == null || string.IsNullOrWhiteSpace(_config.AmmoItem.ItemID))
-                return _hasCachedAmmo && _cachedAmmoState != null ? _cachedAmmoState.ReserveAmmo : 0;
-            return ItemPackVfs.GetItemCount(_config.AmmoItem.ItemID, _player);
+            if (_player == null || _config == null) return 0;
+            return AmmoService.GetReserveAmmo(_player.InventoryService, _config.AmmoItem);
         }
 
         private bool TryConsumeReserveAmmo(int amount)
         {
             if (amount <= 0) return true;
             if (_player == null || _config == null) return false;
-            if (_config.AmmoItem == null || string.IsNullOrWhiteSpace(_config.AmmoItem.ItemID))
-            {
-                if (_cachedAmmoState == null || _cachedAmmoState.ReserveAmmo < amount) return false;
-                _cachedAmmoState.ReserveAmmo -= amount; return true;
-            }
-            return ItemPackVfs.TryConsumeItem(_config.AmmoItem.ItemID, amount, _player);
+            return AmmoService.TryConsumeReserveAmmo(_player.InventoryService, _config.AmmoItem, amount);
         }
 
         private void LoadAmmoState()
         {
             if (_instance == null) return;
-            string name = _config.name;
-            string primaryStateKey = ResolveAmmoStateKey();
-            string legacyStateKey = ResolveLegacyAmmoStateKey();
-            if (AmmoPackVfs.TryGetAmmoState(name, out var ammo, _player, primaryStateKey, legacyStateKey))
-            { _cachedAmmoState = ammo; _hasCachedAmmo = true; }
-            else
-            { _cachedAmmoState = new AmmoStateData { CurrentMagazine = 0, ReserveAmmo = 0, ShotsFired = 0 }; _hasCachedAmmo = true; SaveAmmoState(); }
-
-            if (AmmoPackVfs.TryGetReloadState(name, out var reload, _player, primaryStateKey, legacyStateKey))
-                _cachedReloadState = reload;
-            else
-                _cachedReloadState = new ReloadStateData();
-
-            if (_hasCachedAmmo)
-                SaveAmmoState();
-            if (_cachedReloadState != null)
-                SaveReloadState();
+            _cachedAmmoState = new AmmoStateData { CurrentMagazine = 0, ReserveAmmo = 0, ShotsFired = 0 };
+            _hasCachedAmmo = true;
+            _cachedReloadState = new ReloadStateData();
         }
 
-        private void SaveAmmoState()
-        {
-            if (_instance == null || !_hasCachedAmmo) return;
-            AmmoPackVfs.SetAmmoState(_config.name, ResolveAmmoStateKey(), _cachedAmmoState, _player);
-        }
+        private void SaveAmmoState() { }
 
-        private void SaveReloadState()
-        {
-            if (_instance == null || _cachedReloadState == null) return;
-            AmmoPackVfs.SetReloadState(_config.name, ResolveAmmoStateKey(), _cachedReloadState, _player);
-        }
-
-        private string ResolveAmmoStateKey()
-        {
-            return AmmoPackVfs.BuildWeaponStateKey(_instance, CurrentEquipSlot);
-        }
-
-        private string ResolveLegacyAmmoStateKey()
-        {
-            return _instance != null ? _instance.InstanceID : null;
-        }
+        private void SaveReloadState() { }
 
         // ─────────────────────────────────────────────────────
         // 工具

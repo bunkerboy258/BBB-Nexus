@@ -10,22 +10,17 @@ namespace BBBNexus
         private BBBCharacterController _player;
         private PlayerRuntimeData _data;
 
-        public InventorySystem MainInventory { get; private set; }
-        public InventorySystem HotbarInventory { get; private set; }
-
         private int _currentSlotIndex = -1;
 
         // 配置槽位和实例槽位的 key 映射
-        private readonly string[] _configSlotKeys = new[] { "weapon:1", "weapon:2", "weapon:3", "weapon:4", "weapon:5" };
+        private readonly string[] _configSlotKeys = new[] { "config:weapon1", "config:weapon2", "config:weapon3", "config:weapon4", "config:weapon5" };
         private const string InstanceMainhandKey = "instance:mainhand";
         private const string InstanceOffhandKey = "instance:offhand";
 
         public PlayerInventoryController(BBBCharacterController player)
         {
             _player = player;
-            _data = player.RuntimeData; 
-            MainInventory = new InventorySystem(20);
-            HotbarInventory = new InventorySystem(5);
+            _data = player.RuntimeData;
         }
 
         public void Initialize()
@@ -55,49 +50,6 @@ namespace BBBNexus
 
                 _data.WantToEquipSlotIndex = -1;
             }
-        }
-
-        public void AssignItemToSlot(int slotIndex, ItemInstance itemInstance)
-        {
-            if (slotIndex < 0 || slotIndex >= 5) return;
-            if (itemInstance == null) return;
-
-            var oldItem = HotbarInventory.SetAt(slotIndex, itemInstance);
-            if (oldItem != null)
-            {
-                MainInventory.TryAdd(oldItem);
-            }
-            //Debug.Log($"[Inventory] 快捷栏[{slotIndex + 1}] 绑定: {itemInstance.BaseData.DisplayName}");
-        }
-
-        public bool MoveToHotbar(InventorySystem source, int sourceSlot, int hotbarSlot)
-        {
-            if (source == null || sourceSlot < 0 || hotbarSlot < 0 || hotbarSlot >= 5) return false;
-
-            var itemToMove = source.RemoveAt(sourceSlot);
-            if (itemToMove == null) return false;
-
-            var oldItem = HotbarInventory.SetAt(hotbarSlot, itemToMove);
-            if (oldItem != null)
-            {
-                source.SetAt(sourceSlot, oldItem);
-            }
-            return true;
-        }
-
-        public bool MoveToInventory(InventorySystem source, int sourceSlot, int inventorySlot)
-        {
-            if (source == null || sourceSlot < 0 || inventorySlot < 0 || inventorySlot >= 20) return false;
-
-            var itemToMove = source.RemoveAt(sourceSlot);
-            if (itemToMove == null) return false;
-
-            var oldItem = MainInventory.SetAt(inventorySlot, itemToMove);
-            if (oldItem != null)
-            {
-                source.SetAt(sourceSlot, oldItem);
-            }
-            return true;
         }
 
         // 尝试切换指定数字槽位对应的主手装备。
@@ -325,16 +277,10 @@ namespace BBBNexus
 
         private void OnEquipmentChanged()
         {
+            // 只更新索引，不触发装备操作（避免递归）
+            // 装备操作应由调用方（UI/热键）直接完成
             if (_player == null) return;
 
-            var current = _player.RuntimeData.CurrentItem;
-            if (current == null)
-            {
-                _currentSlotIndex = -1;
-                return;
-            }
-
-            // 通过 IEquipmentService 反查当前主手装备对应的配置槽位
             var service = _player.EquipmentService;
             if (service == null)
             {
@@ -342,6 +288,7 @@ namespace BBBNexus
                 return;
             }
 
+            // 获取当前主手实例槽位的装备ID
             var mainhandId = service.GetEquippedSO(InstanceMainhandKey);
             if (string.IsNullOrWhiteSpace(mainhandId))
             {
@@ -349,7 +296,7 @@ namespace BBBNexus
                 return;
             }
 
-            // 查找哪个配置槽位包含这个装备
+            // 更新当前槽位索引（用于热键逻辑）
             for (int i = 0; i < _configSlotKeys.Length; i++)
             {
                 var configId = service.GetEquippedSO(_configSlotKeys[i]);
