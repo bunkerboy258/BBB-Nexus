@@ -5,8 +5,7 @@
     /// 支持四个额外动作槽位（与 Expression 系统完全独立）
     /// 
     /// 用途说明：
-    /// - ExtraAction1：闭眼交互（Toggle 状态）
-    /// - ExtraAction2-4：预留未来扩展（如特殊技能、情境动作等）
+    /// - ExtraAction1~4：通用槽位，语义由外部 IExtraActionService 实现定义
     /// 
     /// 与 Expression 系统的区别：
     /// - Expression：专用于面部表情/动画（按键 6789）
@@ -28,10 +27,9 @@
         /// </summary>
         public void Update(in ProcessedInputData input)
         {
-            if (input.ToggleEyesPressed)
+            if (input.ExtraAction1Pressed)
             {
-                _data.WantsToggleEyes = true;
-                _input?.ConsumeToggleEyesPressed();
+                _data.WantsExtraAction1 = true;
             }
 
             if (input.ReloadPressed)
@@ -48,15 +46,23 @@
 
             if (input.InventoryPressed)
             {
-                _data.WantsOpenInventory = true;
-                UnityEngine.Debug.Log($"[InventoryTrace] frame={UnityEngine.Time.frameCount} WantsOpenInventory=true");
+                _data.WantsToggleInventory = true;
                 _input?.ConsumeInventoryPressed();
+            }
+
+            if (input.ExtraAction2Pressed)
+            {
+                _data.WantsExtraAction2 = true;
+            }
+
+            if (input.ExtraAction3Pressed)
+            {
+                _data.WantsExtraAction3 = true;
             }
 
             if (input.ExtraAction4Pressed)
             {
                 _data.WantsExtraAction4 = true;
-                _input?.ConsumeExtraAction4Pressed();
             }
         }
     }

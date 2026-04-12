@@ -71,7 +71,7 @@ MonoBehaviour:
   VirtualOtherSlot:
     Enabled: 1
     TargetSlot: 2
-    ItemId: Fists
+    LinkedItem: {fileID: 11400000}
   EquipSounds:
   - {fileID: 8300000, guid: b0eddbe92b9c249b6a3e6913ea2dc163, type: 3}
   UnEquipSounds:

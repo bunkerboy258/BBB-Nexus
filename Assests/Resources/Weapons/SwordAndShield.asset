@@ -71,7 +71,7 @@ MonoBehaviour:
   VirtualOtherSlot:
     Enabled: 1
     TargetSlot: 2
-    ItemId: BaseShield
+    LinkedItem: {fileID: 11400000, guid: 68a5e70f9fc31c946ba0f288904310d4, type: 2}
   EquipSounds:
   - {fileID: 8300000, guid: 792be152b215a48fdb3d086593b0111b, type: 3}
   UnEquipSounds: []

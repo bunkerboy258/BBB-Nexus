@@ -210,11 +210,10 @@ namespace BBBNexus
             if (inv == null || equip == null) { _statusMessage = "服务未初始化。"; return; }
 
             // 如果目标槽已有旧装备，先放回背包
-            var oldItemId = equip.GetEquippedSO($"config:weapon{mainSlotIndex}");
-            if (!string.IsNullOrWhiteSpace(oldItemId))
+            var oldSO = equip.GetEquippedSO($"config:weapon{mainSlotIndex}");
+            if (oldSO != null)
             {
-                var oldSO = MetaLib.GetObject<ItemDefinitionSO>(oldItemId);
-                if (oldSO != null) inv.TryAdd(oldSO, 1);
+                inv.TryAdd(oldSO, 1);
             }
 
             // 从背包移除新装备
@@ -228,18 +227,14 @@ namespace BBBNexus
             equip.TrySetEquipSO($"config:weapon{mainSlotIndex}", slot.ItemId);
 
             // 直接触发装备切换（从配置槽复制到实例槽并实例化）
-            var itemId = equip.GetConfigSlotItemId(mainSlotIndex - 1);
-            if (!string.IsNullOrWhiteSpace(itemId))
+            var configSO = equip.GetEquippedSO($"config:weapon{mainSlotIndex}");
+            if (configSO != null)
             {
                 equip.TryEquipFromConfig(mainSlotIndex - 1);
                 // 触发实际装备实例化
-                var itemSO = MetaLib.GetObject<EquippableItemSO>(itemId);
-                if (itemSO != null)
-                {
-                    var instance = new ItemInstance(itemSO, null, 1);
-                    _player.EquipmentDriver.EquipItemToSlot(instance, EquipmentSlot.MainHand);
-                    _player.RuntimeData.CurrentItem = instance;
-                }
+                var instance = new ItemInstance(configSO, null, 1);
+                _player.EquipmentDriver.EquipItemToSlot(instance, EquipmentSlot.MainHand);
+                _player.RuntimeData.CurrentItem = instance;
                 _statusMessage = $"已放入主手槽 {mainSlotIndex} 并切换装备。";
             }
             else
@@ -289,9 +284,11 @@ namespace BBBNexus
                 var allItems = inv.GetAllItems();
                 foreach (var pair in allItems)
                 {
-                    var so = MetaLib.GetObject<ItemDefinitionSO>(pair.Key);
-                    if (so == null) continue;
-                    snap.Items.Add(new ItemSlot { ItemId = pair.Key, Count = pair.Value, Definition = so });
+                    // 背包中存的是 ID，需要通过其他方式获取 SO
+                    // TODO: 需要 InventoryService 提供 ID -> SO 的映射
+                    // 暂时跳过 MetaLib 查询
+                    if (string.IsNullOrWhiteSpace(pair.Key)) continue;
+                    snap.Items.Add(new ItemSlot { ItemId = pair.Key, Count = pair.Value, Definition = null });
                 }
                 snap.Items.Sort((a, b) => string.Compare(a.DisplayName, b.DisplayName, System.StringComparison.Ordinal));
             }
@@ -299,10 +296,15 @@ namespace BBBNexus
             var equip = _player.EquipmentService;
             if (equip != null)
             {
-                snap.MainHandItemId = equip.GetEquippedSO("instance:mainhand");
-                snap.OffHandItemId = equip.GetEquippedSO("instance:offhand");
+                var mainhandSO = equip.GetEquippedSO("instance:mainhand");
+                var offhandSO = equip.GetEquippedSO("instance:offhand");
+                snap.MainHandItemId = mainhandSO != null ? mainhandSO.name : null;
+                snap.OffHandItemId = offhandSO != null ? offhandSO.name : null;
                 for (int i = 1; i <= 5; i++)
-                    snap.MainSlotItemIds[i - 1] = equip.GetEquippedSO($"config:weapon{i}");
+                {
+                    var slotSO = equip.GetEquippedSO($"config:weapon{i}");
+                    snap.MainSlotItemIds[i - 1] = slotSO != null ? slotSO.name : null;
+                }
 
                 if (!string.IsNullOrWhiteSpace(snap.MainHandItemId))
                 {
@@ -356,8 +358,8 @@ namespace BBBNexus
         private string FormatItemId(string itemId)
         {
             if (string.IsNullOrWhiteSpace(itemId)) return "-";
-            var so = MetaLib.GetObject<ItemDefinitionSO>(itemId);
-            return so != null && !string.IsNullOrWhiteSpace(so.DisplayName) ? so.DisplayName : itemId;
+            // TODO: 需要通过其他方式获取 DisplayName，暂时显示 itemId
+            return itemId;
         }
 
         // ──────────────── GUI ────────────────

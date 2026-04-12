@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using UnityEngine;
 
@@ -91,20 +91,11 @@ namespace BBBNexus
                 return;
             }
 
-            // 从配置槽位获取装备 ID
-            var itemId = service.GetEquippedSO(configKey);
-            if (string.IsNullOrWhiteSpace(itemId))
-            {
-                // 配置槽位为空，不切换
-                ConsumeHotbarKey(slotIndex);
-                return;
-            }
-
-            // 获取 SO 检查 VirtualOtherSlot
-            var itemSO = MetaLib.GetObject<EquippableItemSO>(itemId);
+            // 从配置槽位获取装备 SO
+            var itemSO = service.GetEquippedSO(configKey);
             if (itemSO == null)
             {
-                Debug.LogError($"[PlayerInventoryController] 无法从 MetaLib 获取装备: {itemId}");
+                // 配置槽位为空，不切换
                 ConsumeHotbarKey(slotIndex);
                 return;
             }
@@ -113,10 +104,10 @@ namespace BBBNexus
             HandleVirtualOtherSlotOnUnequip();
 
             // 复制到实例槽位（主手）- 配置槽位保留原装备
-            if (service.TrySetEquipSO(InstanceMainhandKey, itemId))
+            if (service.TrySetEquipSO(InstanceMainhandKey, itemSO))
             {
                 // 实例化主手装备
-                var mainhandInstance = CreateAndEquipInstance(itemId, EquipmentSlot.MainHand);
+                var mainhandInstance = CreateAndEquipInstance(itemSO, EquipmentSlot.MainHand);
                 if (mainhandInstance != null)
                 {
                     _player.RuntimeData.CurrentItem = mainhandInstance;
@@ -150,33 +141,25 @@ namespace BBBNexus
             if (!IsInstanceSlotEnabled(InstanceOffhandKey)) return;
 
             // 检查副手是否已有装备，如果有则先记录（用于后续恢复）
-            var currentOffhandId = service.GetEquippedSO(InstanceOffhandKey);
-            if (!string.IsNullOrWhiteSpace(currentOffhandId))
+            var currentOffhandSO = service.GetEquippedSO(InstanceOffhandKey);
+            if (currentOffhandSO != null)
             {
                 // 将当前副手存到隐藏槽位
-                service.TrySetEquipSO("hide:offhand", currentOffhandId);
+                service.TrySetEquipSO("hide:offhand", currentOffhandSO);
             }
 
             // 装备联动的副手武器
-            var linkedItemId = linkedItem.name;
-            if (service.TrySetEquipSO(InstanceOffhandKey, linkedItemId))
+            if (service.TrySetEquipSO(InstanceOffhandKey, linkedItem))
             {
-                CreateAndEquipInstance(linkedItemId, EquipmentSlot.OffHand);
+                CreateAndEquipInstance(linkedItem, EquipmentSlot.OffHand);
             }
         }
 
         /// <summary>
         /// 创建并装备实例
         /// </summary>
-        private ItemInstance CreateAndEquipInstance(string itemId, EquipmentSlot slot)
+        private ItemInstance CreateAndEquipInstance(EquippableItemSO itemSO, EquipmentSlot slot)
         {
-            var itemSO = MetaLib.GetObject<EquippableItemSO>(itemId);
-            if (itemSO == null)
-            {
-                Debug.LogError($"[PlayerInventoryController] 无法获取装备SO: {itemId}");
-                return null;
-            }
-
             // 创建实例
             var instance = new ItemInstance(itemSO, null, 1);
 
@@ -248,15 +231,14 @@ namespace BBBNexus
             var service = _player.EquipmentService;
             if (service == null) return;
 
-            // 获取当前主手装备
-            var mainhandId = service.GetEquippedSO(InstanceMainhandKey);
-            if (string.IsNullOrWhiteSpace(mainhandId)) return;
+            // 从当前装备实例获取 SO（避免 MetaLib 查询）
+            var currentItem = _player.RuntimeData.CurrentItem;
+            if (currentItem?.BaseData == null) return;
 
-            var mainhandSO = MetaLib.GetObject<EquippableItemSO>(mainhandId);
-            if (mainhandSO == null) return;
+            var mainhandSO = currentItem.BaseData as EquippableItemSO;
 
             // 检查是否有 VirtualOtherSlot 联动
-            if (!mainhandSO.VirtualOtherSlot.Enabled) return;
+            if (mainhandSO == null || !mainhandSO.VirtualOtherSlot.Enabled) return;
 
             var targetSlot = mainhandSO.VirtualOtherSlot.TargetSlot;
             if (targetSlot != EquipmentSlot.OffHand) return;
@@ -268,11 +250,11 @@ namespace BBBNexus
                 _player.EquipmentDriver.UnequipOffhand();
 
                 // 尝试恢复隐藏槽位的装备
-                var hiddenId = service.GetEquippedSO("hide:offhand");
-                if (!string.IsNullOrWhiteSpace(hiddenId))
+                var hiddenSO = service.GetEquippedSO("hide:offhand");
+                if (hiddenSO != null)
                 {
-                    service.TrySetEquipSO(InstanceOffhandKey, hiddenId);
-                    CreateAndEquipInstance(hiddenId, EquipmentSlot.OffHand);
+                    service.TrySetEquipSO(InstanceOffhandKey, hiddenSO);
+                    CreateAndEquipInstance(hiddenSO, EquipmentSlot.OffHand);
                     service.TryRemoveEquipped("hide:offhand");
                 }
             }
@@ -291,9 +273,9 @@ namespace BBBNexus
                 return;
             }
 
-            // 获取当前主手实例槽位的装备ID
-            var mainhandId = service.GetEquippedSO(InstanceMainhandKey);
-            if (string.IsNullOrWhiteSpace(mainhandId))
+            // 获取当前主手实例槽位的装备SO
+            var mainhandSO = service.GetEquippedSO(InstanceMainhandKey);
+            if (mainhandSO == null)
             {
                 _currentSlotIndex = -1;
                 return;
@@ -302,8 +284,8 @@ namespace BBBNexus
             // 更新当前槽位索引（用于热键逻辑）
             for (int i = 0; i < _configSlotKeys.Length; i++)
             {
-                var configId = service.GetEquippedSO(_configSlotKeys[i]);
-                if (mainhandId == configId)
+                var configSO = service.GetEquippedSO(_configSlotKeys[i]);
+                if (mainhandSO == configSO)
                 {
                     _currentSlotIndex = i;
                     return;

@@ -13,7 +13,11 @@ namespace BBBNexus
     }
 }
 
-#if UNITY_EDITOR
+// Editor-only timeline overlay (ITransitionGUI) 已拆分到 FistsComboTransition.Editor.cs
+// 由于 partial class 不能跨程序集，该实现需要在 BBBNexus.Editor 内以
+// CustomPropertyDrawer 形式重新实现后才能恢复喵~
+
+#if UNITY_EDITOR_DISABLED
 namespace BBBNexus
 {
     using System;

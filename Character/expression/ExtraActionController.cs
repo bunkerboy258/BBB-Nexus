@@ -3,22 +3,17 @@
 namespace BBBNexus
 {
     /// <summary>
-    /// 额外动作控制器 — 处理扩展行为输入（如闭眼、特殊交互等）
+    /// 额外动作控制器 — 处理扩展行为输入
     /// 架构模式：纯 C# 类，由 BBBCharacterController 在 Awake 实例化，Update 调用
     ///
     /// 设计说明：
-    /// - 使用独立的 ExtraAction1-4 输入槽位（与 Expression 系统完全分离）
-    /// - ExtraAction1：闭眼交互（Toggle 状态）
-    /// - ExtraAction2-4：预留未来扩展（如特殊技能、情境动作等）
+    /// - ExtraAction1~4 为通用槽位，语义由外部 IExtraActionService 实现定义
+    /// - ExtraAction1~4 意图通过 IExtraActionService.PushIntents() 推送给外部服务
+    /// - Reload / UseItem 为 BBBNexus 内部行为，直接处理
     ///
     /// 与 Expression 系统的区别：
     /// - Expression：专用于面部表情/动画（按键 6789）
-    /// - ExtraAction：专用于游戏逻辑/特殊交互（独立绑定）
-    ///
-    /// 扩展方式：
-    /// - 新增额外动作时，添加新的 ProcessExtraActionX 方法
-    /// - 在 WantsExtraActionX 中存储意图
-    /// - 在 ExtraActionController 中添加具体实现
+    /// - ExtraAction：专用于游戏逻辑/特殊交互（独立绑定，语义外部定义）
     /// </summary>
     public class ExtraActionController
     {
@@ -26,29 +21,30 @@ namespace BBBNexus
 
         private readonly BBBCharacterController _player;
         private readonly PlayerRuntimeData _runtimeData;
-        private readonly EyesClosedSystemManager _eyesClosedManager;
 
         // 状态追踪（边沿检测）
-        private bool _lastToggleEyes;
         private bool _lastReload;
         private bool _lastUseItem;
-        private bool _lastOpenInventory;
-        private bool _lastExtraAction4;
+        private bool _lastToggleInventory;
 
-        public ExtraActionController(BBBCharacterController player, PlayerRuntimeData runtimeData, EyesClosedSystemManager eyesClosedManager)
+        public ExtraActionController(BBBCharacterController player, PlayerRuntimeData runtimeData)
         {
             _player = player;
             _runtimeData = runtimeData;
-            _eyesClosedManager = eyesClosedManager;
         }
 
         public void Update()
         {
-            ProcessToggleEyes();
             ProcessReload();
             ProcessUseItem();
-            ProcessOpenInventory();
-            ProcessExtraAction4();
+            ProcessToggleInventory();
+
+            ExtraActionServiceRegistry.Current?.PushIntents(new ExtraActionIntents(
+                _runtimeData.WantsExtraAction1,
+                _runtimeData.WantsExtraAction2,
+                _runtimeData.WantsExtraAction3,
+                _runtimeData.WantsExtraAction4
+            ));
         }
 
         public void TriggerQuickHealFromUi()
@@ -60,24 +56,6 @@ namespace BBBNexus
         {
             var healItem = ResolveQuickHealItem();
             return healItem == null || _player?.InventoryService == null ? 0 : _player.InventoryService.GetCount(healItem);
-        }
-
-        private void ProcessToggleEyes()
-        {
-            bool currentIntent = _runtimeData.WantsToggleEyes;
-            bool justPressed = currentIntent && !_lastToggleEyes;
-            _lastToggleEyes = currentIntent;
-
-            if (!justPressed || _eyesClosedManager == null) return;
-
-            if (_eyesClosedManager.IsSanityDepleted)
-            {
-                // 理智耗尽：只允许在格挡反应窗口内通过睁眼触发完美格挡，否则忽略输入
-                _eyesClosedManager.TryTriggerDepletedPerfectParry();
-                return;
-            }
-
-            _eyesClosedManager.ForceSetEyesClosed(!_eyesClosedManager.IsEyesClosed);
         }
 
         private void ProcessReload()
@@ -96,23 +74,12 @@ namespace BBBNexus
             _lastUseItem = currentIntent;
         }
 
-        private void ProcessOpenInventory()
+        private void ProcessToggleInventory()
         {
-            bool currentIntent = _runtimeData.WantsOpenInventory;
-            if (currentIntent && !_lastOpenInventory)
-            {
-                Debug.Log($"[InventoryTrace] frame={Time.frameCount} ProcessOpenInventory edge overlayPresent={_player?.InventoryOverlay != null} isOpen={_player?.InventoryOverlay?.IsOpen ?? false}", _player);
+            bool currentIntent = _runtimeData.WantsToggleInventory;
+            if (currentIntent && !_lastToggleInventory)
                 _player?.InventoryOverlay?.Toggle();
-            }
-            _lastOpenInventory = currentIntent;
-        }
-
-        private void ProcessExtraAction4()
-        {
-            bool currentIntent = _runtimeData.WantsExtraAction4;
-            if (currentIntent && !_lastExtraAction4)
-                Debug.Log("[ExtraActionController] ExtraAction4 触发（预留）");
-            _lastExtraAction4 = currentIntent;
+            _lastToggleInventory = currentIntent;
         }
 
         private void TryManualReload()

@@ -53,11 +53,14 @@ namespace BBBNexus
         public bool Expression7JustPressed;
         public bool Expression8JustPressed;
 
-        public bool ToggleEyesJustPressed;
-        public bool HoldEyesHeld;
+        public bool ExtraAction1JustPressed;
+        public bool ExtraAction1Held;
         public bool ReloadJustPressed;
         public bool UseItemJustPressed;
         public bool InventoryJustPressed;
+        public bool InventoryHeld;
+        public bool ExtraAction2JustPressed;
+        public bool ExtraAction3JustPressed;
         public bool ExtraAction4JustPressed;
 
         public bool Number1JustPressed;
@@ -95,7 +98,9 @@ namespace BBBNexus
         public bool Expression7Held;
         public bool Expression8Held;
 
-        public bool HoldEyesHeld;
+        public bool ExtraAction1Held;
+        public bool ExtraAction2Held;
+        public bool ExtraAction3Held;
         public bool ExtraAction4Held;
 
         public bool Number1Held;
@@ -121,10 +126,12 @@ namespace BBBNexus
         public float Expression7BufferTimer;
         public float Expression8BufferTimer;
 
-        public float ToggleEyesBufferTimer;
+        public float ExtraAction1BufferTimer;
         public float ReloadBufferTimer;
         public float UseItemBufferTimer;
         public float InventoryBufferTimer;
+        public float ExtraAction2BufferTimer;
+        public float ExtraAction3BufferTimer;
         public float ExtraAction4BufferTimer;
 
         public float Number1BufferTimer;
@@ -150,10 +157,12 @@ namespace BBBNexus
         public bool Expression7Pressed => Expression7BufferTimer > 0f;
         public bool Expression8Pressed => Expression8BufferTimer > 0f;
 
-        public bool ToggleEyesPressed   => ToggleEyesBufferTimer   > 0f;
+        public bool ExtraAction1Pressed   => ExtraAction1BufferTimer   > 0f;
         public bool ReloadPressed       => ReloadBufferTimer       > 0f;
         public bool UseItemPressed      => UseItemBufferTimer      > 0f;
         public bool InventoryPressed    => InventoryBufferTimer    > 0f;
+        public bool ExtraAction2Pressed => ExtraAction2BufferTimer > 0f;
+        public bool ExtraAction3Pressed => ExtraAction3BufferTimer > 0f;
         public bool ExtraAction4Pressed => ExtraAction4BufferTimer > 0f;
 
         public bool Number1Pressed => Number1BufferTimer > 0f;

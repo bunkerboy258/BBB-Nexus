@@ -17,8 +17,8 @@ namespace BBBNexus
         /// 通常在准备实例化时调用
         /// </summary>
         /// <param name="slotKey">栏目key，如 "config:weapon1", "instance:mainhand"</param>
-        /// <returns>EquippableItemSO 的名字（ItemId），null 表示空槽</returns>
-        string GetEquippedSO(string slotKey);
+        /// <returns>EquippableItemSO ，null 表示空槽</returns>
+        EquippableItemSO GetEquippedSO(string slotKey);
 
         /// <summary>
         /// 乙：销毁【某栏目】的装备SO喵~
@@ -37,15 +37,15 @@ namespace BBBNexus
         /// </summary>
         /// <param name="slotKey">栏目key</param>
         /// <param name="itemId">EquippableItemSO 的名字</param>
-        bool TrySetEquipSO(string slotKey, string itemId);
+        bool TrySetEquipSO(string slotKey, EquippableItemSO equippableItemSO);
 
         // ========== 批量/查询 ==========
 
         /// <summary>
         /// 获取所有已装备的栏目喵~
         /// </summary>
-        /// <returns>栏目key → ItemId 的映射</returns>
-        Dictionary<string, string> GetAllEquipped();
+        /// <returns>栏目key → EquippableItemSO 的映射</returns>
+        Dictionary<string, EquippableItemSO> GetAllEquipped();
 
         /// <summary>
         /// 查询某栏目是否有装备喵~

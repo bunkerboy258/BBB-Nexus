@@ -292,20 +292,5 @@ namespace BBBNexus
         public string folder;
     }
 
-    internal sealed class MetaLibDuplicateDto
-    {
-        public string id;
-        public string[] assetPaths;
-        public string[] resourcePaths;
-    }
-
-    [Serializable]
-    internal sealed class MetaLibSoRebuildResponse
-    {
-        public bool updated;
-        public int preservedCount;
-        public int registeredSoCount;
-        public MetaLibDuplicateDto[] duplicates;
-    }
 }
 #endif

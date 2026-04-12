@@ -276,9 +276,7 @@ namespace BBBNexus
             ActionController = new ActionController(this);
             AudioController = new AudioController(this);
 
-            // 额外动作控制器（需要 EyesClosedSystemManager 引用）
-            var eyesClosedManager = FindObjectOfType<EyesClosedSystemManager>();
-            ExtraActionController = new ExtraActionController(this, RuntimeData, eyesClosedManager);
+            ExtraActionController = new ExtraActionController(this, RuntimeData);
 
             // 替身格挡处理器（可选，优先同物体，其次回退到子物体）
             ParryHandler = GetComponent<ParryHandler>();
@@ -1022,8 +1020,8 @@ namespace BBBNexus
             // 恢复主手装备（如果槽位启用）
             if (IsInstanceSlotEnabled("instance:mainhand"))
             {
-                var mainhandId = EquipmentService.GetEquippedSO("instance:mainhand");
-                if (string.IsNullOrWhiteSpace(mainhandId))
+                var itemSO = EquipmentService.GetEquippedSO("instance:mainhand");
+                if (itemSO == null)
                 {
                     // 尝试从启用的配置槽位找一个默认装备
                     for (int i = 1; i <= 5; i++)
@@ -1031,45 +1029,37 @@ namespace BBBNexus
                         var configKey = $"config:weapon{i}";
                         if (!IsConfigSlotEnabled(configKey)) continue;
 
-                        var configId = EquipmentService.GetEquippedSO(configKey);
-                        if (!string.IsNullOrWhiteSpace(configId))
+                        var configSO = EquipmentService.GetEquippedSO(configKey);
+                        if (configSO != null)
                         {
                             // 复制模式：配置槽位保留，实例槽位设置
-                            EquipmentService.TrySetEquipSO("instance:mainhand", configId);
-                            mainhandId = configId;
+                            EquipmentService.TrySetEquipSO("instance:mainhand", configSO);
+                            itemSO = configSO;
                             break;
                         }
                     }
                 }
 
-                if (!string.IsNullOrWhiteSpace(mainhandId))
+                if (itemSO != null)
                 {
                     // 直接通过 EquipmentDriver 装备
-                    var itemSO = MetaLib.GetObject<EquippableItemSO>(mainhandId);
-                    if (itemSO != null)
-                    {
-                        var instance = new ItemInstance(itemSO, null, 1);
-                        EquipmentDriver.EquipItemToSlot(instance, EquipmentSlot.MainHand);
-                        RuntimeData.CurrentItem = instance;
+                    var instance = new ItemInstance(itemSO, null, 1);
+                    EquipmentDriver.EquipItemToSlot(instance, EquipmentSlot.MainHand);
+                    RuntimeData.CurrentItem = instance;
 
-                        // 处理 VirtualOtherSlot 联动（开局恢复）
-                        InventoryController?.HandleVirtualOtherSlotOnEquip(itemSO);
-                    }
+                    // 处理 VirtualOtherSlot 联动（开局恢复）
+                    InventoryController?.HandleVirtualOtherSlotOnEquip(itemSO);
                 }
             }
 
             // 恢复副手装备（如果槽位启用）
             if (IsInstanceSlotEnabled("instance:offhand"))
             {
-                var offhandId = EquipmentService.GetEquippedSO("instance:offhand");
-                if (!string.IsNullOrWhiteSpace(offhandId))
+                var offhandSO = EquipmentService.GetEquippedSO("instance:offhand");
+                if (offhandSO != null)
                 {
-                    var itemSO = MetaLib.GetObject<EquippableItemSO>(offhandId);
-                    if (itemSO != null)
-                    {
-                        var instance = new ItemInstance(itemSO, null, 1);
-                        EquipmentDriver.EquipItemToSlot(instance, EquipmentSlot.OffHand);
-                    }
+                    var instance = new ItemInstance(offhandSO, null, 1);
+                    EquipmentDriver.EquipItemToSlot(instance, EquipmentSlot.OffHand);
                 }
             }
         }

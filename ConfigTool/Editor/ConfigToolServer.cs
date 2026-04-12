@@ -258,12 +258,6 @@ namespace BBBNexus
                         return JsonUtility.ToJson(ConfigToolAssetService.RenameAsset(dto.path, dto.name));
                     });
 
-                case "/metas/rebuild-so":
-                    return RunBody(request, _ =>
-                    {
-                        return JsonUtility.ToJson(ConfigToolAssetService.RebuildMetaLibSoEntries());
-                    });
-
                 case "/assets/inspect":
                     return RunBody(request, body =>
                     {

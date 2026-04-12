@@ -43,19 +43,24 @@ namespace BBBNexus
         public InputActionReference expression7Action;
         public InputActionReference expression8Action;
 
-        [Header("游戏专属动作输入引用")]
-        [Tooltip("切换闭眼（tap）→ ExtraAction1JustPressed")]
-        public InputActionReference toggleEyesAction;
-        [Tooltip("按住闭眼（hold）→ ExtraAction1Held")]
-        public InputActionReference holdEyesAction;
-        [Tooltip("换弹 R 键 → ExtraAction2JustPressed")]
+        [Header("通用额外动作槽位（语义由外部服务定义）")]
+        [Tooltip("ExtraAction1 输入 → ExtraAction1JustPressed/ExtraAction1Held")]
+        public InputActionReference extraAction1Action;
+        public InputActionReference extraAction1HoldAction;
+        [Tooltip("ExtraAction2 输入 → ExtraAction2JustPressed")]
+        public InputActionReference extraAction2Action;
+        [Tooltip("ExtraAction3 输入 → ExtraAction3JustPressed")]
+        public InputActionReference extraAction3Action;
+        [Tooltip("ExtraAction4 输入 → ExtraAction4JustPressed")]
+        public InputActionReference extraAction4Action;
+
+        [Header("BBBNexus 内部行为")]
+        [Tooltip("换弹 R 键 → ReloadJustPressed")]
         public InputActionReference reloadAction;
-        [Tooltip("使用道具 F 键 → ExtraAction3JustPressed")]
+        [Tooltip("使用道具 F 键 → UseItemJustPressed")]
         public InputActionReference useItemAction;
         [Tooltip("打开背包 Tab 键 → InventoryJustPressed")]
         public InputActionReference inventoryAction;
-        [Tooltip("预留 → ExtraAction4JustPressed")]
-        public InputActionReference extraAction4Action;
         #endregion
 
         private InputAction _resolvedReloadFallback;   // 兜底：从 asset 里找 "Reload"
@@ -121,17 +126,14 @@ namespace BBBNexus
             rawData.Expression7JustPressed = expression7Action != null && expression7Action.action.WasPressedThisFrame();
             rawData.Expression8JustPressed = expression8Action != null && expression8Action.action.WasPressedThisFrame();
 
-            rawData.ToggleEyesJustPressed   = toggleEyesAction  != null && toggleEyesAction.action.WasPressedThisFrame();
-            rawData.HoldEyesHeld            = holdEyesAction    != null && holdEyesAction.action.IsPressed();
+            rawData.ExtraAction1JustPressed = extraAction1Action != null && extraAction1Action.action.WasPressedThisFrame();
+            rawData.ExtraAction1Held        = extraAction1HoldAction != null && extraAction1HoldAction.action.IsPressed();
             rawData.ReloadJustPressed       = WasPressedThisFrame(reloadAction,  _resolvedReloadFallback);
             rawData.UseItemJustPressed      = WasPressedThisFrame(useItemAction, _resolvedUseItemFallback);
-            rawData.InventoryJustPressed    = inventoryAction   != null && inventoryAction.action.WasPressedThisFrame();
+            rawData.InventoryJustPressed    = inventoryAction != null && inventoryAction.action.WasPressedThisFrame();
+            rawData.ExtraAction2JustPressed = extraAction2Action != null && extraAction2Action.action.WasPressedThisFrame();
+            rawData.ExtraAction3JustPressed = extraAction3Action != null && extraAction3Action.action.WasPressedThisFrame();
             rawData.ExtraAction4JustPressed = extraAction4Action != null && extraAction4Action.action.WasPressedThisFrame();
-
-            if (rawData.InventoryJustPressed)
-            {
-                Debug.Log($"[InventoryTrace] frame={Time.frameCount} InventoryJustPressed=true actionBound={inventoryAction != null}", this);
-            }
 
             rawData.Number1JustPressed = number1Action != null && number1Action.action.WasPressedThisFrame();
             rawData.Number2JustPressed = number2Action != null && number2Action.action.WasPressedThisFrame();
@@ -159,7 +161,8 @@ namespace BBBNexus
                 number1Action, number2Action, number3Action, number4Action, number5Action,
                 expression1Action, expression2Action, expression3Action, expression4Action,
                 expression5Action, expression6Action, expression7Action, expression8Action,
-                toggleEyesAction, holdEyesAction, reloadAction, useItemAction, inventoryAction, extraAction4Action
+                extraAction1Action, extraAction1HoldAction, extraAction2Action, extraAction3Action, extraAction4Action,
+                reloadAction, useItemAction
             };
 
             foreach (var ar in all)
@@ -186,7 +189,8 @@ namespace BBBNexus
                 moveAction, lookAction, jumpAction, sprintAction, walkAction,
                 aimAction, dodgeAction, rollAction, interactAction,
                 primaryAttackAction, secondaryAttackAction,
-                toggleEyesAction, holdEyesAction, reloadAction, useItemAction, inventoryAction, extraAction4Action
+                extraAction1Action, extraAction1HoldAction, extraAction2Action, extraAction3Action, extraAction4Action,
+                reloadAction, useItemAction
             };
 
             foreach (var actionRef in all)
