@@ -2,8 +2,6 @@ using Animancer;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using NekoGraph;
-
 namespace BBBNexus
 {
     /// <summary>
@@ -124,9 +122,6 @@ namespace BBBNexus
         public EquipmentDriver EquipmentDriver { get; private set; }
         public AnimationFacadeBase AnimFacade { get; private set; }
         public AudioDriver AudioDriver { get; private set; }
-        public LocalGraphHub LocalGraphHub { get; private set; }
-        public Dictionary<string, BasePackData> LocalPackDataDict { get; private set; }
-
         // 状态注册表
         public PlayerStateRegistry StateRegistry { get; private set; }
 
@@ -242,10 +237,6 @@ namespace BBBNexus
 
             // 音频驱动器：如果没配 AudioSource 或模块，则 driver 仍可存在但会静默忽略播放请求。
             AudioDriver = new AudioDriver(transform, SfxSource, Config != null ? Config.Audio : null);
-
-            LocalGraphHub = new LocalGraphHub(GraphInstanceSlot.System);
-            LocalPackDataDict = new Dictionary<string, BasePackData>();
-            LocalGraphHub.SetPackDataDict(LocalPackDataDict);
 
             // 实例化仲裁管线
             ArbiterPipeline = new ArbiterPipeline(this);
@@ -441,7 +432,6 @@ namespace BBBNexus
 
             MainProcessorPipeline.UpdateIntentProcessors();
 
-            LocalGraphHub?.Tick();
             InteractionSensor?.Tick();
 
             InventoryController.Update();
@@ -1061,6 +1051,9 @@ namespace BBBNexus
                         var instance = new ItemInstance(itemSO, null, 1);
                         EquipmentDriver.EquipItemToSlot(instance, EquipmentSlot.MainHand);
                         RuntimeData.CurrentItem = instance;
+
+                        // 处理 VirtualOtherSlot 联动（开局恢复）
+                        InventoryController?.HandleVirtualOtherSlotOnEquip(itemSO);
                     }
                 }
             }
@@ -1085,17 +1078,6 @@ namespace BBBNexus
         {
             if (StateRegistry.InitialState != null) StateMachine.Initialize(StateRegistry.InitialState);
             if (UpperBodyCtrl.StateRegistry.InitialState != null) UpperBodyCtrl.StateMachine.Initialize(UpperBodyCtrl.StateRegistry.InitialState);
-        }
-
-        /// <summary>
-        /// 确保本地 Pack 存在喵~
-        /// 非玩家单位（小怪）使用此方法初始化本地 Pack
-        /// </summary>
-        public void EnsureLocalPackStorageReady()
-        {
-            LocalGraphHub ??= new LocalGraphHub(GraphInstanceSlot.System);
-            LocalPackDataDict ??= new Dictionary<string, BasePackData>();
-            LocalGraphHub.SetPackDataDict(LocalPackDataDict);
         }
 
         public MaxCoreStateData CreateDefaultMaxCoreStateData()

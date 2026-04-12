@@ -97,5 +97,22 @@ namespace BBBNexus
         /// 初始化库存系统，确保后端结构存在喵~
         /// </summary>
         void Initialize();
+
+        // ========== 批量/事务操作（新增） ==========
+
+        /// <summary>
+        /// 检查是否有足够空间添加指定物品喵~
+        /// </summary>
+        bool CanAdd(ItemDefinitionSO itemSO, int count);
+
+        /// <summary>
+        /// 批量添加物品（事务性：全部成功或全部失败）喵~
+        /// </summary>
+        bool TryAddBatch(IEnumerable<(ItemDefinitionSO Item, int Count)> entries, out int totalAdded);
+
+        /// <summary>
+        /// 批量移除物品（事务性：全部成功或全部失败）喵~
+        /// </summary>
+        bool TryRemoveBatch(IEnumerable<(ItemDefinitionSO Item, int Count)> entries);
     }
 }

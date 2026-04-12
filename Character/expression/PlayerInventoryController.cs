@@ -109,6 +109,9 @@ namespace BBBNexus
                 return;
             }
 
+            // 切换前卸除旧武器的 VirtualOtherSlot 联动
+            HandleVirtualOtherSlotOnUnequip();
+
             // 复制到实例槽位（主手）- 配置槽位保留原装备
             if (service.TrySetEquipSO(InstanceMainhandKey, itemId))
             {
@@ -128,9 +131,9 @@ namespace BBBNexus
         }
 
         /// <summary>
-        /// 处理 VirtualOtherSlot 联动装备
+        /// 处理 VirtualOtherSlot 联动装备（开局恢复时也会调用）
         /// </summary>
-        private void HandleVirtualOtherSlotOnEquip(EquippableItemSO mainhandSO)
+        public void HandleVirtualOtherSlotOnEquip(EquippableItemSO mainhandSO)
         {
             if (!mainhandSO.VirtualOtherSlot.Enabled) return;
 
