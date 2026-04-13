@@ -71,7 +71,7 @@ namespace BBBNexus
         }
 
         private BBBCharacterController _player;
-        private FistsSO _config;
+        private WeaponSO _config;
         private ItemInstance _instance;
         private FistHitbox _hitbox;
 
@@ -103,7 +103,7 @@ namespace BBBNexus
         public void Initialize(ItemInstance instanceData)
         {
             _instance = instanceData;
-            _config = instanceData?.GetSODataAs<FistsSO>();
+            _config = instanceData?.GetSODataAs<WeaponSO>();
 
             if (_config != null)
             {
@@ -119,7 +119,7 @@ namespace BBBNexus
             {
                 _hitbox.SetOwner(player);
                 _hitbox.Deactivate();
-                _hitbox.SetAttackGeometryId(_config != null ? _config.GetAttackGeometryId() : null);
+                _hitbox.SetAttackGeometryDefinition(_config?.AttackGeometry);
                 _hitbox.HitRegistered -= OnHitRegistered;
                 _hitbox.HitRegistered += OnHitRegistered;
 
@@ -607,7 +607,7 @@ namespace BBBNexus
                 return null;
             }
 
-            AttackClipGeometryDefinition definition = AttackClipGeometryLibrary.LoadOrNull(_config.GetAttackGeometryId());
+            AttackClipGeometryDefinition definition = _config.AttackGeometry;
             return definition?.GetClip(_activeAttackContext.ComboIndex);
         }
 

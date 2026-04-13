@@ -23,7 +23,7 @@ namespace BBBNexus
         public bool EnableIK = false;
 
         // ───────────────────────────────────────────
-        // 近战连招（来自 FistsSO）
+        // 近战连招
         // ───────────────────────────────────────────
 
         [Header("--- 近战连招 ---")]
@@ -37,7 +37,7 @@ namespace BBBNexus
         public bool ExitUsesLock = false;
 
         [Tooltip("连招动画序列，按顺序播放，长度决定最大连招段数")]
-        public FistsComboTransition[] ComboSequence;
+        public MeleeComboTransition[] ComboSequence;
 
         [Tooltip("每段连招的出手（MainHand / OffHand / BothHands）")]
         public FistsAttackHand[] ComboAttackHands;
@@ -61,7 +61,10 @@ namespace BBBNexus
         [Tooltip("前摇对齐时使用的最大转向角速度（度/秒）")]
         public float AutoTargetTurnSpeed = 540f;
 
-        [Tooltip("Attack Clip Geometry Definition 的 MetaLib ID。留空时回退到 <资产名>_AttackSweep")]
+        [Tooltip("Attack Clip Geometry Definition 数据（ScriptableObject）。直接引用，不再通过 MetaLib ID 查询。")]
+        public AttackClipGeometryDefinition AttackGeometry;
+
+        [Obsolete("改用 AttackGeometry 字段直接引用 SO")]
         public string AttackGeometryId;
 
         [Header("--- HitStop ---")]
@@ -177,7 +180,7 @@ namespace BBBNexus
         public CameraExpressionSO AimingCameraPreset;
 
         // ───────────────────────────────────────────
-        // 辅助方法（与 FistsSO 一致）
+        // 辅助方法
         // ───────────────────────────────────────────
 
         public bool HasMelee => ComboSequence != null && ComboSequence.Length > 0;
@@ -216,6 +219,12 @@ namespace BBBNexus
             return FistsAlignmentWindowSidecar.Default;
         }
 
+        public AttackClipGeometryDefinition GetAttackGeometryDefinition()
+        {
+            return AttackGeometry;
+        }
+
+        [Obsolete("改用 AttackGeometry SO 引用")]
         public string GetAttackGeometryId()
         {
             if (!string.IsNullOrWhiteSpace(AttackGeometryId))
@@ -223,6 +232,7 @@ namespace BBBNexus
             return $"{name}_AttackSweep";
         }
 
+        [Obsolete("改用 GetAttackGeometryDefinition()")]
         public string GetAttackGeometryResourcePath()
             => $"AttackClipGeometry/{GetAttackGeometryId()}";
 
@@ -250,3 +260,5 @@ namespace BBBNexus
         }
     }
 }
+
+

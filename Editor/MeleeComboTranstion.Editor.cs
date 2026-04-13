@@ -1,34 +1,14 @@
-﻿using Animancer;
+using System.Collections.Generic;
+using Animancer;
+using Animancer.Editor;
+using Animancer.Editor.Previews;
+using UnityEditor;
+using UnityEngine;
+using Object = UnityEngine.Object;
 
-namespace BBBNexus
+namespace BBBNexus.Editor
 {
-    [System.Serializable]
-    public partial class FistsComboTransition : ClipTransition
-    {
-        [UnityEngine.SerializeField, UnityEngine.HideInInspector]
-        private string _StableKey;
-
-        public override object Key
-            => string.IsNullOrEmpty(_StableKey) ? this : _StableKey;
-    }
-}
-
-// Editor-only timeline overlay (ITransitionGUI) 已拆分到 FistsComboTransition.Editor.cs
-// 由于 partial class 不能跨程序集，该实现需要在 BBBNexus.Editor 内以
-// CustomPropertyDrawer 形式重新实现后才能恢复喵~
-
-#if UNITY_EDITOR_DISABLED
-namespace BBBNexus
-{
-    using System;
-    using System.Collections.Generic;
-    using Animancer.Editor;
-    using Animancer.Editor.Previews;
-    using UnityEditor;
-    using UnityEngine;
-    using Object = UnityEngine.Object;
-
-    public partial class FistsComboTransition : ITransitionGUI
+    internal static class MeleeComboTranstionOverlayRegistry
     {
         private enum OverlayKind
         {
@@ -61,31 +41,24 @@ namespace BBBNexus
             }
         }
 
-        private static readonly Dictionary<string, List<OverlayData>> OverlayByPropertyKey = new Dictionary<string, List<OverlayData>>();
-        private static readonly Color DamageEnabledColor = new Color(0.9f, 0.2f, 0.2f, 0.38f);
-        private static readonly Color DamageDisabledColor = new Color(0.45f, 0.2f, 0.2f, 0.18f);
-        private static readonly Color ExtraDamageEnabledColor = new Color(0.95f, 0.5f, 0.15f, 0.38f);
-        private static readonly Color ExtraDamageDisabledColor = new Color(0.45f, 0.28f, 0.12f, 0.18f);
-        private static readonly Color AlignmentEnabledColor = new Color(0.95f, 0.28f, 0.72f, 0.34f);
-        private static readonly Color AlignmentDisabledColor = new Color(0.42f, 0.18f, 0.34f, 0.16f);
-        private static readonly Color DamagePreviewBannerColor = new Color(0.82f, 0.16f, 0.16f, 0.82f);
-        private static readonly Color ExtraDamagePreviewBannerColor = new Color(0.92f, 0.45f, 0.12f, 0.82f);
-        private static readonly Color AlignmentPreviewBannerColor = new Color(0.95f, 0.22f, 0.66f, 0.84f);
-        private static GUIStyle _PreviewBannerStyle;
+        private static readonly Dictionary<string, List<OverlayData>> OverlayByPropertyKey = new();
+        private static readonly Color DamageEnabledColor = new(0.9f, 0.2f, 0.2f, 0.38f);
+        private static readonly Color DamageDisabledColor = new(0.45f, 0.2f, 0.2f, 0.18f);
+        private static readonly Color ExtraDamageEnabledColor = new(0.95f, 0.5f, 0.15f, 0.38f);
+        private static readonly Color ExtraDamageDisabledColor = new(0.45f, 0.28f, 0.12f, 0.18f);
+        private static readonly Color AlignmentEnabledColor = new(0.95f, 0.28f, 0.72f, 0.34f);
+        private static readonly Color AlignmentDisabledColor = new(0.42f, 0.18f, 0.34f, 0.16f);
+        private static readonly Color DamagePreviewBannerColor = new(0.82f, 0.16f, 0.16f, 0.82f);
+        private static readonly Color ExtraDamagePreviewBannerColor = new(0.92f, 0.45f, 0.12f, 0.82f);
+        private static readonly Color AlignmentPreviewBannerColor = new(0.95f, 0.22f, 0.66f, 0.84f);
+        private static GUIStyle _previewBannerStyle;
 
         public static void SetOverlay(string propertyKey, bool enabled, float startNormalized, float endNormalized)
-        {
-            SetOverlay(propertyKey, OverlayKind.Damage, enabled, startNormalized, endNormalized);
-        }
+            => SetOverlay(propertyKey, OverlayKind.Damage, enabled, startNormalized, endNormalized);
 
         public static void SetAlignmentOverlay(string propertyKey, bool enabled, float startNormalized, float endNormalized)
-        {
-            SetOverlay(propertyKey, OverlayKind.Alignment, enabled, startNormalized, endNormalized);
-        }
+            => SetOverlay(propertyKey, OverlayKind.Alignment, enabled, startNormalized, endNormalized);
 
-        /// <summary>
-        /// 设置额外伤害窗口 overlay。会移除所有旧的 ExtraDamage 条目后重新添加。
-        /// </summary>
         public static void SetExtraDamageOverlays(string propertyKey, bool parentEnabled, DamageSubWindow[] extraWindows)
         {
             if (!OverlayByPropertyKey.TryGetValue(propertyKey, out var overlays))
@@ -94,10 +67,9 @@ namespace BBBNexus
                 OverlayByPropertyKey[propertyKey] = overlays;
             }
 
-            // 移除所有旧的 ExtraDamage
             overlays.RemoveAll(o => o.Kind == OverlayKind.ExtraDamage);
-
-            if (extraWindows == null || !parentEnabled) return;
+            if (extraWindows == null || !parentEnabled)
+                return;
 
             for (int i = 0; i < extraWindows.Length; i++)
             {
@@ -108,6 +80,99 @@ namespace BBBNexus
                     StartNormalized = extraWindows[i].StartNormalized,
                     EndNormalized = extraWindows[i].EndNormalized,
                 });
+            }
+        }
+
+        public static string GetPropertyKey(SerializedProperty property)
+        {
+            Object target = property.serializedObject.targetObject;
+            int id = target != null ? target.GetInstanceID() : 0;
+            return id + ":" + property.propertyPath;
+        }
+
+        public static void ClearOverlayCache()
+            => OverlayByPropertyKey.Clear();
+
+        public static void DrawPreviewSceneGUI()
+        {
+            SerializedProperty property = TransitionDrawer.Context.Property;
+            if (property == null)
+                return;
+
+            if (!OverlayByPropertyKey.TryGetValue(GetPropertyKey(property), out List<OverlayData> overlays) || overlays.Count == 0)
+                return;
+
+            float previewNormalizedTime = TransitionPreviewWindow.PreviewNormalizedTime;
+            bool hasBanner = false;
+            OverlayKind bannerKind = OverlayKind.Damage;
+            for (int i = 0; i < overlays.Count; i++)
+            {
+                OverlayData overlay = overlays[i];
+                if (!overlay.Enabled)
+                    continue;
+
+                if (!TryGetEffectiveWindow(property, overlay, out _, out _, out EffectiveWindowData window))
+                    continue;
+
+                float previewTime = previewNormalizedTime * GetClip(property).length;
+                float min = Mathf.Min(window.EffectiveStart, window.EffectiveEnd);
+                float max = Mathf.Max(window.EffectiveStart, window.EffectiveEnd);
+                if (previewTime < min || previewTime > max)
+                    continue;
+
+                hasBanner = true;
+                bannerKind = overlay.Kind;
+                break;
+            }
+
+            if (!hasBanner)
+                return;
+
+            Handles.BeginGUI();
+            try
+            {
+                _previewBannerStyle ??= new GUIStyle(EditorStyles.boldLabel)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    normal = { textColor = Color.white },
+                    padding = new RectOffset(10, 10, 4, 4),
+                };
+
+                Rect area = new Rect(14f, 14f, 120f, 24f);
+                EditorGUI.DrawRect(area, GetPreviewBannerColor(bannerKind));
+                GUI.Label(area, GetPreviewBannerLabel(bannerKind), _previewBannerStyle);
+            }
+            finally
+            {
+                Handles.EndGUI();
+            }
+        }
+
+        public static void DrawTimelineBackgroundGUI()
+        {
+            if (Event.current.type != EventType.Repaint)
+                return;
+
+            SerializedProperty property = TransitionDrawer.Context.Property;
+            if (property == null)
+                return;
+
+            if (!OverlayByPropertyKey.TryGetValue(GetPropertyKey(property), out List<OverlayData> overlays) || overlays.Count == 0)
+                return;
+
+            TimelineGUI timeline = TimelineGUI.Current;
+            if (timeline == null)
+                return;
+
+            float overlayHeight = Mathf.Max(4f, (timeline.Area.height - timeline.TickHeight) / 2f);
+            for (int i = 0; i < overlays.Count; i++)
+            {
+                OverlayData overlay = overlays[i];
+                if (!TryGetEffectiveWindow(property, overlay, out _, out _, out EffectiveWindowData window))
+                    continue;
+
+                DrawOverlayRect(timeline, window.DominantStart, window.DominantEnd, overlayHeight, GetOverlayDomainColor(overlay.Kind, overlay.Enabled));
+                DrawOverlayRect(timeline, window.EffectiveStart, window.EffectiveEnd, overlayHeight, GetOverlayColor(overlay.Kind, overlay.Enabled));
             }
         }
 
@@ -148,110 +213,11 @@ namespace BBBNexus
             }
         }
 
-        public static string GetPropertyKey(SerializedProperty property)
-        {
-            Object target = property.serializedObject.targetObject;
-            int id = target != null ? target.GetInstanceID() : 0;
-            return id + ":" + property.propertyPath;
-        }
-
-        public static void ClearOverlayCache()
-        {
-            OverlayByPropertyKey.Clear();
-        }
-
-        public void OnPreviewSceneGUI(TransitionPreviewDetails details)
-        {
-            SerializedProperty property = TransitionDrawer.Context.Property;
-            if (property == null)
-                return;
-
-            if (!OverlayByPropertyKey.TryGetValue(GetPropertyKey(property), out List<OverlayData> overlays) || overlays.Count == 0)
-                return;
-
-            float previewNormalizedTime = TransitionPreviewWindow.PreviewNormalizedTime;
-            bool hasBanner = false;
-            OverlayKind bannerKind = OverlayKind.Damage;
-            for (int i = 0; i < overlays.Count; i++)
-            {
-                OverlayData overlay = overlays[i];
-                if (!overlay.Enabled)
-                    continue;
-
-                if (!TryGetEffectiveWindow(property, overlay, out _, out _, out EffectiveWindowData window))
-                    continue;
-
-                float previewTime = previewNormalizedTime * GetClip(property).length;
-                float min = Mathf.Min(window.EffectiveStart, window.EffectiveEnd);
-                float max = Mathf.Max(window.EffectiveStart, window.EffectiveEnd);
-                if (previewTime < min || previewTime > max)
-                    continue;
-
-                hasBanner = true;
-                bannerKind = overlay.Kind;
-                break;
-            }
-
-            if (!hasBanner)
-                return;
-
-            Handles.BeginGUI();
-            try
-            {
-                _PreviewBannerStyle ??= new GUIStyle(EditorStyles.boldLabel)
-                {
-                    alignment = TextAnchor.MiddleCenter,
-                    normal = { textColor = Color.white },
-                    padding = new RectOffset(10, 10, 4, 4),
-                };
-
-                Rect area = new Rect(14f, 14f, 120f, 24f);
-                EditorGUI.DrawRect(area, GetPreviewBannerColor(bannerKind));
-                GUI.Label(area, GetPreviewBannerLabel(bannerKind), _PreviewBannerStyle);
-            }
-            finally
-            {
-                Handles.EndGUI();
-            }
-        }
-
-        public void OnTimelineBackgroundGUI()
-        {
-            if (Event.current.type != EventType.Repaint)
-                return;
-
-            SerializedProperty property = TransitionDrawer.Context.Property;
-            if (property == null)
-                return;
-
-            if (!OverlayByPropertyKey.TryGetValue(GetPropertyKey(property), out List<OverlayData> overlays) || overlays.Count == 0)
-                return;
-
-            TimelineGUI timeline = TimelineGUI.Current;
-            if (timeline == null)
-                return;
-
-            float overlayHeight = Mathf.Max(4f, (timeline.Area.height - timeline.TickHeight) / 2f);
-            for (int i = 0; i < overlays.Count; i++)
-            {
-                OverlayData overlay = overlays[i];
-                if (!TryGetEffectiveWindow(property, overlay, out _, out _, out EffectiveWindowData window))
-                    continue;
-
-                DrawOverlayRect(timeline, window.DominantStart, window.DominantEnd, overlayHeight, GetOverlayDomainColor(overlay.Kind, overlay.Enabled));
-                DrawOverlayRect(timeline, window.EffectiveStart, window.EffectiveEnd, overlayHeight, GetOverlayColor(overlay.Kind, overlay.Enabled));
-            }
-        }
-
-        public void OnTimelineForegroundGUI()
-        {
-        }
-
         private static void DrawOverlayRect(TimelineGUI timeline, float startTime, float endTime, float overlayHeight, Color color)
         {
             float xMin = Mathf.Clamp(timeline.SecondsToPixels(startTime), timeline.Area.xMin, timeline.Area.xMax);
             float xMax = Mathf.Clamp(timeline.SecondsToPixels(endTime), timeline.Area.xMin, timeline.Area.xMax);
-            Rect area = new Rect(
+            Rect area = new(
                 Mathf.Min(xMin, xMax),
                 0f,
                 Mathf.Max(2f, Mathf.Abs(xMax - xMin)),
@@ -374,5 +340,25 @@ namespace BBBNexus
             };
         }
     }
+
+    [InitializeOnLoad]
+    internal static class MeleeComboTranstionOverlayBridge
+    {
+        static MeleeComboTranstionOverlayBridge()
+        {
+            MeleeComboTransition.PreviewSceneGUIRequested += OnPreviewSceneGUI;
+            MeleeComboTransition.TimelineBackgroundGUIRequested += OnTimelineBackgroundGUI;
+            MeleeComboTransition.TimelineForegroundGUIRequested += OnTimelineForegroundGUI;
+        }
+
+        private static void OnPreviewSceneGUI(MeleeComboTransition _, TransitionPreviewDetails __)
+            => MeleeComboTranstionOverlayRegistry.DrawPreviewSceneGUI();
+
+        private static void OnTimelineBackgroundGUI(MeleeComboTransition _)
+            => MeleeComboTranstionOverlayRegistry.DrawTimelineBackgroundGUI();
+
+        private static void OnTimelineForegroundGUI(MeleeComboTransition _)
+        {
+        }
+    }
 }
-#endif

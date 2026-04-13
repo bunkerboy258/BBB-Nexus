@@ -2,6 +2,7 @@ using Animancer;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 namespace BBBNexus
 {
     /// <summary>
@@ -18,7 +19,7 @@ namespace BBBNexus
     [RequireComponent(typeof(Animator))]
     [RequireComponent(typeof(AudioSource))]
     [DefaultExecutionOrder(-300)]
-    public class BBBCharacterController : MonoBehaviour, IDamageable, IPoolable, IHealthBarTarget
+    public class BBBCharacterController : MonoBehaviour, IPoolable, IHealthBarTarget
     {
         public static BBBCharacterController PlayerInstance { get; private set; }
 
@@ -49,9 +50,18 @@ namespace BBBNexus
         [Tooltip("背包物品服务实现类（如 NekoInventoryService）")]
         [ServiceTypeField(typeof(IInventoryService))]
         public string InventoryServiceTypeName;
-        [Tooltip("角色最大属性服务实现类（如 NekoCharStateService）")]
-        [ServiceTypeField(typeof(ICharStateService))]
-        public string CharStateServiceTypeName;
+        [Tooltip("状态存储服务实现类（如 NekoStateStoreService）")]
+        [FormerlySerializedAs("CharStateServiceTypeName")]
+        [ServiceTypeField(typeof(IStateStoreService))]
+        public string StateStoreServiceTypeName;
+        [Tooltip("状态模板配置（StateProfileSO）")]
+        public StateProfileSO StateProfile;
+        [Tooltip("角色状态改写服务实现类（如 NekoStateModifyService）")]
+        [ServiceTypeField(typeof(IStateModifyService))]
+        public string StateModifyServiceTypeName;
+        [Tooltip("额外动作服务实现类（如 LigteSoulExtraActionService）")]
+        [ServiceTypeField(typeof(IExtraActionService))]
+        public string ExtraActionServiceTypeName;
 
         [Header("--- 表现与挂点 ---")]
         public Transform MainhandWeaponContainer;   // 主手（右手）武器容器
@@ -89,7 +99,14 @@ namespace BBBNexus
         public IHub Hub { get; private set; }
         public IEquipmentService EquipmentService { get; private set; }
         public IInventoryService InventoryService { get; private set; }
-        public ICharStateService CharStateService { get; private set; }
+        public IStateStoreService StateStoreService { get; private set; }
+        public IStateModifyService StateModifyService { get; private set; }
+        public IExtraActionService ExtraActionService { get; private set; }
+
+        // BBB 刚需状态钩子（由 IStateStoreService 决定何时触发）
+        public event Action OnDead;
+        public event Action OnRevive;
+        public event Action<string, double> OnStateChanged;
 
         // 运行时核心引用
         public StateMachine StateMachine { get; private set; }
@@ -132,15 +149,13 @@ namespace BBBNexus
         /// <summary>异常状态仲裁器快捷访问</summary>
         public StatusEffectArbiter StatusEffects => ArbiterPipeline.StatusEffect;
         public CharacterArbiter CharacterArbiter => ArbiterPipeline.Character;
-        public float CurrentMaxHealth => RuntimeData != null && RuntimeData.MaxHealth > 0f
-            ? RuntimeData.MaxHealth
-            : (Config != null && Config.Core != null ? Config.Core.MaxHealth : 0f);
-        public float CurrentMaxSanity => RuntimeData != null && RuntimeData.MaxSanity > 0f ? RuntimeData.MaxSanity : 100f;
-        public float CurrentSanity => RuntimeData != null ? Mathf.Clamp(RuntimeData.CurrentSanity, 0f, CurrentMaxSanity) : 0f;
-        public float CurrentSanityNormalized => CurrentMaxSanity > 0f ? CurrentSanity / CurrentMaxSanity : 0f;
+        public float CurrentMaxHealth => 0f;
+        public float CurrentMaxSanity => 0f;
+        public float CurrentSanity => 0f;
+        public float CurrentSanityNormalized => 0f;
         public Transform HealthBarTransform => transform;
-        public float CurrentHealthForBar => RuntimeData != null ? RuntimeData.CurrentHealth : 0f;
-        public float MaxHealthForBar => CurrentMaxHealth;
+        public float CurrentHealthForBar => 0f;
+        public float MaxHealthForBar => 0f;
         public bool RootMotionHandledVerticalThisFrame { get; private set; }
 
         private int _shieldBlockedFrame = -1;
@@ -293,6 +308,8 @@ namespace BBBNexus
             {
                 Debug.LogError("[PlayerController] 致命错误：未配置 PlayerSO 或 Brain");
             }
+
+            WireStateStoreCallbacksToDownstream();
         }
 
         private void Start()
@@ -393,6 +410,7 @@ namespace BBBNexus
         private void OnEnable()
         {
             RegisterAsPlayerSingletonIfNeeded();
+            RegisterExtraActionServiceIfNeeded();
             // 对象池激活时 Start 不一定每次都会走（取决于场景/脚本执行顺序） 这里作为兜底
             if (Application.isPlaying)
                 BootIfNeeded();
@@ -401,6 +419,7 @@ namespace BBBNexus
         private void OnDisable()
         {
             InventoryOverlay?.Close();
+            UnregisterExtraActionServiceIfNeeded();
             if (ReferenceEquals(PlayerInstance, this))
             {
                 PlayerInstance = null;
@@ -860,6 +879,7 @@ namespace BBBNexus
             InitializeMaxCoreState();
             InventoryController.Initialize();
             InitializeInventoryService();
+            InitializeStateModifyService();
             InitializeEquipmentServiceDefaults();
             RestoreEquippedItemsFromService();
         }
@@ -873,12 +893,38 @@ namespace BBBNexus
             Hub = InstantiateHubByTypeName(HubTypeName);
             EquipmentService = InstantiateServiceByTypeName<IEquipmentService>(EquipmentServiceTypeName);
             InventoryService = InstantiateServiceByTypeName<IInventoryService>(InventoryServiceTypeName);
-            CharStateService = InstantiateServiceByTypeName<ICharStateService>(CharStateServiceTypeName);
+            StateStoreService = InstantiateServiceByTypeName<IStateStoreService>(StateStoreServiceTypeName);
+            StateModifyService = InstantiateServiceByTypeName<IStateModifyService>(StateModifyServiceTypeName);
+            ExtraActionService = InstantiateServiceByTypeName<IExtraActionService>(ExtraActionServiceTypeName);
 
             // 使用 IHubService.Initialize(IHub) 初始化服务
             (EquipmentService as IHubService)?.Initialize(Hub);
             (InventoryService as IHubService)?.Initialize(Hub);
-            (CharStateService as IHubService)?.Initialize(Hub);
+            (StateStoreService as IHubService)?.Initialize(Hub);
+            (StateModifyService as IHubService)?.Initialize(Hub);
+            (ExtraActionService as IHubService)?.Initialize(Hub);
+            RegisterExtraActionServiceIfNeeded();
+        }
+
+        private void RegisterExtraActionServiceIfNeeded()
+        {
+            if (!CompareTag("Player"))
+            {
+                return;
+            }
+
+            if (ExtraActionService != null)
+            {
+                ExtraActionServiceRegistry.Current = ExtraActionService;
+            }
+        }
+
+        private void UnregisterExtraActionServiceIfNeeded()
+        {
+            if (ReferenceEquals(ExtraActionServiceRegistry.Current, ExtraActionService))
+            {
+                ExtraActionServiceRegistry.Current = null;
+            }
         }
 
         private static IHub InstantiateHubByTypeName(string typeName)
@@ -946,24 +992,97 @@ namespace BBBNexus
             InventoryService.Initialize();
         }
 
-        private void InitializeMaxCoreState()
+        private void InitializeStateModifyService()
         {
-            if (CharStateService == null)
+            if (StateModifyService == null)
             {
-                Debug.LogWarning("[BBBCharacterController] CharStateService 未配置，使用 Config 默认值");
-                ApplyMaxCoreState(CreateDefaultMaxCoreStateData(), refillCurrent: true);
                 return;
             }
 
-            CharStateService.Initialize();
+            StateModifyService.Initialize();
+        }
 
-            if (!CharStateService.TryGetMaxCoreState(out var data))
+        private void WireStateStoreCallbacksToDownstream()
+        {
+            OnDead -= HandleDeadFromStore;
+            OnDead += HandleDeadFromStore;
+
+            OnRevive -= HandleReviveFromStore;
+            OnRevive += HandleReviveFromStore;
+        }
+
+        private void HandleDeadFromStore()
+        {
+            if (RuntimeData == null)
             {
-                data = CreateDefaultMaxCoreStateData();
-                CharStateService.SetMaxCoreState(data);
+                return;
             }
 
-            ApplyMaxCoreState(data, refillCurrent: true);
+            RuntimeData.IsDead = true;
+            RuntimeData.Arbitration.IsDead = true;
+            RuntimeData.Arbitration.BlockInput = true;
+            RuntimeData.Arbitration.BlockUpperBody = true;
+            RuntimeData.Arbitration.BlockFacial = true;
+            RuntimeData.Arbitration.BlockIK = true;
+            RuntimeData.Arbitration.BlockInventory = true;
+            StatusEffects?.Clear();
+
+            if (!_booted || StateRegistry == null || StateMachine == null || StateMachine.CurrentState is PlayerDeathState)
+            {
+                return;
+            }
+
+            var death = StateRegistry.GetState<PlayerDeathState>();
+            if (death != null)
+            {
+                StateMachine.ChangeState(death);
+            }
+        }
+
+        private void HandleReviveFromStore()
+        {
+            if (RuntimeData == null)
+            {
+                return;
+            }
+
+            RuntimeData.IsDead = false;
+            RuntimeData.Arbitration.Clear();
+
+            if (!_booted || StateRegistry == null || StateMachine == null)
+            {
+                return;
+            }
+
+            var idle = StateRegistry.GetState<PlayerIdleState>();
+            if (idle != null && StateMachine.CurrentState != idle)
+            {
+                StateMachine.ChangeState(idle);
+            }
+        }
+
+        private void InitializeMaxCoreState()
+        {
+            if (StateStoreService == null)
+            {
+                Debug.LogWarning("[BBBCharacterController] StateStoreService 未配置，跳过状态初始化");
+                return;
+            }
+
+            StateStoreService.SetProfile(StateProfile);
+            StateStoreService.Initialize();
+            StateStoreService.BindOnDead(() =>
+            {
+                OnDead?.Invoke();
+            });
+            StateStoreService.BindOnRevive(() =>
+            {
+                OnRevive?.Invoke();
+            });
+            StateStoreService.BindOnStateChanged((key, value) =>
+            {
+                OnStateChanged?.Invoke(key, value);
+            });
         }
 
         private void InitializeEquipmentServiceDefaults()
@@ -1006,7 +1125,7 @@ namespace BBBNexus
             if (equipment == null) return;
             if (EquipmentService.HasEquipped(configSlotKey)) return;
 
-            EquipmentService.TrySetEquipSO(configSlotKey, equipment.name);
+            EquipmentService.TrySetEquipSO(configSlotKey, equipment);
         }
 
         private void RestoreEquippedItemsFromService()
@@ -1070,180 +1189,30 @@ namespace BBBNexus
             if (UpperBodyCtrl.StateRegistry.InitialState != null) UpperBodyCtrl.StateMachine.Initialize(UpperBodyCtrl.StateRegistry.InitialState);
         }
 
-        public MaxCoreStateData CreateDefaultMaxCoreStateData()
-        {
-            float defaultHealth = Config != null && Config.Core != null ? Config.Core.MaxHealth : 100f;
-            float defaultSanity = RuntimeData != null && RuntimeData.MaxSanity > 0f ? RuntimeData.MaxSanity : 100f;
+        public MaxCoreStateData CreateDefaultMaxCoreStateData() => null;
 
-            return new MaxCoreStateData
-            {
-                MaxHealth = defaultHealth,
-                MaxSanity = defaultSanity
-            };
-        }
+        public void ApplyMaxCoreState(MaxCoreStateData data, bool refillCurrent = true) { }
 
-        public void ApplyMaxCoreState(MaxCoreStateData data, bool refillCurrent = true)
-        {
-            if (RuntimeData == null || data == null)
-            {
-                return;
-            }
+        public void SetCurrentSanity(float sanity) { }
 
-            RuntimeData.MaxHealth = Mathf.Max(1f, data.MaxHealth);
-            RuntimeData.MaxSanity = Mathf.Max(1f, data.MaxSanity);
-            RuntimeData.CurrentHealth = refillCurrent
-                ? RuntimeData.MaxHealth
-                : Mathf.Min(RuntimeData.CurrentHealth, RuntimeData.MaxHealth);
-            RuntimeData.CurrentSanity = refillCurrent
-                ? RuntimeData.MaxSanity
-                : Mathf.Clamp(RuntimeData.CurrentSanity, 0f, RuntimeData.MaxSanity);
+        public void SetSanityNormalized(float normalizedValue) { }
 
-            SyncSanitySystems(refillCurrent);
-        }
-
-        public void SetCurrentSanity(float sanity)
-        {
-            if (RuntimeData == null)
-            {
-                return;
-            }
-
-            RuntimeData.CurrentSanity = Mathf.Clamp(sanity, 0f, CurrentMaxSanity);
-            SyncSanitySystems(false);
-        }
-
-        public void SetSanityNormalized(float normalizedValue)
-        {
-            SetCurrentSanity(Mathf.Clamp01(normalizedValue) * CurrentMaxSanity);
-        }
-
-        public void AddSanityDelta(float delta)
-        {
-            SetCurrentSanity(CurrentSanity + delta);
-        }
+        public void AddSanityDelta(float delta) { }
 
         /// <summary>
         /// 直接将伤害加入 HealthArbiter 队列，跳过闭眼格挡拦截。
         /// 供 EyesClosedSystemManager 在格挡反应窗口超时时调用。
         /// </summary>
-        public void EnqueueDamageDirectly(in DamageRequest request)
-        {
-            ArbiterPipeline?.Health?.Enqueue(in request);
-        }
+        public void EnqueueDamageDirectly(in DamageRequest request) { }
 
-        public bool TryHeal(float amount)
-        {
-            if (amount <= 0f)
-            {
-                return false;
-            }
+        public bool TryHeal(float amount) => false;
 
-            return ArbiterPipeline?.Health != null && ArbiterPipeline.Health.TryHeal(amount);
-        }
-
-        public void SetMaxSanityValue(float maxSanity, bool refillCurrent = true)
-        {
-            if (RuntimeData == null)
-            {
-                return;
-            }
-
-            RuntimeData.MaxSanity = Mathf.Max(1f, maxSanity);
-            RuntimeData.CurrentSanity = refillCurrent
-                ? RuntimeData.MaxSanity
-                : Mathf.Clamp(RuntimeData.CurrentSanity, 0f, RuntimeData.MaxSanity);
-            SyncSanitySystems(refillCurrent);
-        }
-
-        private void SyncSanitySystems(bool refillCurrent)
-        {
-            var sunlightSanity = GetComponent<SunlightSanitySystem>() ?? GetComponentInChildren<SunlightSanitySystem>(true);
-            if (sunlightSanity != null)
-            {
-                sunlightSanity.NotifySanityStateChanged();
-            }
-
-            if (EyesClosedSystemManager.Instance != null)
-            {
-                EyesClosedSystemManager.Instance.NotifySanityStateChanged();
-            }
-        }
+        public void SetMaxSanityValue(float maxSanity, bool refillCurrent = true) { }
 
         #region IDamageable 接口实现
         public bool RequestDamage(in DamageRequest request)
         {
-            if (ShouldIgnoreFriendlyFire(in request))
-                return false;
-
-            if (IsDuplicateIncomingDamage(in request))
-                return false;
-
-            RememberIncomingDamage(in request);
-
-            if (TryInterceptByShield(in request))
-                return false;
-
-            // 闭眼格挡：拦截伤害，生成替身并对攻击者施加僵直
-            var eyesMgr = EyesClosedSystemManager.Instance;
-            var attackerController = request.ResolveAttackerController();
-            bool hasParryHandler = ParryHandler != null;
-            bool hasEyesManager = eyesMgr != null;
-            bool eyesClosed        = hasEyesManager && eyesMgr.IsEyesClosed;
-            bool isInPerfectWindow = hasEyesManager && eyesMgr.IsInPerfectParryWindow;
-
-            if (DebugParryTrace)
-            {
-                Debug.Log(
-                    $"[ParryTrace] incoming amount={request.Amount:F1} eyesClosed={eyesClosed} perfectWindow={isInPerfectWindow} " +
-                    $"hasEyesMgr={hasEyesManager} hasHandler={hasParryHandler} " +
-                    $"attacker={request.Attacker?.name ?? "null"} attackerCtrl={attackerController?.name ?? "null"} " +
-                    $"weapon={request.WeaponTransform?.name ?? "null"}",
-                    this);
-            }
-
-            if (hasParryHandler && isInPerfectWindow)
-            {
-                if (DebugParryTrace)
-                    Debug.Log("[ParryTrace] intercept damage and trigger PERFECT parry.", this);
-
-                eyesMgr.RewardPerfectParrySanity();
-                ParryHandler.TriggerPerfectParry(in request);
-                return false;
-            }
-
-            if (hasParryHandler && eyesClosed)
-            {
-                // 理智耗尽时，ConsumeParrySanity 返回 false，格挡失败，伤害穿透
-                if (eyesMgr.ConsumeParrySanity())
-                {
-                    if (DebugParryTrace)
-                        Debug.Log("[ParryTrace] intercept damage and trigger parry.", this);
-                    ParryHandler.TriggerParry(in request);
-                    return false;
-                }
-
-                // 理智耗尽：开启完美格挡反应窗口，暂挂本次伤害，等待玩家反应
-                if (DebugParryTrace)
-                    Debug.Log("[ParryTrace] sanity depleted — started depleted parry reaction window.", this);
-                eyesMgr.StartDepletedParryWindow(in request);
-                return false;
-            }
-
-            if (DebugParryTrace)
-            {
-                if (!hasEyesManager)
-                    Debug.LogWarning("[ParryTrace] skipped: EyesClosedSystemManager.Instance is null.", this);
-                else if (!hasParryHandler)
-                    Debug.LogWarning("[ParryTrace] skipped: ParryHandler is missing on target.", this);
-                else
-                    Debug.Log("[ParryTrace] pass-through: eyes are not closed, damage goes to HealthArbiter.", this);
-            }
-
-            var health = ArbiterPipeline?.Health;
-            if (health == null) return false;
-
-            health.Enqueue(in request);
-            return true;
+            return false;
         }
 
         #endregion

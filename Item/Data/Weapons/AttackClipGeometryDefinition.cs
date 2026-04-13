@@ -180,11 +180,16 @@ namespace BBBNexus
         }
     }
 
-    [Serializable]
-    public sealed class AttackClipGeometryDefinition
+    [CreateAssetMenu(fileName = "New Attack Geometry", menuName = "BBBNexus/Weapons/Attack Geometry")]
+    public sealed class AttackClipGeometryDefinition : ScriptableObject
     {
+        [Tooltip("关联的武器 ID（可选，用于快速查找）")]
         public string WeaponId;
+
+        [Tooltip("显示名称")]
         public string DisplayName;
+
+        [Tooltip("攻击片段几何体定义列表")]
         public List<AttackClipGeometryClipDefinition> Clips = new List<AttackClipGeometryClipDefinition>();
 
         public AttackClipGeometryClipDefinition GetClip(int comboIndex)

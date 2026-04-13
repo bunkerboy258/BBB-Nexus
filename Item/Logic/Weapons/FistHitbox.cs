@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using System;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -42,7 +43,8 @@ namespace BBBNexus
 
         private readonly List<Collider> _detectionColliders = new List<Collider>();
         private MeleeHitScanner _scanner;
-        private string _runtimeAttackGeometryId;
+        private AttackClipGeometryDefinition _runtimeAttackGeometry;
+        private string _runtimeAttackGeometryId; // 废弃，保留兼容
 
         private void Awake()
         {
@@ -129,8 +131,15 @@ namespace BBBNexus
             return _scanner.TryGetQueryBox(out center, out halfExtents, out rotation);
         }
 
+        public void SetAttackGeometryDefinition(AttackClipGeometryDefinition definition)
+        {
+            _runtimeAttackGeometry = definition;
+        }
+
+        [Obsolete("改用 SetAttackGeometryDefinition")]
         public void SetAttackGeometryId(string geometryId)
         {
+            // 兼容旧代码，但不再使用
             _runtimeAttackGeometryId = geometryId;
         }
 
@@ -337,11 +346,7 @@ namespace BBBNexus
             if (_attackGeometryRenderMode == AttackGeometryRenderMode.None)
                 return;
 
-            string geometryId = ResolveAttackGeometryId();
-            if (string.IsNullOrWhiteSpace(geometryId))
-                return;
-
-            AttackClipGeometryDefinition definition = AttackClipGeometryLibrary.LoadOrNull(geometryId);
+            AttackClipGeometryDefinition definition = _runtimeAttackGeometry;
             if (definition == null)
                 return;
 
@@ -370,11 +375,7 @@ namespace BBBNexus
             int currentWindowIndex = AttackWindowDebugService.GetCurrentDamageWindowIndex(currentTime);
             float normalizedProgress = AttackWindowDebugService.GetNormalizedProgress(currentTime);
 
-            string geometryId = ResolveAttackGeometryId();
-            if (string.IsNullOrWhiteSpace(geometryId))
-                return;
-
-            AttackClipGeometryDefinition definition = AttackClipGeometryLibrary.LoadOrNull(geometryId);
+            AttackClipGeometryDefinition definition = _runtimeAttackGeometry;
             if (definition == null)
                 return;
 

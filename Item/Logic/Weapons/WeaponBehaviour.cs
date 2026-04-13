@@ -252,7 +252,7 @@ namespace BBBNexus
             {
                 _hitbox.SetOwner(_player);
                 _hitbox.Deactivate();
-                _hitbox.SetAttackGeometryId(_config.GetAttackGeometryId());
+                _hitbox.SetAttackGeometryDefinition(_config.AttackGeometry);
                 _hitbox.HitRegistered -= OnHitRegistered;
                 _hitbox.HitRegistered += OnHitRegistered;
 
@@ -714,7 +714,7 @@ namespace BBBNexus
         private AttackClipGeometryClipDefinition GetCurrentAttackClipGeometry()
         {
             if (_config == null || _activeAttackContext == null) return null;
-            var definition = AttackClipGeometryLibrary.LoadOrNull(_config.GetAttackGeometryId());
+            var definition = _config.AttackGeometry;
             return definition?.GetClip(_activeAttackContext.ComboIndex);
         }
 

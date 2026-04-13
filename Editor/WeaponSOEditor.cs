@@ -28,6 +28,7 @@ namespace BBBNexus.Editor
         private SerializedProperty _comboWindowStart;
         private SerializedProperty _comboLateBuffer;
         private SerializedProperty _comboPriority;
+        private SerializedProperty _attackGeometry;
         private SerializedProperty _attackGeometryId;
         private SerializedProperty _sprintCameraPreset;
 
@@ -56,6 +57,7 @@ namespace BBBNexus.Editor
             _comboWindowStart = serializedObject.FindProperty("ComboWindowStart");
             _comboLateBuffer = serializedObject.FindProperty("ComboLateBuffer");
             _comboPriority = serializedObject.FindProperty("ComboPriority");
+            _attackGeometry = serializedObject.FindProperty("AttackGeometry");
             _attackGeometryId = serializedObject.FindProperty("AttackGeometryId");
             _sprintCameraPreset = serializedObject.FindProperty("SprintCameraPreset");
             _bakingCharacterPrefab = serializedObject.FindProperty("BakingCharacterPrefab");
@@ -70,7 +72,7 @@ namespace BBBNexus.Editor
 
         private void HandleUndoRedo()
         {
-            FistsComboTransition.ClearOverlayCache();
+            MeleeComboTranstionOverlayRegistry.ClearOverlayCache();
             serializedObject.UpdateIfRequiredOrScript();
             Repaint();
             InternalEditorUtility.RepaintAllViews();
@@ -95,6 +97,7 @@ namespace BBBNexus.Editor
                 "ComboWindowStart",
                 "ComboLateBuffer",
                 "ComboPriority",
+                "AttackGeometry",
                 "AttackGeometryId",
                 "SprintCameraPreset",
                 "EnablesAimState",
@@ -151,8 +154,8 @@ namespace BBBNexus.Editor
                 EditorGUILayout.PropertyField(_comboWindowStart);
                 EditorGUILayout.PropertyField(_comboLateBuffer);
                 EditorGUILayout.PropertyField(_comboPriority);
-                EditorGUILayout.PropertyField(_attackGeometryId);
                 EditorGUILayout.PropertyField(_sprintCameraPreset);
+                DrawAttackGeometryField();
                 DrawAttackGeometryActions();
 
                 EditorGUILayout.Space();
@@ -252,18 +255,18 @@ namespace BBBNexus.Editor
                     break;
                 }
 
-                FistsComboTransition.SetOverlay(
-                    FistsComboTransition.GetPropertyKey(sequence),
+                MeleeComboTranstionOverlayRegistry.SetOverlay(
+                    MeleeComboTranstionOverlayRegistry.GetPropertyKey(sequence),
                     window.FindPropertyRelative("Enabled").boolValue,
                     window.FindPropertyRelative("StartNormalized").floatValue,
                     window.FindPropertyRelative("EndNormalized").floatValue);
-                FistsComboTransition.SetAlignmentOverlay(
-                    FistsComboTransition.GetPropertyKey(sequence),
+                MeleeComboTranstionOverlayRegistry.SetAlignmentOverlay(
+                    MeleeComboTranstionOverlayRegistry.GetPropertyKey(sequence),
                     alignmentWindow.FindPropertyRelative("Enabled").boolValue,
                     alignmentWindow.FindPropertyRelative("StartNormalized").floatValue,
                     alignmentWindow.FindPropertyRelative("EndNormalized").floatValue);
-                FistsComboTransition.SetExtraDamageOverlays(
-                    FistsComboTransition.GetPropertyKey(sequence),
+                MeleeComboTranstionOverlayRegistry.SetExtraDamageOverlays(
+                    MeleeComboTranstionOverlayRegistry.GetPropertyKey(sequence),
                     window.FindPropertyRelative("Enabled").boolValue,
                     GetExtraWindowsArray(window));
                 EditorGUILayout.PropertyField(sequence, new GUIContent("Transition"), true);
@@ -574,6 +577,55 @@ namespace BBBNexus.Editor
             GUI.Label(rightLabelRect, $"{Mathf.RoundToInt(endValue * 100f)}%", miniRight);
         }
 
+        private void DrawAttackGeometryField()
+        {
+            EditorGUILayout.Space(4f);
+            EditorGUILayout.LabelField("Attack Geometry", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(_attackGeometry, new GUIContent("Attack Geometry Definition"));
+
+            var weaponSO = target as WeaponSO;
+            if (weaponSO.AttackGeometry == null)
+            {
+                EditorGUILayout.HelpBox("未绑定 Attack Geometry。点击下方烘焙会自动创建并绑定。", MessageType.Info);
+            }
+            else
+            {
+                EditorGUILayout.BeginHorizontal();
+                if (GUILayout.Button("定位到 Asset"))
+                {
+                    EditorGUIUtility.PingObject(weaponSO.AttackGeometry);
+                }
+                if (GUILayout.Button("取消关联"))
+                {
+                    _attackGeometry.objectReferenceValue = null;
+                    serializedObject.ApplyModifiedProperties();
+                }
+                EditorGUILayout.EndHorizontal();
+            }
+        }
+
+        private void CreateAttackGeometryAsset(WeaponSO weaponSO)
+        {
+            string weaponPath = AssetDatabase.GetAssetPath(weaponSO);
+            string weaponDir = System.IO.Path.GetDirectoryName(weaponPath);
+            string assetName = $"{weaponSO.name}_AttackGeometry";
+            string assetPath = $"{weaponDir}/{assetName}.asset";
+
+            // 创建新的 AttackClipGeometryDefinition SO
+            var newDef = ScriptableObject.CreateInstance<AttackClipGeometryDefinition>();
+            newDef.WeaponId = weaponSO.ItemID;
+            newDef.DisplayName = $"{weaponSO.name} Attack Sweep";
+
+            AssetDatabase.CreateAsset(newDef, assetPath);
+            AssetDatabase.SaveAssets();
+
+            // 关联到 WeaponSO
+            _attackGeometry.objectReferenceValue = newDef;
+            serializedObject.ApplyModifiedProperties();
+
+            Debug.Log($"[WeaponSOEditor] Created AttackGeometry asset: {assetPath}");
+        }
+
         private void DrawAttackGeometryActions()
         {
             EditorGUILayout.Space(4f);
@@ -655,8 +707,21 @@ namespace BBBNexus.Editor
                 return;
             }
 
-            AttackClipGeometryLibrary.WriteDefinitionAndRegister(geometryId, definition, $"{weapon.name} Attack Sweep");
-            Debug.Log($"[WeaponSOEditor] Baked attack geometry from Collider + Clip: {AttackClipGeometryLibrary.ToAssetPath(geometryId)}");
+            // 写入到 AttackGeometry SO
+            if (weapon.AttackGeometry == null)
+            {
+                CreateAttackGeometryAsset(weapon);
+            }
+
+            if (weapon.AttackGeometry != null)
+            {
+                Undo.RecordObject(weapon.AttackGeometry, "Bake Attack Geometry");
+                weapon.AttackGeometry.Clips = definition.Clips;
+                EditorUtility.SetDirty(weapon.AttackGeometry);
+                AssetDatabase.SaveAssets();
+                Debug.Log($"[WeaponSOEditor] Baked attack geometry to SO: {AssetDatabase.GetAssetPath(weapon.AttackGeometry)}");
+            }
+
             InternalEditorUtility.RepaintAllViews();
         }
 
@@ -665,11 +730,26 @@ namespace BBBNexus.Editor
         {
             if (target is not WeaponSO weapon) return;
 
-            string geometryId = weapon.GetAttackGeometryId();
             var definition = AttackClipGeometryTemplateFactory.CreateForWeapon(weapon);
-            AttackClipGeometryLibrary.WriteDefinitionAndRegister(geometryId, definition, $"{weapon.name} Attack Sweep");
-            Debug.Log($"[WeaponSOEditor] Wrote legacy attack geometry template: {AttackClipGeometryLibrary.ToAssetPath(geometryId)}");
+
+            // 写入到 AttackGeometry SO
+            if (weapon.AttackGeometry == null)
+            {
+                CreateAttackGeometryAsset(weapon);
+            }
+
+            if (weapon.AttackGeometry != null)
+            {
+                Undo.RecordObject(weapon.AttackGeometry, "Write Attack Geometry");
+                weapon.AttackGeometry.Clips = definition.Clips;
+                EditorUtility.SetDirty(weapon.AttackGeometry);
+                AssetDatabase.SaveAssets();
+                Debug.Log($"[WeaponSOEditor] Wrote attack geometry template to SO: {AssetDatabase.GetAssetPath(weapon.AttackGeometry)}");
+            }
         }
 #pragma warning restore CS0618
     }
 }
+
+
+

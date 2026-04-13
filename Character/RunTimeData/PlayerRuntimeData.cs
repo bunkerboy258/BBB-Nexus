@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace BBBNexus
 {
@@ -30,13 +30,7 @@ namespace BBBNexus
 
         public PlayerRuntimeData(BBBCharacterController player)
         {
-            MaxHealth = player.Config.Core.MaxHealth;
-            CurrentHealth = MaxHealth;
             CameraTransform = player.PlayerCamera;
-            MaxStamina = player.Config.Core.MaxStamina;
-            CurrentStamina = MaxStamina;
-            MaxSanity = 100f;
-            CurrentSanity = MaxSanity;
             Override.Clear();
             AttackRootMotionPlayback.Clear();
             StatusEffect.Clear();
@@ -50,10 +44,6 @@ namespace BBBNexus
         }
 
         #region 核心生存状态
-        /// <summary>当前血量</summary>
-        public float CurrentHealth;
-        /// <summary>当前理论最大血量</summary>
-        public float MaxHealth;
         /// <summary>是否已死亡</summary>
         public bool IsDead;
         #endregion
@@ -209,8 +199,8 @@ namespace BBBNexus
         /// <summary>表情 8 意图（预留）</summary>
         public bool WantsExpression8;
 
-        /// <summary>额外动作 1 意图（通用槽位，语义由外部服务定义）</summary>
-        public bool WantsExtraAction1;
+        /// <summary>情境交互意图（E 键）：开门/开箱/爬梯子等，由 ActionController 读取</summary>
+        public bool WantsToInteract;
         /// <summary>换弹意图</summary>
         public bool WantsReload;
         /// <summary>本次换弹期望至少装到多少发。-1 表示使用武器默认策略（通常为装满）。</summary>
@@ -219,17 +209,18 @@ namespace BBBNexus
         public bool WantsUseItem;
         /// <summary>打开背包意图</summary>
         public bool WantsToggleInventory;
+        /// <summary>背包面板是否处于打开状态。持久状态，不参与每帧 ResetIntent。</summary>
+        public bool IsInventoryOpen;
+
+        /// <summary>额外动作 1 意图（通用槽位，语义由外部服务定义）</summary>
+        public bool WantsExtraAction1;
         /// <summary>额外动作 2 意图（通用槽位，语义由外部服务定义）</summary>
         public bool WantsExtraAction2;
         /// <summary>额外动作 3 意图（通用槽位，语义由外部服务定义）</summary>
         public bool WantsExtraAction3;
-        /// <summary>背包面板是否处于打开状态。持久状态，不参与每帧 ResetIntent。</summary>
-        public bool IsInventoryOpen;
         /// <summary>额外动作 4 意图（通用预留）</summary>
         public bool WantsExtraAction4;
 
-        /// <summary>情境交互意图（E 键）：开门/开箱/爬梯子等，由 ActionController 读取</summary>
-        public bool WantsToInteract;
         #endregion
 
         #region AI 瞄准强化状态
@@ -305,16 +296,6 @@ namespace BBBNexus
         #endregion
 
         #region 体力与追踪状态
-        /// <summary>当前体力值</summary>
-        public float CurrentStamina;
-        /// <summary>当前理论最大体力值</summary>
-        public float MaxStamina;
-        /// <summary>当前理论最大理智值</summary>
-        public float MaxSanity;
-        /// <summary>当前理智值</summary>
-        public float CurrentSanity;
-        /// <summary>体力枯竭标志</summary>
-        public bool IsStaminaDepleted;
         /// <summary>本次空中是否已使用二段跳</summary>
         public bool HasPerformedDoubleJumpInAir;
         /// <summary>玩家相机 Transform 用于计算视角与朝向</summary>

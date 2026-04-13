@@ -112,24 +112,12 @@ namespace BBBNexus
             player.RuntimeData.StatusControl.Clear();
             player.RuntimeData.CharacterControl.Clear();
             player.RuntimeData.Override.Clear();
-            player.RuntimeData.CurrentStamina = player.RuntimeData.MaxStamina;
-            player.RuntimeData.IsStaminaDepleted = false;
             player.RuntimeData.VerticalVelocity = 0f;
             player.RuntimeData.WantsLookAtIK = false;
             player.RuntimeData.CurrentAimReference = null;
             player.RuntimeData.ResetIntetnt();
 
-            if (_refillOnRespawn)
-            {
-                if (player.CharStateService != null && player.CharStateService.TryGetMaxCoreState(out var stateData))
-                    player.ApplyMaxCoreState(stateData, refillCurrent: true);
-                else
-                    player.ApplyMaxCoreState(player.CreateDefaultMaxCoreStateData(), refillCurrent: true);
-            }
-            else
-            {
-                player.RuntimeData.CurrentHealth = Mathf.Min(player.RuntimeData.CurrentHealth, player.CurrentMaxHealth);
-            }
+            // 停用：BBB 内不再处理血量/理智恢复。
 
             TeleportPlayer(player, respawnTransform);
             RefreshAllEnemyRespawnPoints();

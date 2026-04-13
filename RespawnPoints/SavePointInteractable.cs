@@ -4,7 +4,7 @@ namespace BBBNexus
 {
 /// <summary>
 /// 存档点互动组件。
-/// 玩家交互后绑定为复活点，并回满血量和理智。
+/// 玩家交互后绑定为复活点。
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(SphereCollider))]
@@ -21,7 +21,7 @@ public class SavePointInteractable : MonoBehaviour, IInteractable
     [Header("提示文本")]
     [SerializeField] private string _promptText = "休息";
     [SerializeField] private string _messageTitle = "存档点";
-    [SerializeField] private string _messageBody = "已记录进度，生命和理智已恢复。";
+    [SerializeField] private string _messageBody = "已记录进度。";
 
     public string SavePointId => _savePointId;
 
@@ -83,16 +83,10 @@ public class SavePointInteractable : MonoBehaviour, IInteractable
         // 1. 设置当前存档点为复活点
         PlayerRespawnService.Instance.SetActiveSavePoint(this);
 
-        // 2. 回满血量
-        interactor.RuntimeData.CurrentHealth = interactor.CurrentMaxHealth;
-
-        // 3. 补满理智
-        interactor.SetSanityNormalized(1.0f);
-
-        // 4. 显示提示
+        // 2. 显示提示
         interactor.ReadingOverlay?.Show(
             string.IsNullOrWhiteSpace(_messageTitle) ? "存档点" : _messageTitle,
-            string.IsNullOrWhiteSpace(_messageBody) ? "已记录进度，生命和理智已恢复。" : _messageBody);
+            string.IsNullOrWhiteSpace(_messageBody) ? "已记录进度。" : _messageBody);
     }
 
 #if UNITY_EDITOR

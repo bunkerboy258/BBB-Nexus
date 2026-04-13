@@ -57,6 +57,13 @@ namespace BBBNexus
         Dictionary<string, int> GetAllItems();
 
         /// <summary>
+        /// 获取所有非空物品及其 SO 和数量喵~
+        /// 由实现层（胶水层）负责 ID → SO 的解析
+        /// </summary>
+        /// <returns>(ItemSO, Count) 的列表</returns>
+        IEnumerable<(ItemDefinitionSO ItemSO, int Count)> GetAllItemsWithSO();
+
+        /// <summary>
         /// 清空整个库存喵~
         /// </summary>
         void Clear();

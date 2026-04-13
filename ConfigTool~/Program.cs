@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -868,10 +868,10 @@ static int PrintCommandHelp(string command)
 
                   说明:
                     为支持的近战武器 ScriptableObject 生成一份 Attack Clip Geometry Definition JSON 模板。
-                    当前首先支持 FistsSO。输出文件会写入该资产声明的 Resources 路径。
+                    当前支持 WeaponSO。输出文件会写入该资产声明的 Resources 路径。
 
                   示例:
-                    config-tool init-attack-geometry "Assets/BBBNexus/Assests/Resources/Characters/Weapons/FistsSO.asset"
+                    config-tool init-attack-geometry "Assets/BBBNexus/Assests/Resources/Characters/Weapons/WeaponSO.asset"
                   """);
               return 0;
           case "rename-asset":
@@ -1385,3 +1385,4 @@ internal sealed class InspectorFieldInfo
     [JsonPropertyName("tooltip")]
     public string Tooltip { get; set; } = "";
 }
+

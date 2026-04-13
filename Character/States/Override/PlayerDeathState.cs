@@ -33,12 +33,7 @@ namespace BBBNexus
             // 记录死亡时间 （用于压测场景）
             _deathTimeAt = Time.time + RESPAWN_DELAY;
 
-            // 死亡时清空理智，触发低理智视觉效果
-            data.CurrentSanity = 0f;
-            if (EyesClosedSystemManager.Instance != null)
-            {
-                EyesClosedSystemManager.Instance.NotifySanityStateChanged();
-            }
+            // 停用：BBB 内不再处理理智。
         }
 
         protected override void UpdateStateLogic()

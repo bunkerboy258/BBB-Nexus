@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
+using NekoGraph;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;

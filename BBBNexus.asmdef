@@ -5,7 +5,8 @@
         "Kybernetik.Animancer",
         "Kybernetik.Animancer.FSM",
         "Cinemachine",
-        "Unity.InputSystem"
+        "Unity.InputSystem",
+        "NekoGraph.Runtime"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

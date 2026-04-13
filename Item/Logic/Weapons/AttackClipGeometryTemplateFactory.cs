@@ -698,31 +698,6 @@ namespace BBBNexus
             return definition;
         }
 
-        [Obsolete("Use CreateFromClipSampling instead. Hardcoded templates do not reflect actual collider/animation data.")]
-        public static AttackClipGeometryDefinition CreateForFists(FistsSO fists)
-        {
-            var definition = new AttackClipGeometryDefinition
-            {
-                WeaponId = fists.ItemID,
-                DisplayName = string.IsNullOrWhiteSpace(fists.DisplayName) ? fists.name : fists.DisplayName,
-                Clips = new List<AttackClipGeometryClipDefinition>(),
-            };
-
-            int comboCount = fists.ComboSequence != null ? fists.ComboSequence.Length : 0;
-            for (int i = 0; i < comboCount; i++)
-            {
-                definition.Clips.Add(new AttackClipGeometryClipDefinition
-                {
-                    ComboIndex = i,
-                    DisplayName = $"Combo {i + 1}",
-                    UseRootTransformForSweep = true,
-                    Samples = BuildDefaultSamplesForClip(i),
-                });
-            }
-
-            return definition;
-        }
-
         private static List<AttackGeometrySampleDefinition> BuildDefaultSamplesForClip(int comboIndex)
         {
             int patternIndex = comboIndex % 3;

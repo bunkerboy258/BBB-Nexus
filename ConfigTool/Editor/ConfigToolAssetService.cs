@@ -452,20 +452,6 @@ namespace BBBNexus
 
             switch (asset)
             {
-                case FistsSO fists:
-                    string resourcePath = fists.GetAttackGeometryResourcePath();
-                    AttackClipGeometryDefinition definition = AttackClipGeometryTemplateFactory.CreateForFists(fists);
-                    var geometryId = fists.GetAttackGeometryId();
-                    AttackClipGeometryLibrary.WriteDefinitionAndRegister(geometryId, definition, $"{fists.name} Attack Sweep");
-                    return new InitializeAttackGeometryResponse
-                    {
-                        assetPath = assetPath,
-                        assetType = asset.GetType().FullName,
-                        geometryId = geometryId,
-                        geometryAssetPath = AttackClipGeometryLibrary.ToAssetPath(geometryId),
-                        geometryResourcePath = resourcePath
-                    };
-
                 case WeaponSO weapon:
                     string weaponResourcePath = weapon.GetAttackGeometryResourcePath();
                     AttackClipGeometryDefinition weaponDefinition = AttackClipGeometryTemplateFactory.CreateForWeapon(weapon);

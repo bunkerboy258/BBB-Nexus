@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using NekoGraph;
+using UnityEngine;
 
 namespace BBBNexus
 {
@@ -111,29 +112,7 @@ namespace BBBNexus
                 return;
             }
 
-            var healItem = ResolveQuickHealItem();
-            if (healItem == null)
-            {
-                Debug.LogWarning($"[ExtraActionController] 未找到快捷治疗物 '{DefaultQuickHealItemId}'。", _player);
-                return;
-            }
-
-            if (!healItem.AllowUseAtFullHealth && _runtimeData.CurrentHealth >= _runtimeData.MaxHealth - 0.01f)
-            {
-                ShowMessage(healItem.FullHealthMessageTitle, healItem.FullHealthMessageBody);
-                return;
-            }
-
-            if (_player.InventoryService == null || !_player.InventoryService.TryRemove(healItem, 1))
-            {
-                ShowMessage(healItem.EmptyMessageTitle, healItem.EmptyMessageBody);
-                return;
-            }
-
-            if (!_player.TryHeal(healItem.HealAmount))
-            {
-                _player.InventoryService.TryAdd(healItem, 1);
-            }
+            ShowMessage("系统提示", "BBB 内治疗逻辑已停用。");
         }
 
         private HealingItemSO ResolveQuickHealItem()

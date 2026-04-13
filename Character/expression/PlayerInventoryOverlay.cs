@@ -169,31 +169,7 @@ namespace BBBNexus
 
         private void TryUseHealingItem(ItemSlot slot, HealingItemSO healing)
         {
-            var inv = _player.InventoryService;
-            if (inv == null) { _statusMessage = "库存服务未初始化。"; return; }
-
-            if (!healing.AllowUseAtFullHealth && _player.RuntimeData.CurrentHealth >= _player.RuntimeData.MaxHealth - 0.01f)
-            {
-                _statusMessage = string.IsNullOrWhiteSpace(healing.FullHealthMessageBody) ? "当前生命值已满。" : healing.FullHealthMessageBody;
-                return;
-            }
-
-            if (!inv.TryRemove(healing, 1))
-            {
-                _statusMessage = string.IsNullOrWhiteSpace(healing.EmptyMessageBody) ? "该治疗物品已不足。" : healing.EmptyMessageBody;
-                return;
-            }
-
-            if (!_player.TryHeal(healing.HealAmount))
-            {
-                inv.TryAdd(healing, 1);
-                _statusMessage = "治疗失败，物品已回退。";
-                return;
-            }
-
-            _statusMessage = $"使用了 {slot.DisplayName}。";
-            RefreshSnapshot();
-            ClampSelection();
+            _statusMessage = "BBB 内治疗逻辑已停用。";
         }
 
         private void AssignSelectedToMainSlot(int mainSlotIndex)
@@ -223,8 +199,14 @@ namespace BBBNexus
                 return;
             }
 
-            // 写入配置槽
-            equip.TrySetEquipSO($"config:weapon{mainSlotIndex}", slot.ItemId);
+            // 写入配置槽并装备
+            var equippableSO = slot.Definition as EquippableItemSO;
+            if (equippableSO == null)
+            {
+                _statusMessage = "物品不是可装备类型。";
+                return;
+            }
+            equip.TrySetEquipSO($"config:weapon{mainSlotIndex}", equippableSO);
 
             // 直接触发装备切换（从配置槽复制到实例槽并实例化）
             var configSO = equip.GetEquippedSO($"config:weapon{mainSlotIndex}");
@@ -281,14 +263,12 @@ namespace BBBNexus
             var inv = _player.InventoryService;
             if (inv != null)
             {
-                var allItems = inv.GetAllItems();
-                foreach (var pair in allItems)
+                // 使用 GetAllItemsWithSO 直接获取 SO，避免 UI 层直接查询 MetaLib
+                var allItems = inv.GetAllItemsWithSO();
+                foreach (var (itemSO, count) in allItems)
                 {
-                    // 背包中存的是 ID，需要通过其他方式获取 SO
-                    // TODO: 需要 InventoryService 提供 ID -> SO 的映射
-                    // 暂时跳过 MetaLib 查询
-                    if (string.IsNullOrWhiteSpace(pair.Key)) continue;
-                    snap.Items.Add(new ItemSlot { ItemId = pair.Key, Count = pair.Value, Definition = null });
+                    if (itemSO == null) continue;
+                    snap.Items.Add(new ItemSlot { ItemId = itemSO.name, Count = count, Definition = itemSO });
                 }
                 snap.Items.Sort((a, b) => string.Compare(a.DisplayName, b.DisplayName, System.StringComparison.Ordinal));
             }

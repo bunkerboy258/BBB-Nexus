@@ -1,4 +1,4 @@
-﻿namespace BBBNexus
+namespace BBBNexus
 {
     // 战术姿态与副键意图处理器。
     // 只有当前主手武器显式支持，且装备阶段已完成时，才会进入 TacticalMotionBase。
@@ -18,9 +18,9 @@
         public void Update(in ProcessedInputData input)
         {
             bool sprintActive = input.SprintHeld &&
-                _data.MoveInput.sqrMagnitude > 0.01f &&
+                _data.MoveInput.sqrMagnitude > 0.01f;/*&&
                 !_data.IsStaminaDepleted &&
-                _data.CurrentStamina > 0f;
+                _data.CurrentStamina > 0f;*/
             bool wantsSecondary = input.AimHeld || input.SecondaryAttackHeld;
             _data.WantsToSecondaryAction = !sprintActive && wantsSecondary;
             _data.IsTacticalStance = !sprintActive && wantsSecondary && CanCurrentMainhandEnterTacticalMotionBase();
