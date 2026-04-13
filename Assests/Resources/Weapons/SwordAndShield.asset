@@ -1,0 +1,262 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17344c9add4ffea4a9ee7396ee8bcc37, type: 3}
+  m_Name: SwordAndShield
+  m_EditorClassIdentifier: 
+  ItemID: SwordAndShield
+  DisplayName: 
+  Icon: {fileID: 0}
+  Description: 
+  MaxStack: 1
+  Prefab: {fileID: 5678772079622165184, guid: cb141b340f03a4244a957c2ff766a0d5, type: 3}
+  EquipSlot: 1
+  HoldPositionOffset: {x: 0, y: 0, z: 0}
+  HoldRotationOffset: {x: 0, y: 0, z: 0, w: 1}
+  UpperBodyLayerWeight: 1
+  EquipAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: d778cd2cb6c2d914d8c5b49fca8ad2b8, type: 3}
+    _NormalizedStartTime: NaN
+  EquipAnimPlayOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  UnEquipAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: e81d658179c37294fb7583dbbff2c055, type: 3}
+    _NormalizedStartTime: NaN
+  UnEquipAnimPlayOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  EquipIdleAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 0}
+    _NormalizedStartTime: NaN
+  EquipIdleAnimOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  CameraPreset: {fileID: 11400000, guid: 89e8d33dff96d5a43b0897094fd0232d, type: 2}
+  VirtualOtherSlot:
+    Enabled: 1
+    TargetSlot: 2
+    LinkedItem: {fileID: 11400000, guid: 68a5e70f9fc31c946ba0f288904310d4, type: 2}
+  EquipSounds:
+  - {fileID: 8300000, guid: 792be152b215a48fdb3d086593b0111b, type: 3}
+  UnEquipSounds: []
+  MeleeAudio:
+    EnterStanceSounds: []
+    ComboSwingSounds:
+    - Clips:
+      - {fileID: 8300000, guid: 2441a8073e119431bbbc0e998ee8428b, type: 3}
+    - Clips:
+      - {fileID: 8300000, guid: 2441a8073e119431bbbc0e998ee8428b, type: 3}
+    - Clips:
+      - {fileID: 8300000, guid: 2441a8073e119431bbbc0e998ee8428b, type: 3}
+    - Clips:
+      - {fileID: 8300000, guid: 2441a8073e119431bbbc0e998ee8428b, type: 3}
+    HitSounds:
+    - {fileID: 8300000, guid: 18fa2463d716a22469b35491a18368c9, type: 3}
+    - {fileID: 8300000, guid: dd6c193e18c90884bb30967c2f1aa0b3, type: 3}
+    - {fileID: 8300000, guid: 6e36ba05591acc64dbc0d43edf31d8e6, type: 3}
+    - {fileID: 8300000, guid: cc7a2f9d717a4684ab9cb086c31e8113, type: 3}
+    ExitStanceSounds: []
+  RangedAudio:
+    EnterAimSounds: []
+    ExitAimSounds: []
+    ReloadSounds: []
+    ShootSounds: []
+    ProjectileHitSounds: []
+  EquipEndTime: 0.5
+  EnableIK: 0
+  EnterStanceAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 0}
+    _NormalizedStartTime: NaN
+  ExitStanceAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 0}
+    _NormalizedStartTime: NaN
+  ExitUsesLock: 0
+  ComboSequence:
+  - _FadeDuration: 0.15666667
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: 2663826a2ad241c40bcb9210b50cdc3f, type: 3}
+    _NormalizedStartTime: 0
+    _StableKey: 50f8e8455f530e441812ae1a45e64c06
+  - _FadeDuration: 0.15
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: cb1fd3e0be3cfc540803c2352663fda1, type: 3}
+    _NormalizedStartTime: 0
+    _StableKey: 62a90fba5bc77ef4ea0de79869df7730
+  - _FadeDuration: 0.17333336
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: 7efca8f97e0ba1c4eb650003bc96556d, type: 3}
+    _NormalizedStartTime: 0
+    _StableKey: e56be42097801164c9d4a86c9359abf3
+  - _FadeDuration: 0.23333335
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: -203655887218126122, guid: 56ce364184913e64ba6ffbff289b5f37, type: 3}
+    _NormalizedStartTime: 0
+    _StableKey: d8b6646f62bfeb04a86397673b8747cd
+  ComboAttackHands: 00000000000000000000000000000000
+  ComboDamageWindows:
+  - Enabled: 1
+    DamageMultiplier: 1
+    StartNormalized: 0.41331664
+    EndNormalized: 0.6972362
+    ExtraWindows: []
+  - Enabled: 1
+    DamageMultiplier: 1
+    StartNormalized: 0.2525126
+    EndNormalized: 0.55251265
+    ExtraWindows: []
+  - Enabled: 1
+    DamageMultiplier: 1.5
+    StartNormalized: 0.100000046
+    EndNormalized: 0.71155787
+    ExtraWindows: []
+  - Enabled: 1
+    DamageMultiplier: 2
+    StartNormalized: 0.3148241
+    EndNormalized: 0.61482394
+    ExtraWindows: []
+  ComboAlignmentWindows:
+  - Enabled: 1
+    StartNormalized: 0
+    EndNormalized: 0.39472365
+  - Enabled: 1
+    StartNormalized: 0
+    EndNormalized: 0.29623118
+  - Enabled: 1
+    StartNormalized: 0
+    EndNormalized: 0.13743716
+  - Enabled: 1
+    StartNormalized: 0
+    EndNormalized: 0.28015074
+  ComboWindowStart: 0.5
+  ComboLateBuffer: 0.2
+  ComboPriority: 25
+  AutoTargetTurnSpeed: 540
+  AttackGeometryId: 
+  AttackerHitStopDuration: 0.12
+  SprintCameraPreset: {fileID: 11400000, guid: 7d284d21bb04e824aba09ad91963a1b8, type: 2}
+  BakingCharacterPrefab: {fileID: 5498192701711643705, guid: 138fd718d5117e8468bd92c91b87ea44,
+    type: 3}
+  BakingWeaponPrefab: {fileID: 5678772079622165184, guid: c3884b7f021e6164abc611c8b57dcaaf,
+    type: 3}
+  EnablesAimState: 1
+  UseAimCorrection: 0
+  AimAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 0}
+    _NormalizedStartTime: NaN
+  AimAnimPlayOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  MaxAmmo: 30
+  FireRate: 0.1
+  MagazineSize: 12
+  ReloadTime: 1.5
+  TacticalReloadTime: 1.2
+  ReloadAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 0}
+    _NormalizedStartTime: NaN
+  ReloadAnimOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  AmmoItem: {fileID: 0}
+  ProjectilePrefab: {fileID: 0}
+  ProjectileSpeed: 24
+  IsFullAuto: 0
+  ShootInterval: 0.18
+  HitScanRange: 80
+  DamageAmount: 10
+  HeadDamageMultiplier: 1.5
+  TorsoDamageMultiplier: 1
+  ArmDamageMultiplier: 0.9
+  LegDamageMultiplier: 0.85
+  TracerDuration: 0.06
+  MuzzleVFXPrefab: {fileID: 0}
+  RecoilPitchAngle: 1.4
+  RecoilYawAngle: 0.8
+  RecoilPitchRandomRange: 0.35
+  RecoilYawRandomRange: 0.35
+  AimingCameraPreset: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []

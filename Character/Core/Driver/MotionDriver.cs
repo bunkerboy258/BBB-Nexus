@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BBBNexus
 {
@@ -31,6 +31,9 @@ namespace BBBNexus
     /// </summary>
     public class MotionDriver
     {
+        private const int CharacterBlockMaxOverlapCount = 16;
+        private static readonly Collider[] CharacterBlockOverlaps = new Collider[CharacterBlockMaxOverlapCount];
+
         // 注：在最新版本 主要优化了Unity的底层开销(eulerAngles/velocity/materialized quaternion) 并保证每帧重力只积分一次
         #region Dependencies
         private readonly BBBCharacterController _player;
@@ -115,22 +118,84 @@ namespace BBBNexus
             _config = player.Config;
             _transform = player.transform;
 
-            _loco.WasAiming = _data.IsAiming;
+            _loco.WasAiming = _data.IsTacticalStance;
         }
 
         #region Public API
 
-        public void UpdateGravityOnly()
+        /// <summary>
+        /// 请求将角色旋转到指定 Yaw。MotionDriver 是唯一的 transform.rotation 写入者。
+        /// smoothTime = 0：本帧同步立即到位（适合需要当帧生效的场景，如 Dodge 开始前对齐朝向）。
+        /// smoothTime > 0：写入黑板，由后续 MotionDriver 更新平滑驱动（适合锁定跟随等持续旋转）。
+        /// </summary>
+        public void RequestYaw(float targetYaw, float smoothTime = 0f)
         {
-            Vector3 vv = GetGravityThisFrame();
-            _cc.Move(vv * Time.deltaTime);
+            if (smoothTime <= 0f)
+            {
+                _transform.rotation = Quaternion.Euler(0f, targetYaw, 0f);
+                _data.CurrentYaw = targetYaw;
+                _data.RotationVelocity = 0f;
+            }
+            else
+            {
+                _data.RequestedTargetYaw = targetYaw;
+                _data.RequestedYawSmoothTime = smoothTime;
+            }
+        }
+
+        public void RequestHorizontalDisplacement(Vector3 displacement)
+        {
+            displacement.y = 0f;
+            _data.RequestedHorizontalDisplacement += displacement;
+        }
+
+        public void RequestVerticalDisplacement(float displacement)
+        {
+            _data.RequestedVerticalDisplacement += displacement;
+        }
+
+        public void UpdateGravityOnly(bool hardStop = false, bool skipGravity = false)
+        {
+            ConsumeYawRequest();
+            // 即使只做重力，也要消费并阻挡水平位移请求（攻击对齐/根运动等），防止撞入其他角色
+            Vector3 hv = Vector3.zero;
+            Vector3 requestedDisplacement = ConsumeRequestedHorizontalDisplacement();
+            if (!IsHitStopMotionFrozen() && requestedDisplacement.sqrMagnitude > 0.0001f && Time.deltaTime > 0.000001f)
+            {
+                hv = requestedDisplacement / Time.deltaTime;
+            }
+            hv = ResolveCharacterBlocking(hv, hardStop);
+            float requestedVerticalDisplacement = ConsumeRequestedVerticalDisplacement();
+            Vector3 vv = BuildVerticalVelocity(skipGravity, requestedVerticalDisplacement);
+            _cc.Move((hv + vv) * Time.deltaTime);
             _data.CurrentSpeed = _cc.velocity.magnitude;
+        }
+
+        /// <summary>
+        /// 将动画根运动的 XZ 位移过角色间阻挡过滤后返回。
+        /// </summary>
+        public Vector3 ApplyRootMotionHorizontal(Vector3 horizontalDisplacement, bool hardStop)
+        {
+            horizontalDisplacement.y = 0f;
+            if (IsHitStopMotionFrozen() || horizontalDisplacement.sqrMagnitude <= 0.0001f || Time.deltaTime <= 0.000001f)
+            {
+                return Vector3.zero;
+            }
+
+            Vector3 filteredVelocity = ResolveCharacterBlocking(horizontalDisplacement / Time.deltaTime, hardStop);
+            return filteredVelocity * Time.deltaTime;
         }
 
         public void UpdateMotion(MotionClipData clipData, float stateTime)
         {
             HandleAimModeTransitionIfNeeded();
             AutoHandleCurveDrivenEnter(clipData, stateTime);
+
+            if (IsHitStopMotionFrozen())
+            {
+                ExecuteMovement(Vector3.zero);
+                return;
+            }
 
             Vector3 hv = clipData == null
                 ? CalculateInputDrivenVelocity(1f)
@@ -142,6 +207,11 @@ namespace BBBNexus
         public void UpdateLocomotionFromInput(float speedMult = 1f)
         {
             HandleAimModeTransitionIfNeeded();
+            if (IsHitStopMotionFrozen())
+            {
+                ExecuteMovement(Vector3.zero);
+                return;
+            }
             ExecuteMovement(CalculateInputDrivenVelocity(speedMult));
         }
 
@@ -155,6 +225,11 @@ namespace BBBNexus
         }
 
         #endregion
+
+        private bool IsHitStopMotionFrozen()
+        {
+            return _player.StatusEffects != null && _player.StatusEffects.IsHitStopMotionFrozen;
+        }
 
         #region Warp API
 
@@ -227,6 +302,10 @@ namespace BBBNexus
 
             float rotVelY = _warp.Data.LocalRotationY.Evaluate(normalizedTime);
 
+            // Warp 也需要防撞：只阻挡水平分量，保留垂直
+            Vector3 warpHorizontal = new Vector3(finalVelocity.x, 0f, finalVelocity.z);
+            warpHorizontal = ResolveCharacterBlocking(warpHorizontal);
+            finalVelocity = new Vector3(warpHorizontal.x, finalVelocity.y, warpHorizontal.z);
             _cc.Move(finalVelocity * Time.deltaTime);
             if (Mathf.Abs(rotVelY) > 0.0001f)
                 _transform.Rotate(0f, rotVelY * Time.deltaTime, 0f, Space.World);
@@ -242,7 +321,18 @@ namespace BBBNexus
 
         private void ExecuteMovement(Vector3 horizontalVelocity)
         {
-            Vector3 vv = GetGravityThisFrame();
+            Vector3 requestedDisplacement = ConsumeRequestedHorizontalDisplacement();
+            if (requestedDisplacement.sqrMagnitude > 0.0001f && Time.deltaTime > 0.000001f)
+            {
+                horizontalVelocity += requestedDisplacement / Time.deltaTime;
+            }
+
+            // 统一出口：所有水平速度在 Move 前都要做角色间防碰撞，
+            // 墙壁与地形仍由 CharacterController 原生碰撞负责。
+            horizontalVelocity = ResolveCharacterBlocking(horizontalVelocity);
+
+            float requestedVerticalDisplacement = ConsumeRequestedVerticalDisplacement();
+            Vector3 vv = BuildVerticalVelocity(skipGravity: false, requestedVerticalDisplacement);
             _cc.Move((horizontalVelocity + vv) * Time.deltaTime);
             _data.CurrentSpeed = _cc.velocity.magnitude;
         }
@@ -270,7 +360,7 @@ namespace BBBNexus
 
         private Vector3 CalculateInputDrivenVelocity(float speedMult)
         {
-            return _data.IsAiming
+            return _data.IsTacticalStance
                 ? CalculateAimVelocity(speedMult)
                 : CalculateFreeLookVelocity(speedMult);
         }
@@ -285,21 +375,29 @@ namespace BBBNexus
 
             if (moveDir.sqrMagnitude < 0.0001f)
             {
-                // 避免 eulerAngles 多次读取，空输入时 CurrentYaw 维持最新值即可
+                ConsumeYawRequest();
                 _loco.SmoothSpeed = 0f;
                 return Vector3.zero;
             }
 
-            float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
-            ApplySmoothYaw(targetYaw, _config.Core.RotationSmoothTime);
+            if (!ConsumeYawRequest())
+            {
+                float targetYaw = Mathf.Atan2(moveDir.x, moveDir.z) * Mathf.Rad2Deg;
+                ApplySmoothYaw(targetYaw, _config.Core.RotationSmoothTime);
+            }
 
             return CalculateSmoothedVelocity(moveDir, isAiming: false, speedMult);
         }
 
         private Vector3 CalculateAimVelocity(float speedMult)
         {
-            // 瞄准模式：朝权威 yaw 转向
-            ApplySmoothYaw(_data.AuthorityYaw, _config.Aiming.AimRotationSmoothTime);
+            if (!ConsumeYawRequest())
+            {
+                float smoothTime = _config.TacticalMotionBase != null
+                    ? _config.TacticalMotionBase.AimRotationSmoothTime
+                    : _config.Core.RotationSmoothTime;
+                ApplySmoothYaw(_data.AuthorityYaw, smoothTime);
+            }
 
             Vector2 input = _data.MoveInput;
             if (input.sqrMagnitude < 0.001f)
@@ -373,6 +471,44 @@ namespace BBBNexus
 
         #region Helpers
 
+        // 消费黑板上的 RequestedTargetYaw，立即或平滑应用后清除
+        // 返回 true 表示有 override 且已处理（调用方可跳过自己的目标 yaw 计算）
+        private bool ConsumeYawRequest()
+        {
+            if (float.IsNaN(_data.RequestedTargetYaw)) return false;
+
+            float target = _data.RequestedTargetYaw;
+            float smooth = _data.RequestedYawSmoothTime;
+            _data.RequestedTargetYaw = float.NaN;
+
+            if (smooth <= 0f)
+            {
+                _transform.rotation = Quaternion.Euler(0f, target, 0f);
+                _data.CurrentYaw = target;
+                _data.RotationVelocity = 0f;
+            }
+            else
+            {
+                ApplySmoothYaw(target, smooth);
+            }
+
+            return true;
+        }
+
+        private Vector3 ConsumeRequestedHorizontalDisplacement()
+        {
+            Vector3 displacement = _data.RequestedHorizontalDisplacement;
+            _data.RequestedHorizontalDisplacement = Vector3.zero;
+            return displacement;
+        }
+
+        private float ConsumeRequestedVerticalDisplacement()
+        {
+            float displacement = _data.RequestedVerticalDisplacement;
+            _data.RequestedVerticalDisplacement = 0f;
+            return displacement;
+        }
+
         private void ApplySmoothYaw(float targetYaw, float smoothTime)
         {
             // 用 CurrentYaw 做权威 yaw
@@ -400,9 +536,9 @@ namespace BBBNexus
 
         private float GetBaseSpeed(LocomotionState state, bool isAiming) => state switch
         {
-            LocomotionState.Walk => isAiming ? _config.Aiming.AimWalkSpeed : _config.Core.WalkSpeed,
-            LocomotionState.Jog => isAiming ? _config.Aiming.AimJogSpeed : _config.Core.JogSpeed,
-            LocomotionState.Sprint => isAiming ? _config.Aiming.AimSprintSpeed : _config.Core.SprintSpeed,
+            LocomotionState.Walk => isAiming ? (_config.TacticalMotionBase != null ? _config.TacticalMotionBase.AimWalkSpeed : _config.Core.WalkSpeed) : _config.Core.WalkSpeed,
+            LocomotionState.Jog => isAiming ? (_config.TacticalMotionBase != null ? _config.TacticalMotionBase.AimJogSpeed : _config.Core.JogSpeed) : _config.Core.JogSpeed,
+            LocomotionState.Sprint => isAiming ? (_config.TacticalMotionBase != null ? _config.TacticalMotionBase.AimSprintSpeed : _config.Core.SprintSpeed) : _config.Core.SprintSpeed,
             _ => 0f
         };
 
@@ -427,15 +563,31 @@ namespace BBBNexus
             return _cachedGravity;
         }
 
+        private Vector3 BuildVerticalVelocity(bool skipGravity, float requestedVerticalDisplacement)
+        {
+            Vector3 gravityVelocity = skipGravity ? Vector3.zero : GetGravityThisFrame();
+            if (Mathf.Abs(requestedVerticalDisplacement) <= 0.0001f || Time.deltaTime <= 0.000001f)
+            {
+                return gravityVelocity;
+            }
+
+            float requestedVerticalVelocity = requestedVerticalDisplacement / Time.deltaTime;
+            _data.VerticalVelocity = requestedVerticalVelocity;
+            _cachedGravity = new Vector3(0f, requestedVerticalVelocity, 0f);
+            _gravityFrame = Time.frameCount;
+
+            return gravityVelocity + new Vector3(0f, requestedVerticalVelocity, 0f);
+        }
+
         private void HandleAimModeTransitionIfNeeded()
         {
-            if (_data.IsAiming == _loco.WasAiming) return;
+            if (_data.IsTacticalStance == _loco.WasAiming) return;
 
             // 形态切换：清理旋转与速度平滑状态
             _data.RotationVelocity = 0f;
             _loco.LastAimMoveDir = Vector3.zero;
             _loco.SpeedVelocity = 0f;
-            _loco.WasAiming = _data.IsAiming;
+            _loco.WasAiming = _data.IsTacticalStance;
         }
 
         private void AutoHandleCurveDrivenEnter(MotionClipData clipData, float stateTime)
@@ -464,6 +616,77 @@ namespace BBBNexus
             _data.RotationVelocity = 0f;
             _data.CurrentYaw = _transform.eulerAngles.y;
             _curve.IsInitialized = false;
+        }
+
+        /// <param name="hardStop">
+        /// true = 攻击模式：检测到阻挡时整体归零，不产生切线滑移。
+        /// false = 行走模式：剥掉朝向分量，保留切线分量（原有行为）。
+        /// </param>
+        private Vector3 ResolveCharacterBlocking(Vector3 horizontalVelocity, bool hardStop = false)
+        {
+            if (_cc == null || horizontalVelocity.sqrMagnitude <= 0.0001f)
+            {
+                return horizontalVelocity;
+            }
+
+            float moveDistance = horizontalVelocity.magnitude * Time.deltaTime;
+            if (moveDistance <= 0.0001f)
+            {
+                return horizontalVelocity;
+            }
+
+            Vector3 center = _transform.TransformPoint(_cc.center);
+            float queryRadius = Mathf.Max(_cc.radius + moveDistance + 0.08f, 0.2f);
+            int count = Physics.OverlapSphereNonAlloc(center, queryRadius, CharacterBlockOverlaps, ~0, QueryTriggerInteraction.Ignore);
+            if (count <= 0)
+            {
+                return horizontalVelocity;
+            }
+
+            Vector3 adjustedVelocity = horizontalVelocity;
+            for (int i = 0; i < count; i++)
+            {
+                Collider other = CharacterBlockOverlaps[i];
+                CharacterBlockOverlaps[i] = null;
+                if (other == null || other.transform.IsChildOf(_transform))
+                {
+                    continue;
+                }
+
+                var otherCharacter = other.GetComponentInParent<BBBCharacterController>();
+                if (otherCharacter == null || otherCharacter == _player || otherCharacter.CharController == null)
+                {
+                    continue;
+                }
+
+                Vector3 toOther = otherCharacter.transform.position - _transform.position;
+                toOther.y = 0f;
+                float sqrDistance = toOther.sqrMagnitude;
+                if (sqrDistance <= 0.0001f)
+                {
+                    continue;
+                }
+
+                Vector3 toOtherDir = toOther.normalized;
+                float inwardSpeed = Vector3.Dot(adjustedVelocity, toOtherDir);
+                if (inwardSpeed <= 0f)
+                {
+                    continue;
+                }
+
+                float blockDistance = Mathf.Max(0.1f, _cc.radius) + Mathf.Max(0.1f, otherCharacter.CharController.radius) + 0.05f;
+                if (Mathf.Sqrt(sqrDistance) > blockDistance)
+                {
+                    continue;
+                }
+
+                if (hardStop)
+                    return Vector3.zero;
+
+                adjustedVelocity -= toOtherDir * inwardSpeed;
+            }
+
+            return adjustedVelocity;
         }
 
         #endregion

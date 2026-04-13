@@ -1,60 +1,61 @@
-using UnityEngine;
-
 namespace BBBNexus
 {
     /// <summary>
-    /// ÌåÁ¦ÖÙ²ÃÆ÷£º±»¶¯¶ÁÈ¡ºÚ°åÖĞµÄÔË¶¯×´Ì¬ ²¢¸üĞÂÌåÁ¦ÏûºÄ/»Ö¸´
+    /// ä½“åŠ›ä»²è£å™¨ï¼ˆç®¡çº¿èŠ‚ç‚¹ï¼‰
     /// </summary>
     public sealed class StaminaArbiter
     {
-        private readonly PlayerRuntimeData _data;
-        private readonly PlayerSO _config;
-
         public StaminaArbiter(BBBCharacterController player)
         {
-            _data = player.RuntimeData;
-            _config = player.Config;
+            // RESET-NOTE: runtime stamina/sanity fields were removed from PlayerRuntimeData.
+            // Keep this pipeline node and preserve legacy logic below as commented reference.
         }
 
         public void Arbitrate()
         {
-            if (_data == null || _config == null || _config.Core == null) return;
-
-            float drainRate = GetStaminaDrainRateForState(_data.CurrentLocomotionState);
-
-            if (drainRate > 0f)
-            {
-                _data.CurrentStamina -= drainRate * Time.deltaTime;
-
-                if (_data.CurrentStamina <= 0f)
-                {
-                    _data.CurrentStamina = 0f;
-                    _data.IsStaminaDepleted = true;
-                }
-            }
-            else if (drainRate < 0f)
-            {
-                _data.CurrentStamina += (-drainRate) * Time.deltaTime;
-
-                if (_data.CurrentStamina > _config.Core.MaxStamina * _config.Core.StaminaRecoverThreshold)
-                {
-                    _data.IsStaminaDepleted = false;
-                }
-            }
-
-            _data.CurrentStamina = Mathf.Clamp(_data.CurrentStamina, 0f, _config.Core.MaxStamina);
+            // RESET-TODO:
+            // Rebuild stamina arbitration on top of IStateStore/IStateModify.
+            //
+            // Legacy implementation kept intentionally for reset reference:
+            //
+            // if (_data == null || _config == null || _config.Core == null) return;
+            //
+            // float drainRate = GetStaminaDrainRateForState(_data.CurrentLocomotionState);
+            //
+            // if (drainRate > 0f)
+            // {
+            //     _data.CurrentStamina -= drainRate * Time.deltaTime;
+            //
+            //     if (_data.CurrentStamina <= 0f)
+            //     {
+            //         _data.CurrentStamina = 0f;
+            //         _data.IsStaminaDepleted = true;
+            //     }
+            // }
+            // else if (drainRate < 0f)
+            // {
+            //     _data.CurrentStamina += (-drainRate) * Time.deltaTime;
+            //
+            //     if (_data.CurrentStamina > _data.MaxStamina * _config.Core.StaminaRecoverThreshold)
+            //     {
+            //         _data.IsStaminaDepleted = false;
+            //     }
+            // }
+            //
+            // _data.CurrentStamina = Mathf.Clamp(_data.CurrentStamina, 0f, _data.MaxStamina);
         }
 
-        private float GetStaminaDrainRateForState(BBBNexus.LocomotionState state)
-        {
-            return state switch
-            {
-                BBBNexus.LocomotionState.Sprint => _config.Core.StaminaDrainRate,
-                BBBNexus.LocomotionState.Walk => -_config.Core.StaminaRegenRate * _config.Core.WalkStaminaRegenMult,
-                BBBNexus.LocomotionState.Jog => -_config.Core.StaminaRegenRate,
-                BBBNexus.LocomotionState.Idle => -_config.Core.StaminaRegenRate,
-                _ => 0f
-            };
-        }
+        // Legacy helper (commented):
+        // private float GetStaminaDrainRateForState(BBBNexus.LocomotionState state)
+        // {
+        //     return state switch
+        //     {
+        //         BBBNexus.LocomotionState.Sprint => _config.Core.StaminaDrainRate,
+        //         BBBNexus.LocomotionState.Walk => -_config.Core.StaminaRegenRate * _config.Core.WalkStaminaRegenMult,
+        //         BBBNexus.LocomotionState.Jog => -_config.Core.StaminaRegenRate,
+        //         BBBNexus.LocomotionState.Idle => -_config.Core.StaminaRegenRate,
+        //         _ => 0f
+        //     };
+        // }
     }
 }

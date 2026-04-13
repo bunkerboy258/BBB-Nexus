@@ -49,9 +49,9 @@ namespace BBBNexus
         // 跳跃由全局拦截器统一处理，避免状态内重复判断
         protected override void UpdateStateLogic()
         {
-            if (data.IsAiming)
+            if (data.IsTacticalStance)
             {
-                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerAimMoveState>());
+                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerTacticalMoveState>());
             }
             else if (data.CurrentLocomotionState == LocomotionState.Idle)
             {

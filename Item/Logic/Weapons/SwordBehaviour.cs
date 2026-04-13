@@ -1,9 +1,10 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
 using Animancer;
 
 namespace BBBNexus
 {
-    // Ω££∫ºÚªØµƒ≥÷”–”Îµ•∂Œπ•ª˜¬ﬂº≠
+    // ÂâëÔºöÁÆÄÂåñÁöÑÊåÅÊúâ‰∏éÂçïÊÆµÊîªÂáªÈÄªËæë
+    [System.Obsolete("SwordBehaviour Â∑≤Â∫üÂºÉÔºåËØ∑‰ΩøÁî®ÂÖ∑‰ΩìÊ≠¶Âô®ÁöÑ Behaviour ÂÆûÁé∞ÔºàÂ¶Ç KnifeBehaviourÔºâ„ÄÇ")]
     public class SwordBehaviour : MonoBehaviour, IHoldableItem, IPoolable
     {
         private enum SwordPhase { None, Equipping, Idle, Unequipping, Attacking }
@@ -12,12 +13,15 @@ namespace BBBNexus
         private ItemInstance _instance;
         private SwordSO _config;
 
+        // Ê≠¶Âô®Ëá™Áü•ËØÜÔºöÂΩìÂâçË£ÖÂ§áÊßΩ‰Ωç
+        public EquipmentSlot CurrentEquipSlot { get; set; }
+
         private SwordPhase _phase = SwordPhase.None;
         private float _equipEndTime;
         private float _unequipEndTime;
         private bool _lastFireInput;
 
-        // ∂µµ◊ ±º‰
+        // ÂÖúÂ∫ïÊó∂Èó¥
         private float _attackFallbackEndTime;
         private const float AttackFallbackExtraTime = 0.25f;
 
@@ -28,9 +32,15 @@ namespace BBBNexus
         {
             _instance = instanceData;
             _config = _instance.BaseData as SwordSO;
+            
+            // ‰ªéÈÖçÁΩÆËØªÂèñË£ÖÂ§áÊßΩ‰Ωç
+            if (_config != null)
+            {
+                CurrentEquipSlot = _config.EquipSlot;
+            }
         }
 
-        // ◊∞±∏
+        // Ë£ÖÂ§á
         public void OnEquipEnter(BBBCharacterController player)
         {
             _player = player;
@@ -51,10 +61,17 @@ namespace BBBNexus
             _player?.AnimFacade?.ClearOnEndCallback(UpperBodyLayer);
         }
 
-        // ∏¸–¬
+        // Êõ¥Êñ∞
         public void OnUpdateLogic()
         {
             if (_player == null || _player.AnimFacade == null || _config == null) return;
+
+            if ((_player.CharacterArbiter != null && _player.CharacterArbiter.IsUnderStatusControl()) ||
+                (_player.CharacterArbiter != null && _player.CharacterArbiter.IsActionBlocked()))
+            {
+                CancelAttack();
+                return;
+            }
 
             if (_phase == SwordPhase.Attacking && Time.time >= _attackFallbackEndTime)
             {
@@ -62,7 +79,7 @@ namespace BBBNexus
                 return;
             }
 
-            bool fire = _player.RuntimeData != null && _player.RuntimeData.WantsToFire;
+            bool fire = _player.RuntimeData != null && _player.RuntimeData.WantsToPrimaryAction;
             bool fireDown = fire && !_lastFireInput;
             _lastFireInput = fire;
 
@@ -103,7 +120,7 @@ namespace BBBNexus
             }
         }
 
-        // «ø÷∆–∂‘ÿ
+        // Âº∫Âà∂Âç∏ËΩΩ
         public void OnForceUnequip()
         {
             if (_player == null || _player.AnimFacade == null) return;
@@ -126,7 +143,7 @@ namespace BBBNexus
                 _player.AnimFacade.SetLayerWeight(UpperBodyLayer, 0f, DefaultFadeOut);
         }
 
-        // π•ª˜
+        // ÊîªÂáª
         private void StartAttack()
         {
             if (_config == null || _player == null) return;
@@ -139,13 +156,12 @@ namespace BBBNexus
             float clipLen = request.Clip.length;
             _attackFallbackEndTime = Time.time + Mathf.Max(0.05f, clipLen + AttackFallbackExtraTime);
 
-            if (_config.SwingSound != null)
-                AudioSource.PlayClipAtPoint(_config.SwingSound, transform.position);
+            WeaponAudioUtil.PlayAt(_config.MeleeAudio.HitSounds, transform.position);
 
             _player.RequestOverride(request, flushImmediately: true);
         }
 
-        // ±æµÿΩ· ¯π•ª˜
+        // Êú¨Âú∞ÁªìÊùüÊîªÂáª
         private void EndAttackLocally()
         {
             if (_player == null || _player.AnimFacade == null) return;
@@ -153,7 +169,7 @@ namespace BBBNexus
             _phase = SwordPhase.Idle;
         }
 
-        // »°œ˚π•ª˜
+        // ÂèñÊ∂àÊîªÂáª
         private void CancelAttack()
         {
             if (_player == null) return;

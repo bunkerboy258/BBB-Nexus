@@ -1,0 +1,156 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7de8af0badb9224c975457117fbfca2, type: 3}
+  m_Name: Rifle
+  m_EditorClassIdentifier: 
+  ItemID: Rifle
+  DisplayName: Rifle
+  Icon: {fileID: 0}
+  Description: Rifle
+  MaxStack: 1
+  Prefab: {fileID: 3488042938279102290, guid: cef328e3361df984199b787ec51a7ea2, type: 3}
+  EquipSlot: 1
+  HoldPositionOffset: {x: 0, y: 0, z: 0}
+  HoldRotationOffset: {x: 0, y: 0, z: 0, w: 1}
+  UpperBodyLayerWeight: 1
+  EquipAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 1827226128182048838, guid: 85f5eb39b9912674b97d4461a0966575, type: 3}
+    _NormalizedStartTime: NaN
+  EquipAnimPlayOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  UnEquipAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 1827226128182048838, guid: 85f5eb39b9912674b97d4461a0966575, type: 3}
+    _NormalizedStartTime: NaN
+  UnEquipAnimPlayOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  EquipIdleAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 1827226128182048838, guid: bbbee9b3cbcf4544db7948ec7d440e39, type: 3}
+    _NormalizedStartTime: NaN
+  EquipIdleAnimOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  CameraPreset: {fileID: 11400000, guid: 9b4bf23210883ac4c8e8e357bcad17b2, type: 2}
+  VirtualOtherSlot:
+    Enabled: 0
+    TargetSlot: 0
+    ItemId: 
+  EquipSounds:
+  - {fileID: 8300000, guid: 32d4b1811dda14a6cb9e059ee8ad17d2, type: 3}
+  - {fileID: 8300000, guid: 19f89c6e740e7447f9e12a8310d3e973, type: 3}
+  UnEquipSounds:
+  - {fileID: 8300000, guid: 2c5292ba5cf254919a6b9e2b18e04f49, type: 3}
+  MeleeAudio:
+    EnterStanceSounds: []
+    ComboSwingSounds: []
+    HitSounds: []
+    ExitStanceSounds: []
+  RangedAudio:
+    EnterAimSounds:
+    - {fileID: 8300000, guid: 4e1ff8faed12a475eba9be0e46072269, type: 3}
+    ExitAimSounds:
+    - {fileID: 8300000, guid: 7478151cf36724a7dada558f746c3633, type: 3}
+    ReloadSounds:
+    - {fileID: 8300000, guid: 2a4845256a65f474a87b27d295c654be, type: 3}
+    ShootSounds:
+    - {fileID: 8300000, guid: e206a564e54303e4792eefa02841b330, type: 3}
+    ProjectileHitSounds:
+    - {fileID: 8300000, guid: 110dd8b6112d14ebf8ac308e6bbaffea, type: 3}
+  EnablesAimState: 1
+  UseAimCorrection: 1
+  AimAnim:
+    _FadeDuration: 0.25
+    _Speed: 1
+    _Events:
+      _NormalizedTimes: []
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 1827226128182048838, guid: bbbee9b3cbcf4544db7948ec7d440e39, type: 3}
+    _NormalizedStartTime: NaN
+  AnimPlayOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  MaxAmmo: 12
+  FireRate: 0.1
+  HeadDamageMultiplier: 1.5
+  TorsoDamageMultiplier: 1
+  ArmDamageMultiplier: 0.9
+  LegDamageMultiplier: 0.85
+  MagazineSize: 6
+  ReloadTime: 0.5
+  TacticalReloadTime: 0.5
+  ReloadAnim:
+    _FadeDuration: 0.25
+    _Speed: 1.8
+    _Events:
+      _NormalizedTimes:
+      - 0.2764557
+      _Callbacks: []
+      _Names: []
+    _Clip: {fileID: 1827226128182048838, guid: 85f5eb39b9912674b97d4461a0966575, type: 3}
+    _NormalizedStartTime: NaN
+  ReloadAnimOptions:
+    Layer: 1
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  AmmoItem: {fileID: 11400000, guid: eb7e4d1319877564cae643c6031bb08c, type: 2}
+  EquipEndTime: 0.35
+  ProjectilePrefab: {fileID: 0}
+  ProjectileSpeed: 24
+  IsFullAuto: 0
+  ShootInterval: 0.18
+  HitScanRange: 80
+  DamageAmount: 34
+  TracerDuration: 0.06
+  MuzzleVFXPrefab: {fileID: 0}
+  RecoilPitchAngle: 1.4
+  RecoilYawAngle: 0.8
+  AimingCameraPreset: {fileID: 11400000, guid: cc228b3ceeaedf94196955ec5bef6254, type: 2}
+  SprintCameraPreset: {fileID: 11400000, guid: 7623d472f1292d94286cb6658a1c749c, type: 2}
+  RecoilPitchRandomRange: 0.35
+  RecoilYawRandomRange: 0.35
+  references:
+    version: 2
+    RefIds: []

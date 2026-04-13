@@ -8,19 +8,19 @@ namespace BBBNexus
     public class PlayerInventoryController
     {
         private BBBCharacterController _player;
-        private PlayerRuntimeData _data; 
-
-        public InventorySystem MainInventory { get; private set; }
-        public InventorySystem HotbarInventory { get; private set; }
+        private PlayerRuntimeData _data;
 
         private int _currentSlotIndex = -1;
+
+        // 配置槽位和实例槽位的 key 映射
+        private readonly string[] _configSlotKeys = new[] { "config:weapon1", "config:weapon2", "config:weapon3", "config:weapon4", "config:weapon5" };
+        private const string InstanceMainhandKey = "instance:mainhand";
+        private const string InstanceOffhandKey = "instance:offhand";
 
         public PlayerInventoryController(BBBCharacterController player)
         {
             _player = player;
-            _data = player.RuntimeData; 
-            MainInventory = new InventorySystem(20);
-            HotbarInventory = new InventorySystem(5);
+            _data = player.RuntimeData;
         }
 
         public void Initialize()
@@ -41,102 +41,150 @@ namespace BBBNexus
         public void Update()
         {
             if (_data == null) return;
-            if (_data.Arbitration.BlockInventory)
-            {
-                Unequip();
-                return;
-            }
+            // BlockInventory 只阻止切换新装备，不强制卸载当前装备
+            if (_data.Arbitration.BlockInventory) return;
 
-            if (_data.WantsToEquipHotbarIndex != -1)
+            if (_data.WantToEquipSlotIndex != -1)
             {
-                TryEquipSlot(_data.WantsToEquipHotbarIndex);
+                TryEquipSlot(_data.WantToEquipSlotIndex);
 
-                _data.WantsToEquipHotbarIndex = -1;
+                _data.WantToEquipSlotIndex = -1;
             }
         }
 
-        public void AssignItemToSlot(int slotIndex, ItemInstance itemInstance)
-        {
-            if (slotIndex < 0 || slotIndex >= 5) return;
-            if (itemInstance == null) return;
-
-            var oldItem = HotbarInventory.SetAt(slotIndex, itemInstance);
-            if (oldItem != null)
-            {
-                MainInventory.TryAdd(oldItem);
-            }
-            //Debug.Log($"[Inventory] 快捷栏[{slotIndex + 1}] 绑定: {itemInstance.BaseData.DisplayName}");
-        }
-
-        public bool MoveToHotbar(InventorySystem source, int sourceSlot, int hotbarSlot)
-        {
-            if (source == null || sourceSlot < 0 || hotbarSlot < 0 || hotbarSlot >= 5) return false;
-
-            var itemToMove = source.RemoveAt(sourceSlot);
-            if (itemToMove == null) return false;
-
-            var oldItem = HotbarInventory.SetAt(hotbarSlot, itemToMove);
-            if (oldItem != null)
-            {
-                source.SetAt(sourceSlot, oldItem);
-            }
-            return true;
-        }
-
-        public bool MoveToInventory(InventorySystem source, int sourceSlot, int inventorySlot)
-        {
-            if (source == null || sourceSlot < 0 || inventorySlot < 0 || inventorySlot >= 20) return false;
-
-            var itemToMove = source.RemoveAt(sourceSlot);
-            if (itemToMove == null) return false;
-
-            var oldItem = MainInventory.SetAt(inventorySlot, itemToMove);
-            if (oldItem != null)
-            {
-                source.SetAt(sourceSlot, oldItem);
-            }
-            return true;
-        }
-
-        // 尝试装备指定快捷栏槽位的物品
+        // 尝试切换指定数字槽位对应的主手装备。
+        // 新模式：复制配置槽位的载荷到实例槽位，不是 swap
         private void TryEquipSlot(int slotIndex)
         {
             if (_player == null) return;
             if (slotIndex < 0 || slotIndex >= 5) return;
 
+            var configKey = _configSlotKeys[slotIndex];
+
+            // 检查配置槽位是否启用
+            if (!IsConfigSlotEnabled(configKey))
+            {
+                ConsumeHotbarKey(slotIndex);
+                return;
+            }
+
+            // 检查实例槽位是否启用
+            if (!IsInstanceSlotEnabled(InstanceMainhandKey))
+            {
+                ConsumeHotbarKey(slotIndex);
+                return;
+            }
+
+            var service = _player.EquipmentService;
+            if (service == null)
+            {
+                Debug.LogError("[PlayerInventoryController] EquipmentService 未配置");
+                ConsumeHotbarKey(slotIndex);
+                return;
+            }
+
+            // 同一槽位再按 = 卸下
             if (_currentSlotIndex == slotIndex)
             {
                 Unequip();
-
-                // 消费对应的数字键输入 防止同帧重复触发
                 ConsumeHotbarKey(slotIndex);
                 return;
             }
 
-            var targetInstance = HotbarInventory.GetAt(slotIndex);
-            if (targetInstance == null)
+            // 从配置槽位获取装备 SO
+            var itemSO = service.GetEquippedSO(configKey);
+            if (itemSO == null)
             {
-                //Debug.Log($"[Inventory] 槽位 {slotIndex + 1} 为空 -> 卸载");
-                Unequip();
+                // 配置槽位为空，不切换
                 ConsumeHotbarKey(slotIndex);
                 return;
             }
 
-            if (targetInstance.BaseData is EquippableItemSO)
-            {
-                //Debug.Log($"[Inventory] 意图切换 -> {targetInstance.BaseData.DisplayName}");
-                _player.RuntimeData.CurrentItem = targetInstance;
+            // 切换前卸除旧武器的 VirtualOtherSlot 联动
+            HandleVirtualOtherSlotOnUnequip();
 
-                // 成功尝试装备后 消费对应的数字键输入
-                ConsumeHotbarKey(slotIndex);
-            }
-            else
+            // 复制到实例槽位（主手）- 配置槽位保留原装备
+            if (service.TrySetEquipSO(InstanceMainhandKey, itemSO))
             {
-                Debug.Log($"[Inventory] 槽位 {slotIndex + 1} 非可装备物品 -> 忽略");
+                // 实例化主手装备
+                var mainhandInstance = CreateAndEquipInstance(itemSO, EquipmentSlot.MainHand);
+                if (mainhandInstance != null)
+                {
+                    _player.RuntimeData.CurrentItem = mainhandInstance;
+                    _currentSlotIndex = slotIndex;
 
-                // 即便忽略 也消费输入 防止重复触发
-                ConsumeHotbarKey(slotIndex);
+                    // 处理 VirtualOtherSlot 联动
+                    HandleVirtualOtherSlotOnEquip(itemSO);
+                }
             }
+
+            ConsumeHotbarKey(slotIndex);
+        }
+
+        /// <summary>
+        /// 处理 VirtualOtherSlot 联动装备（开局恢复时也会调用）
+        /// </summary>
+        public void HandleVirtualOtherSlotOnEquip(EquippableItemSO mainhandSO)
+        {
+            if (!mainhandSO.VirtualOtherSlot.Enabled) return;
+
+            var linkedItem = mainhandSO.VirtualOtherSlot.LinkedItem;
+            if (linkedItem == null) return;
+
+            var targetSlot = mainhandSO.VirtualOtherSlot.TargetSlot;
+            if (targetSlot != EquipmentSlot.OffHand) return; // 目前只支持副手联动
+
+            var service = _player.EquipmentService;
+            if (service == null) return;
+
+            // 检查副手槽位是否启用
+            if (!IsInstanceSlotEnabled(InstanceOffhandKey)) return;
+
+            // 检查副手是否已有装备，如果有则先记录（用于后续恢复）
+            var currentOffhandSO = service.GetEquippedSO(InstanceOffhandKey);
+            if (currentOffhandSO != null)
+            {
+                // 将当前副手存到隐藏槽位
+                service.TrySetEquipSO("hide:offhand", currentOffhandSO);
+            }
+
+            // 装备联动的副手武器
+            if (service.TrySetEquipSO(InstanceOffhandKey, linkedItem))
+            {
+                CreateAndEquipInstance(linkedItem, EquipmentSlot.OffHand);
+            }
+        }
+
+        /// <summary>
+        /// 创建并装备实例
+        /// </summary>
+        private ItemInstance CreateAndEquipInstance(EquippableItemSO itemSO, EquipmentSlot slot)
+        {
+            // 创建实例
+            var instance = new ItemInstance(itemSO, null, 1);
+
+            // 通过 EquipmentDriver 实例化
+            if (slot == EquipmentSlot.MainHand)
+            {
+                _player.EquipmentDriver.EquipItemToSlot(instance, EquipmentSlot.MainHand);
+            }
+            else if (slot == EquipmentSlot.OffHand)
+            {
+                _player.EquipmentDriver.EquipItemToSlot(instance, EquipmentSlot.OffHand);
+            }
+
+            return instance;
+        }
+
+        // 检查槽位是否启用
+        private bool IsConfigSlotEnabled(string key)
+        {
+            return _player?.Config?.SlotRegistry?.IsConfigSlotEnabled(key) ?? true;
+        }
+
+        private bool IsInstanceSlotEnabled(string key)
+        {
+            return _player?.Config?.SlotRegistry?.IsInstanceSlotEnabled(key) ?? true;
         }
 
         private void ConsumeHotbarKey(int slotIndex)
@@ -155,30 +203,95 @@ namespace BBBNexus
         private void Unequip()
         {
             if (_player == null) return;
-            //Debug.Log("[Inventory] 意图卸载");
+
+            // 检查实例槽位是否启用
+            if (!IsInstanceSlotEnabled(InstanceMainhandKey)) return;
+
+            var service = _player.EquipmentService;
+
+            // 处理 VirtualOtherSlot 联动卸下
+            HandleVirtualOtherSlotOnUnequip();
+
+            if (service != null)
+            {
+                service.TryRemoveEquipped(InstanceMainhandKey);
+            }
+
+            // 通过 EquipmentDriver 卸下
+            _player.EquipmentDriver.UnequipMainhand();
             _player.RuntimeData.CurrentItem = null;
+            _currentSlotIndex = -1;
+        }
+
+        /// <summary>
+        /// 处理 VirtualOtherSlot 联动卸下
+        /// </summary>
+        private void HandleVirtualOtherSlotOnUnequip()
+        {
+            var service = _player.EquipmentService;
+            if (service == null) return;
+
+            // 从当前装备实例获取 SO（避免 MetaLib 查询）
+            var currentItem = _player.RuntimeData.CurrentItem;
+            if (currentItem?.BaseData == null) return;
+
+            var mainhandSO = currentItem.BaseData as EquippableItemSO;
+
+            // 检查是否有 VirtualOtherSlot 联动
+            if (mainhandSO == null || !mainhandSO.VirtualOtherSlot.Enabled) return;
+
+            var targetSlot = mainhandSO.VirtualOtherSlot.TargetSlot;
+            if (targetSlot != EquipmentSlot.OffHand) return;
+
+            // 卸下副手
+            if (IsInstanceSlotEnabled(InstanceOffhandKey))
+            {
+                service.TryRemoveEquipped(InstanceOffhandKey);
+                _player.EquipmentDriver.UnequipOffhand();
+
+                // 尝试恢复隐藏槽位的装备
+                var hiddenSO = service.GetEquippedSO("hide:offhand");
+                if (hiddenSO != null)
+                {
+                    service.TrySetEquipSO(InstanceOffhandKey, hiddenSO);
+                    CreateAndEquipInstance(hiddenSO, EquipmentSlot.OffHand);
+                    service.TryRemoveEquipped("hide:offhand");
+                }
+            }
         }
 
         private void OnEquipmentChanged()
         {
+            // 只更新索引，不触发装备操作（避免递归）
+            // 装备操作应由调用方（UI/热键）直接完成
             if (_player == null) return;
 
-            var current = _player.RuntimeData.CurrentItem;
-            if (current == null)
+            var service = _player.EquipmentService;
+            if (service == null)
             {
                 _currentSlotIndex = -1;
                 return;
             }
 
-            for (int i = 0; i < 5; i++)
+            // 获取当前主手实例槽位的装备SO
+            var mainhandSO = service.GetEquippedSO(InstanceMainhandKey);
+            if (mainhandSO == null)
             {
-                var hotbarSlot = HotbarInventory.GetAt(i);
-                if (hotbarSlot != null && hotbarSlot.InstanceID == current.InstanceID)
+                _currentSlotIndex = -1;
+                return;
+            }
+
+            // 更新当前槽位索引（用于热键逻辑）
+            for (int i = 0; i < _configSlotKeys.Length; i++)
+            {
+                var configSO = service.GetEquippedSO(_configSlotKeys[i]);
+                if (mainhandSO == configSO)
                 {
                     _currentSlotIndex = i;
                     return;
                 }
             }
+
             _currentSlotIndex = -1;
         }
     }

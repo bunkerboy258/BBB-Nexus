@@ -1,4 +1,4 @@
-namespace BBBNexus
+﻿namespace BBBNexus
 {
     // 上半身分层控制器
     // 管理上半身的独立状态机 中央点是处理装备 瞄准 与攻击等上半身行为
@@ -21,9 +21,9 @@ namespace BBBNexus
             InterruptProcessor = new UpperBodyInterruptProcessor(player, this);
 
             // 从配置的 BrainSO 加载所有上半身状态
-            if (player.Config != null && player.Config.Brain != null)
+            if (player.Config != null && player.Config.LocomotionBrain != null)
             {
-                StateRegistry.InitializeFromBrain(player.Config.Brain, player);
+                StateRegistry.InitializeFromBrain(player.Config.LocomotionBrain, player);
             }
         }
 

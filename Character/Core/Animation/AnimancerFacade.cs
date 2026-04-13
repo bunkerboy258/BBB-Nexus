@@ -65,6 +65,14 @@ namespace BBBNexus
         //(我有洁癖 遂构造了一个简单的委托对象池)
 
         private bool _fullBodyRootMotionEnabled;
+        public override bool IsFullBodyRootMotionEnabled => _fullBodyRootMotionEnabled;
+        public override bool IsInHitStop => _isInHitStop;
+
+        private bool _isInHitStop;
+        private AnimancerState _hitStopLayer0State;
+        private AnimancerState _hitStopLayer1State;
+        private float _hitStopLayer0Speed = 1f;
+        private float _hitStopLayer1Speed = 1f;
 
         private void Awake()
         {
@@ -330,27 +338,80 @@ namespace BBBNexus
             return layers[0];
         }
 
-        public override void PlayFullBodyAction(AnimationClip clip, float fadeDuration = 0.2f)
+        public override void PlayFullBodyAction(AnimationClip clip, float fadeDuration = 0.2f, float speed = -1f)
         {
             if (clip == null) return;
 
             _fullBodyRootMotionEnabled = true;
-            _animancer.Animator.applyRootMotion = true;
+            // applyRootMotion 保持 false：不让 Unity 自动贴 deltaPosition，
+            // 由 LateUpdate 手动读取并过 ResolveCharacterBlocking 过滤后 Move。
 
-            // 全身动作切换时 清理 layer0 的通用回调槽 
+            // 全身动作切换时 清理 layer0 的通用回调槽
             ClearOnEndCallback(0);
 
             SetLayerWeight(1, 0f, fadeDuration);
-            _animancer.Layers[0].Play(clip, fadeDuration);
+            var state = _animancer.Layers[0].Play(clip, fadeDuration);
+            if (speed > 0f) state.Speed = speed;
+        }
+
+        public override void PlayFullBodyActionTransition(object transitionObj)
+        {
+            var transition = transitionObj as Animancer.ITransition;
+            if (transition == null) return;
+
+            _fullBodyRootMotionEnabled = true;
+
+            ClearOnEndCallback(0);
+            // 用 FadeDuration 渐出上半身层，与 PlayFullBodyAction 保持一致
+            SetLayerWeight(1, 0f, transition.FadeDuration);
+            _animancer.Layers[0].Play(transition);
         }
 
         public override void StopFullBodyAction()
         {
-            if (_fullBodyRootMotionEnabled && _animancer != null && _animancer.Animator != null)
-            {
-                _animancer.Animator.applyRootMotion = false;
-            }
             _fullBodyRootMotionEnabled = false;
+        }
+
+        public override void EnterHitStop(float speed = 0f)
+        {
+            EnsureAnimancer();
+            if (_animancer == null) return;
+
+            var layer0 = GetLayerOrFallback(0);
+            var layer1 = GetLayerOrFallback(1);
+
+            if (!_isInHitStop)
+            {
+                _hitStopLayer0State = layer0?.CurrentState;
+                _hitStopLayer1State = layer1?.CurrentState;
+                _hitStopLayer0Speed = _hitStopLayer0State != null ? _hitStopLayer0State.Speed : 1f;
+                _hitStopLayer1Speed = _hitStopLayer1State != null ? _hitStopLayer1State.Speed : 1f;
+                _isInHitStop = true;
+            }
+
+            if (_hitStopLayer0State != null)
+                _hitStopLayer0State.Speed = speed;
+
+            if (_hitStopLayer1State != null)
+                _hitStopLayer1State.Speed = speed;
+        }
+
+        public override void ExitHitStop()
+        {
+            if (!_isInHitStop)
+                return;
+
+            if (_hitStopLayer0State != null)
+                _hitStopLayer0State.Speed = _hitStopLayer0Speed;
+
+            if (_hitStopLayer1State != null)
+                _hitStopLayer1State.Speed = _hitStopLayer1Speed;
+
+            _hitStopLayer0State = null;
+            _hitStopLayer1State = null;
+            _hitStopLayer0Speed = 1f;
+            _hitStopLayer1Speed = 1f;
+            _isInHitStop = false;
         }
 
         // 基础层当前的播放进度

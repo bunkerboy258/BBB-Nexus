@@ -1,0 +1,141 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8329a9f75fc506e4b9642a20325529bf, type: 3}
+  m_Name: Vaulting.zombie
+  m_EditorClassIdentifier: 
+  ObstacleLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  VaultForwardRayLength: 1.5
+  VaultForwardRayHeight: 1
+  VaultDownwardRayOffset: 0.5
+  VaultDownwardRayLength: 2
+  VaultHandSpread: 0.4
+  VaultLandDistance: 1.5
+  VaultLandRayLength: 3
+  RequireGroundBehindWall: 1
+  LowVaultMinHeight: 0.5
+  LowVaultMaxHeight: 1.2
+  HighVaultMinHeight: 1.2
+  HighVaultMaxHeight: 2.5
+  VaultToIdleOptions:
+    Layer: 0
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  VaultToMoveOptions:
+    Layer: 0
+    FadeDuration: -1
+    Speed: -1
+    NormalizedTime: -1
+    ForcePhaseSync: 0
+  lowVaultAnim:
+    Clip:
+      _FadeDuration: 0.25
+      _Speed: 1
+      _Events:
+        _NormalizedTimes: []
+        _Callbacks: []
+        _Names: []
+      _Clip: {fileID: 0}
+      _NormalizedStartTime: NaN
+    EndTime: 0
+    EndPhase: 0
+    Type: 0
+    WarpPoints: []
+    HandIKWeightCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    BakedDuration: 0
+    LocalVelocityX:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    LocalVelocityY:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    LocalVelocityZ:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    LocalRotationY:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    TotalBakedLocalOffset: {x: 0, y: 0, z: 0}
+    ApplyGravity: 0
+  highVaultAnim:
+    Clip:
+      _FadeDuration: 0.25
+      _Speed: 1
+      _Events:
+        _NormalizedTimes: []
+        _Callbacks: []
+        _Names: []
+      _Clip: {fileID: 0}
+      _NormalizedStartTime: NaN
+    EndTime: 0
+    EndPhase: 0
+    Type: 0
+    WarpPoints: []
+    HandIKWeightCurve:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    BakedDuration: 0
+    LocalVelocityX:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    LocalVelocityY:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    LocalVelocityZ:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    LocalRotationY:
+      serializedVersion: 2
+      m_Curve: []
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    TotalBakedLocalOffset: {x: 0, y: 0, z: 0}
+    ApplyGravity: 0
+  LeftHandIKOffset: {x: 0, y: 0, z: 0}
+  RightHandIKOffset: {x: 0, y: 0, z: 0}
+  HandRotationOffsetEuler: {x: 0, y: 0, z: 0}
+  references:
+    version: 2
+    RefIds: []

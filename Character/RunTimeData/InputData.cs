@@ -1,16 +1,16 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 
 namespace BBBNexus
 {
     /// <summary>
-    /// Ô­Ê¼ÊäÈëÊı¾İ - ´¿Ó²¼şÊÂÊµ»ã±¨£¬¾ø²»°üº¬ÈÎºÎÊÖ¸Ğ´¦Àí
+    /// åŸå§‹è¾“å…¥æ•°æ® - çº¯ç¡¬ä»¶äº‹å®æ±‡æŠ¥ï¼Œç»ä¸åŒ…å«ä»»ä½•æ‰‹æ„Ÿå¤„ç†
     /// </summary>
     public struct RawInputData
     {
         public Vector2 MoveAxis;
         public Vector2 LookAxis;
 
-        // --- ³ÖĞø°´Ñ¹×´Ì¬ ---
+        // --- æŒç»­æŒ‰å‹çŠ¶æ€ ---
         public bool JumpHeld;
         public bool DodgeHeld;
         public bool RollHeld;
@@ -18,11 +18,17 @@ namespace BBBNexus
         public bool WalkHeld;
         public bool AimHeld;
         public bool InteractHeld;
+        public bool PrimaryAttackHeld;
+        public bool SecondaryAttackHeld;
 
         public bool Expression1Held;
         public bool Expression2Held;
         public bool Expression3Held;
         public bool Expression4Held;
+        public bool Expression5Held;
+        public bool Expression6Held;
+        public bool Expression7Held;
+        public bool Expression8Held;
 
         public bool Number1Held;
         public bool Number2Held;
@@ -30,39 +36,49 @@ namespace BBBNexus
         public bool Number4Held;
         public bool Number5Held;
 
-        public bool ActionHeld;
-        public bool LeftMouseHeld;
-
-        // --- Ó²¼ş±ßÑØ´¥·¢ (Ë²¼äÊÂÊµ) ---
+        // --- ç¡¬ä»¶è¾¹æ²¿è§¦å‘ (ç¬é—´äº‹å®) ---
         public bool JumpJustPressed;
         public bool DodgeJustPressed;
         public bool RollJustPressed;
-        public bool FireJustPressed;
+        public bool InteractJustPressed;
+        public bool PrimaryAttackJustPressed;
+        public bool SecondaryAttackJustPressed;
 
         public bool Expression1JustPressed;
         public bool Expression2JustPressed;
         public bool Expression3JustPressed;
         public bool Expression4JustPressed;
+        public bool Expression5JustPressed;
+        public bool Expression6JustPressed;
+        public bool Expression7JustPressed;
+        public bool Expression8JustPressed;
+
+        public bool ExtraAction1JustPressed;
+        public bool ExtraAction1Held;
+        public bool ReloadJustPressed;
+        public bool UseItemJustPressed;
+        public bool InventoryJustPressed;
+        public bool InventoryHeld;
+        public bool ExtraAction2JustPressed;
+        public bool ExtraAction3JustPressed;
+        public bool ExtraAction4JustPressed;
 
         public bool Number1JustPressed;
         public bool Number2JustPressed;
         public bool Number3JustPressed;
         public bool Number4JustPressed;
         public bool Number5JustPressed;
-
-        public bool ActionJustPressed;
-        public bool LeftMouseJustPressed;
     }
 
     /// <summary>
-    /// ´¦ÀíºóµÄÊäÈëÊı¾İ - ÓÎÏ·Âß¼­ÕæÕıÊ¹ÓÃµÄÒâÔ¸¿ìÕÕ
+    /// å¤„ç†åçš„è¾“å…¥æ•°æ® - æ¸¸æˆé€»è¾‘çœŸæ­£ä½¿ç”¨çš„æ„æ„¿å¿«ç…§
     /// </summary>
     public struct ProcessedInputData
     {
         public Vector2 Move;
         public Vector2 Look;
 
-        // --- ³ÖĞø°´Ñ¹×´Ì¬ (Ö±½Ó¼Ì³Ğ) ---
+        // --- æŒç»­æŒ‰å‹çŠ¶æ€ (ç›´æ¥ç»§æ‰¿) ---
         public bool JumpHeld;
         public bool DodgeHeld;
         public bool RollHeld;
@@ -70,12 +86,22 @@ namespace BBBNexus
         public bool WalkHeld;
         public bool AimHeld;
         public bool InteractHeld;
-        public bool FireHeld;
+        public bool PrimaryAttackHeld;
+        public bool SecondaryAttackHeld;
 
         public bool Expression1Held;
         public bool Expression2Held;
         public bool Expression3Held;
         public bool Expression4Held;
+        public bool Expression5Held;
+        public bool Expression6Held;
+        public bool Expression7Held;
+        public bool Expression8Held;
+
+        public bool ExtraAction1Held;
+        public bool ExtraAction2Held;
+        public bool ExtraAction3Held;
+        public bool ExtraAction4Held;
 
         public bool Number1Held;
         public bool Number2Held;
@@ -83,19 +109,30 @@ namespace BBBNexus
         public bool Number4Held;
         public bool Number5Held;
 
-        public bool ActionHeld;
-        public bool LeftMouseHeld;
-
-        // --- ºËĞÄÄ§·¨£º»º´æ¼ÆÊ±Æ÷ (Input Buffers) ---
+        // --- æ ¸å¿ƒé­”æ³•ï¼šç¼“å­˜è®¡æ—¶å™¨ (Input Buffers) ---
         public float JumpBufferTimer;
         public float DodgeBufferTimer;
         public float RollBufferTimer;
-        public float FireBufferTimer;
+        public float InteractBufferTimer;
+        public float PrimaryAttackBufferTimer;
+        public float SecondaryAttackBufferTimer;
 
         public float Expression1BufferTimer;
         public float Expression2BufferTimer;
         public float Expression3BufferTimer;
         public float Expression4BufferTimer;
+        public float Expression5BufferTimer;
+        public float Expression6BufferTimer;
+        public float Expression7BufferTimer;
+        public float Expression8BufferTimer;
+
+        public float ExtraAction1BufferTimer;
+        public float ReloadBufferTimer;
+        public float UseItemBufferTimer;
+        public float InventoryBufferTimer;
+        public float ExtraAction2BufferTimer;
+        public float ExtraAction3BufferTimer;
+        public float ExtraAction4BufferTimer;
 
         public float Number1BufferTimer;
         public float Number2BufferTimer;
@@ -103,30 +140,36 @@ namespace BBBNexus
         public float Number4BufferTimer;
         public float Number5BufferTimer;
 
-        public float ActionBufferTimer;
-        public float LeftMouseBufferTimer;
-
-        // --- ÏòÍâ±©Â¶µÄµ¥Ö¡ÒâÔ¸×Ö¶Î£¨ÓÉ InputPipeline ¸ù¾İ BufferTimer Ğ´Èë£© ---
-        // Ö®Ç°ÕâĞ©ÊÇÖ»¶ÁÊôĞÔ£¨»ùÓÚ BufferTimer ¼ÆËã£©£¬ÏÖÔÚ¸ÄÎª×Ö¶Î£¬
-        // ÓÉ InputPipeline ×îÖÕĞ´ÈëÒÔ±ãÏÔÊ½Ïû·Ñ£¨Consume£©ĞĞÎª¸üÖ±¹Û¡£
+        // --- å‘å¤–æš´éœ²çš„å•å¸§æ„æ„¿ï¼ˆä¾èµ– BufferTimer çš„è®¡ç®—å±æ€§ï¼‰---
         public bool JumpPressed => JumpBufferTimer > 0f;
         public bool DodgePressed => DodgeBufferTimer > 0f;
         public bool RollPressed => RollBufferTimer > 0f;
-        public bool FirePressed => FireBufferTimer > 0f;
+        public bool InteractPressed => InteractBufferTimer > 0f;
+        public bool PrimaryAttackPressed => PrimaryAttackBufferTimer > 0f;
+        public bool SecondaryAttackPressed => SecondaryAttackBufferTimer > 0f;
 
         public bool Expression1Pressed => Expression1BufferTimer > 0f;
         public bool Expression2Pressed => Expression2BufferTimer > 0f;
         public bool Expression3Pressed => Expression3BufferTimer > 0f;
         public bool Expression4Pressed => Expression4BufferTimer > 0f;
+        public bool Expression5Pressed => Expression5BufferTimer > 0f;
+        public bool Expression6Pressed => Expression6BufferTimer > 0f;
+        public bool Expression7Pressed => Expression7BufferTimer > 0f;
+        public bool Expression8Pressed => Expression8BufferTimer > 0f;
+
+        public bool ExtraAction1Pressed   => ExtraAction1BufferTimer   > 0f;
+        public bool ReloadPressed       => ReloadBufferTimer       > 0f;
+        public bool UseItemPressed      => UseItemBufferTimer      > 0f;
+        public bool InventoryPressed    => InventoryBufferTimer    > 0f;
+        public bool ExtraAction2Pressed => ExtraAction2BufferTimer > 0f;
+        public bool ExtraAction3Pressed => ExtraAction3BufferTimer > 0f;
+        public bool ExtraAction4Pressed => ExtraAction4BufferTimer > 0f;
 
         public bool Number1Pressed => Number1BufferTimer > 0f;
         public bool Number2Pressed => Number2BufferTimer > 0f;
         public bool Number3Pressed => Number3BufferTimer > 0f;
         public bool Number4Pressed => Number4BufferTimer > 0f;
         public bool Number5Pressed => Number5BufferTimer > 0f;
-
-        public bool ActionPressed => ActionBufferTimer > 0f;
-        public bool LeftMousePressed => LeftMouseBufferTimer > 0f;
     }
 
     public struct FrameInputData

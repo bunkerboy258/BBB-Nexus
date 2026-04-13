@@ -1,42 +1,45 @@
-using UnityEngine;
+Ôªøusing UnityEngine;
 
 namespace BBBNexus
 {
-    // º”≈©≈⁄––Œ™ ∏∫‘◊∞±∏√È◊ºø™ªIK∫Û◊¯¡¶µ»
+    // Âä†ÂÜúÁÇÆË°å‰∏∫ Ë¥üË¥£Ë£ÖÂ§áÁûÑÂáÜÂºÄÁÅ´ IK ÂêéÂùêÂäõÁ≠â
     public class CannonBehaviour : MonoBehaviour, IHoldableItem, IPoolable
     {
-        [Header("--- ±Ìœ÷”Îπ“µ„ ---")]
-        // ◊Û ÷Œ’µ„
-        [Tooltip("◊Û ÷”¶∏√Œ’‘⁄ƒƒ¿Ô")]
+        [Header("--- Ë°®Áé∞‰∏éÊåÇÁÇπ ---")]
+        // Â∑¶ÊâãÊè°ÁÇπ
+        [Tooltip("Â∑¶ÊâãÂ∫îËØ•Êè°Âú®Âì™Èáå")]
         [SerializeField] private Transform _leftHandGoal;
-        // «πø⁄ª—Ê
-        [Tooltip("«πø⁄ª—ÊÃÿ–ß")]
+        // Êû™Âè£ÁÅ´ÁÑ∞
+        [Tooltip("Êû™Âè£ÁÅ´ÁÑ∞ÁâπÊïà")]
         [SerializeField] private ParticleSystem _muzzleFlash;
-        // «πø⁄Õ∂…‰µ„
-        [Tooltip("«πø⁄√È◊º≤Œøºµ„")]
+        // Êû™Âè£ÊäïÂ∞ÑÁÇπ
+        [Tooltip("Êû™Âè£ÁûÑÂáÜÂèÇËÄÉÁÇπ")]
         [SerializeField] private Transform _muzzle;
-        // ÕÊº““˝”√
+        // Áé©ÂÆ∂ÂºïÁî®
         private BBBCharacterController _player;
-        //  µ¿˝ ˝æ›
+        // ÂÆû‰æãÊï∞ÊçÆ
         private ItemInstance _instance;
-        // ≈‰÷√
+        // ÈÖçÁΩÆ
         private CannonSO _cannonConfig;
-        // …‰ÀŸº‰∏Ù
+        // Â∞ÑÈÄüÈó¥Èöî
         private float _fireRate = 0.1f;
-        // ◊∞±∏◊¥Ã¨”Î ±≥§
+        // Ë£ÖÂ§áÁä∂ÊÄÅ‰∏éÊó∂Èïø
         private bool _isEquipping;
         private float _equipEndTime;
-        // …œ¥Œø™ª ±º‰
+        // ‰∏äÊ¨°ÂºÄÁÅ´Êó∂Èó¥
         private float _lastFireTime;
-        // …œ“ª÷°√È◊º◊¥Ã¨
+        // ‰∏ä‰∏ÄÂ∏ßÁûÑÂáÜÁä∂ÊÄÅ
         private bool _wasAiming;
-        // IKµ˜∂»
+        // IK Ë∞ÉÂ∫¶
         private bool _ikEnableScheduled;
         private float _ikEnableTimePoint;
         private bool _ikDisableScheduled;
         private float _ikDisableTimePoint;
 
-        // ≥ı ºªØ µ¿˝∫Õ≈‰÷√
+        // Ê≠¶Âô®Ëá™Áü•ËØÜÔºöÂΩìÂâçË£ÖÂ§áÊßΩ‰Ωç
+        public EquipmentSlot CurrentEquipSlot { get; set; }
+
+        // ÂàùÂßãÂåñÂÆû‰æãÂíåÈÖçÁΩÆ
         public void Initialize(ItemInstance instanceData)
         {
             _instance = instanceData;
@@ -45,14 +48,19 @@ namespace BBBNexus
             {
                 float interval = _cannonConfig.ShootInterval > 0f ? _cannonConfig.ShootInterval : _cannonConfig.FireRate;
                 _fireRate = Mathf.Max(0.001f, interval);
+                CurrentEquipSlot = _cannonConfig.EquipSlot;
             }
         }
 
-        // ◊∞±∏≤¢…Ë÷√IK
+        // Ë£ÖÂ§áÂπ∂ËÆæÁΩÆ IK
         public void OnEquipEnter(BBBCharacterController player)
         {
             _player = player;
             _isEquipping = true;
+            if (_player?.RuntimeData != null)
+            {
+                _player.RuntimeData.CanEnterTacticalMotionBase = false;
+            }
             if (_leftHandGoal != null && _player != null && _player.RuntimeData != null)
             {
                 _player.RuntimeData.LeftHandGoal = _leftHandGoal;
@@ -67,14 +75,13 @@ namespace BBBNexus
                     _player.RuntimeData.WantsLeftHandIK = true;
                 }
             }
-            
-            // ?? ¡¢øÃ…Ë÷√ muzzle£¨≤ªµ»√È◊º ±‘Ÿ…Ë÷√
+
             if (_muzzle != null && _player != null && _player.RuntimeData != null)
             {
                 _player.RuntimeData.CurrentAimReference = _muzzle;
             }
-            
-            float equipAnimDuration = _cannonConfig != null ? _cannonConfig.EquipEndTime : 0.5f;
+
+            float equipAnimDuration = _cannonConfig.EquipEndTime;
             _equipEndTime = Time.time + equipAnimDuration;
             if (_cannonConfig != null && _cannonConfig.EquipAnim != null && _player != null)
             {
@@ -82,9 +89,16 @@ namespace BBBNexus
             }
         }
 
-        // √ø÷°∏¸–¬¬ﬂº≠
+        // ÊØèÂ∏ßÊõ¥Êñ∞ÈÄªËæë
         public void OnUpdateLogic()
         {
+            if (_player != null &&
+                ((_player.CharacterArbiter != null && _player.CharacterArbiter.IsUnderStatusControl()) ||
+                 (_player.CharacterArbiter != null && _player.CharacterArbiter.IsActionBlocked())))
+            {
+                return;
+            }
+
             if (_ikEnableScheduled && Time.time >= _ikEnableTimePoint)
             {
                 if (_isEquipping)
@@ -118,6 +132,10 @@ namespace BBBNexus
                 if (Time.time >= _equipEndTime)
                 {
                     _isEquipping = false;
+                    if (_player?.RuntimeData != null)
+                    {
+                        _player.RuntimeData.CanEnterTacticalMotionBase = true;
+                    }
                     if (_cannonConfig != null && _cannonConfig.EquipIdleAnim != null && _player != null)
                     {
                         _player.AnimFacade.PlayTransition(_cannonConfig.EquipIdleAnim, _cannonConfig.EquipIdleAnimOptions);
@@ -128,7 +146,7 @@ namespace BBBNexus
                     return;
                 }
             }
-            bool isAiming = _player != null && _player.RuntimeData != null && _player.RuntimeData.IsAiming;
+            bool isAiming = _player != null && _player.RuntimeData != null && _player.RuntimeData.IsTacticalStance;
             if (!_isEquipping && _wasAiming != isAiming)
             {
                 if (isAiming)
@@ -139,7 +157,6 @@ namespace BBBNexus
                     }
                     if (_player != null && _player.RuntimeData != null)
                     {
-                        // ?? √È◊º ±÷ª∏ƒ“‚Õº
                         _player.RuntimeData.WantsLookAtIK = true;
                     }
                 }
@@ -151,40 +168,29 @@ namespace BBBNexus
                     }
                     if (_player != null && _player.RuntimeData != null)
                     {
-                        // ?? Ωˆ∏ƒ“‚Õº
                         _player.RuntimeData.WantsLookAtIK = false;
                     }
                 }
                 _wasAiming = isAiming;
             }
-            bool isFiring = _player != null && _player.RuntimeData != null && 
-                           _player.RuntimeData.CurrentItem == _instance && 
-                           _player.RuntimeData.WantsToFire;
+            bool isFiring = _player != null && _player.RuntimeData != null &&
+                           _player.RuntimeData.CurrentItem == _instance &&
+                           _player.RuntimeData.WantsToPrimaryAction;
             if (isAiming && isFiring)
             {
                 TryFire();
             }
         }
 
-        // «Â≥˝ÕÊº“µƒIK“˝”√
-        private void ClearPlayerIKIfOwned()
-        {
-            if (_player == null || _player.RuntimeData == null) return;
-
-            _player.RuntimeData.LeftHandGoal = null;
-            _player.RuntimeData.WantsLeftHandIK = false;
-            _player.RuntimeData.CurrentAimReference = null;
-            _player.RuntimeData.WantsLookAtIK = false;
-        }
-
-        // «ø÷∆–∂‘ÿ
+        // Âº∫Âà∂Âç∏ËΩΩ
         public void OnForceUnequip()
         {
             _isEquipping = false;
+            if (_player?.RuntimeData != null)
+            {
+                _player.RuntimeData.CanEnterTacticalMotionBase = false;
+            }
             if (_muzzleFlash != null) _muzzleFlash.Stop();
-
-            // IK «Â¿Ì÷∞‘“—◊™“∆µΩ EquipmentDriver
-            // ≤ª‘Ÿ‘⁄¥Àµ˜”√ ClearPlayerIKIfOwned()
 
             if (_cannonConfig != null)
             {
@@ -201,31 +207,15 @@ namespace BBBNexus
             }
         }
 
-        public void OnSpawned()
-        {
-            _isEquipping = false;
-            _wasAiming = false;
-            _ikEnableScheduled = false;
-            _ikDisableScheduled = false;
-            _lastFireTime = 0f;
-
-            if (_muzzleFlash != null) _muzzleFlash.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-        }
-
-        public void OnDespawned()
-        {
-            if (_muzzleFlash != null) _muzzleFlash.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-        }
-
-        // ºÏ≤È¿‰»¥≤¢ø™ª
+        // Ê£ÄÊü•ÂÜ∑Âç¥Âπ∂ÂºÄÁÅ´
         private void TryFire()
         {
             if (Time.time - _lastFireTime < _fireRate) return;
             _lastFireTime = Time.time;
             if (_muzzleFlash != null) _muzzleFlash.Play();
-            if (_cannonConfig != null && _cannonConfig.ShootSound != null && _muzzle != null)
+            if (_cannonConfig != null && _muzzle != null)
             {
-                AudioSource.PlayClipAtPoint(_cannonConfig.ShootSound, _muzzle.position);
+                WeaponAudioUtil.PlayAt(_cannonConfig.RangedAudio.ShootSounds, _muzzle.position);
             }
 
             if (_cannonConfig != null && _cannonConfig.MuzzleVFXPrefab != null && _muzzle != null)
@@ -266,16 +256,15 @@ namespace BBBNexus
                 {
                     rb.velocity = _muzzle.forward * _cannonConfig.ProjectileSpeed;
                 }
-
                 var simple = proj.GetComponent<SimpleProjectile>();
                 if (simple != null)
                 {
-                    simple.hitSound = _cannonConfig.ProjectileHitSound;
+                    simple.hitSound = WeaponAudioUtil.Pick(_cannonConfig.RangedAudio.ProjectileHitSounds);
                 }
             }
         }
 
-        // ”¶”√∫Û◊¯¡¶
+        // Â∫îÁî®ÂêéÂùêÂäõ
         private void ApplyRecoil()
         {
             if (_player == null || _player.RuntimeData == null || _cannonConfig == null) return;
@@ -291,6 +280,22 @@ namespace BBBNexus
                 _player.Config.Core.PitchLimits.x,
                 _player.Config.Core.PitchLimits.y
             );
+        }
+
+        public void OnSpawned()
+        {
+            _isEquipping = false;
+            _wasAiming = false;
+            _ikEnableScheduled = false;
+            _ikDisableScheduled = false;
+            _lastFireTime = 0f;
+
+            if (_muzzleFlash != null) _muzzleFlash.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        }
+
+        public void OnDespawned()
+        {
+            if (_muzzleFlash != null) _muzzleFlash.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
         }
     }
 }

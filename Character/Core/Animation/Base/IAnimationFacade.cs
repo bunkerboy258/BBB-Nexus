@@ -19,7 +19,11 @@ namespace BBBNexus
         void AddCallback(float normalizedTime, Action callback, int layerIndex = 0);
         float GetLayerTime(int layerIndex);
         float GetLayerNormalizedTime(int layerIndex);
-        void PlayFullBodyAction(AnimationClip clip, float fadeDuration = 0.2f);
+        void PlayFullBodyAction(AnimationClip clip, float fadeDuration = 0.2f, float speed = -1f);
+        void PlayFullBodyActionTransition(object transitionObj);
         void StopFullBodyAction();
+        void EnterHitStop(float speed = 0f);
+        void ExitHitStop();
+        bool IsInHitStop { get; }
     }
 }

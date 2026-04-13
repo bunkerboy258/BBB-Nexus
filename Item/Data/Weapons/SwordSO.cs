@@ -1,4 +1,4 @@
-using System.Collections;
+ï»¿using System.Collections;
 using System.Collections.Generic;
 using Animancer;
 using UnityEngine;
@@ -8,19 +8,12 @@ namespace BBBNexus
     [CreateAssetMenu(fileName = "New SwordSO", menuName = "BBBNexus/Items/Weapons/Sword")]
     public class SwordSO : MeleeWeaponSO
     {
-        [Header("--- ½£µÄ¹¥»÷ÅäÖÃ (Sword Attack Configurations) ---")]
-        [Tooltip("¹¥»÷µÄÍêÕû½Ó¹ÜÇëÇóÅäÖÃ")]
+        [Header("--- å‰‘çš„æ”»å‡»é…ç½® (Sword Attack Configurations) ---")]
+        [Tooltip("æ”»å‡»çš„å®Œæ•´æ¥ç®¡è¯·æ±‚é…ç½®")]
         public ActionRequest AttackRequest;
 
-        [Header("--- ¹¥»÷ÒôĞ§ (Attack Sounds) ---")]
-        [Tooltip("»Ó¶¯Ê±µÄÒôĞ§")]
-        public AudioClip SwingSound;
-
-        [Tooltip("»÷ÖĞÊ±µÄÒôĞ§")]
-        public AudioClip HitSound;
-
-        [Header("--- ¹¥»÷ÉËº¦ (Damage) ---")]
-        [Tooltip("¹¥»÷ÉËº¦Öµ")]
+        [Header("--- æ”»å‡»ä¼¤å®³ (Damage) ---")]
+        [Tooltip("æ”»å‡»ä¼¤å®³å€¼")]
         public float AttackDamage = 10f;
     }
 }

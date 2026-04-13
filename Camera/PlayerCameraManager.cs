@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 #if BBBNEXUS_HAS_CINEMACHINE
 using Cinemachine;
 #endif
@@ -49,6 +49,12 @@ namespace BBBNexus
         private float _fovVelocity;
         private bool _wasAiming = false;
 
+#if BBBNEXUS_HAS_CINEMACHINE
+        // 瞄准相机的 Inspector 默认 FOV（第一帧缓存，作为无覆写时的基准）
+        private float _aimCamDefaultFov;
+        private bool  _aimCamDefaultFovCached;
+#endif
+
         private void Start()
         {
             // 进入运行时根据配置隐藏并锁定鼠标
@@ -65,6 +71,11 @@ namespace BBBNexus
                 _targetFov = _freeLookCam.m_Lens.FieldOfView;
                 _fovVelocity = 0f;
             }
+            if (_aimCam != null)
+            {
+                _aimCamDefaultFov = _aimCam.m_Lens.FieldOfView;
+                _aimCamDefaultFovCached = true;
+            }
 #endif
 
             _wasAiming = _player != null && _player.RuntimeData != null && _player.RuntimeData.IsAiming;
@@ -74,9 +85,35 @@ namespace BBBNexus
         {
             if (_player == null) return;
 
-            // 检测瞄准状态切换：进入/退出瞄准时重置目标 FOV 避免瞬移
-            bool isAiming = _player.RuntimeData.IsAiming;
+            if (_player.RuntimeData != null && _player.RuntimeData.IsInventoryOpen)
+            {
+                Cursor.visible = true;
+                Cursor.lockState = CursorLockMode.None;
+            }
+            else
+            {
+                // ESC 切换鼠标锁定状态：按下解锁，再次点击窗口重新锁定
+                if (HideCursorOnPlay)
+                {
+                    if (Input.GetKeyDown(KeyCode.Escape))
+                    {
+                        Cursor.visible = true;
+                        Cursor.lockState = CursorLockMode.None;
+                    }
+                    else if (Input.GetMouseButtonDown(0) && Cursor.lockState == CursorLockMode.None)
+                    {
+                        Cursor.visible = false;
+                        Cursor.lockState = CursorLock;
+                    }
+                }
+            }
+
+            // 武器相机表现力请求优先；无请求时回退到 IsAiming（向后兼容）
+            var camExpr = _player.RuntimeData.CameraExpression;
+            bool isAiming = camExpr.HasRequest || _player.RuntimeData.IsAiming;
+
 #if BBBNEXUS_HAS_CINEMACHINE
+            // 切换瞄准时重置 freeLook FOV 平滑速度，避免瞬移
             if (_freeLookCam != null && isAiming != _wasAiming)
             {
                 _targetFov = _freeLookCam.m_Lens.FieldOfView;
@@ -86,8 +123,7 @@ namespace BBBNexus
             _wasAiming = isAiming;
 
 #if BBBNEXUS_HAS_CINEMACHINE
-            // 探索模式滚轮缩放：修改目标 FOV（即时） 实际应用采用平滑过渡
-            // 仅在非瞄准状态启用 避免与瞄准镜/开火视角冲突
+            // 探索模式滚轮缩放（仅非瞄准状态）
             if (EnableFreeLookZoom && !isAiming && _freeLookCam != null)
             {
                 float scroll = Input.GetAxis("Mouse ScrollWheel");
@@ -97,22 +133,29 @@ namespace BBBNexus
                     _targetFov = Mathf.Clamp(_targetFov, FreeLookMinFov, FreeLookMaxFov);
                 }
 
-                // 平滑过渡到目标 FOV
                 float currentFov = _freeLookCam.m_Lens.FieldOfView;
                 float smoothTime = Mathf.Max(0.0001f, FreeLookZoomSmoothTime);
-                float newFov = Mathf.SmoothDamp(currentFov, _targetFov, ref _fovVelocity, smoothTime);
-                _freeLookCam.m_Lens.FieldOfView = newFov;
+                _freeLookCam.m_Lens.FieldOfView = Mathf.SmoothDamp(currentFov, _targetFov, ref _fovVelocity, smoothTime);
             }
 
-            // 优先级切换在 Update 中完成 以确保 CinemachineBrain 在 LateUpdate 做最终选择前已拥有正确优先级
+            // 瞄准相机 FOV：武器表现力覆写 > Inspector 默认值
+            if (_aimCam != null && _aimCamDefaultFovCached)
+            {
+                float wantedAimFov = (camExpr.HasRequest && camExpr.TargetFov > 0f)
+                    ? camExpr.TargetFov
+                    : _aimCamDefaultFov;
+                _aimCam.m_Lens.FieldOfView = wantedAimFov;
+            }
+
+            // 虚拟相机优先级切换（CinemachineBrain 在 LateUpdate 取优先级最高者）
             if (isAiming)
             {
-                if (_aimCam != null) _aimCam.Priority = 20;
+                if (_aimCam     != null) _aimCam.Priority     = 20;
                 if (_freeLookCam != null) _freeLookCam.Priority = 10;
             }
             else
             {
-                if (_aimCam != null) _aimCam.Priority = 10;
+                if (_aimCam     != null) _aimCam.Priority     = 10;
                 if (_freeLookCam != null) _freeLookCam.Priority = 20;
             }
 #endif

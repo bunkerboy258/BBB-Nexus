@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fdc51c3aabc86bd4bbb7ec4ce97c3801, type: 3}
+  m_Name: PistolSprint_CamExpress
+  m_EditorClassIdentifier: 
+  TargetFov: 60
+  Damping: {x: 0.12, y: 0.3, z: 0.35}
+  ShoulderOffset: {x: 2.3, y: -0.05, z: 0}
+  VerticalArmLength: 0
+  CameraSide: 0.55
+  CameraDistance: 3.3
+  CameraRadius: 0.15
+  DampingIntoCollision: 0.09
+  DampingFromCollision: 0.24
+  EnableAdaptiveShoulder: 1
+  ShoulderClearanceMultiplier: 1.35
+  ShoulderShrinkSmoothTime: 0.06
+  ShoulderRecoverSmoothTime: 0.22
+  ShoulderProbeRadius: 0
+  MinShoulderScale: 0.35
+  ShoulderScaleDeadZone: 0.03
+  SensitivityScale: 1
+  FovSmoothTime: 0.2
+  OffsetSmoothTime: 0.25

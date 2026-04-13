@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcffa0b3752444a4d970aa0e777a05d7, type: 3}
+  m_Name: ZombieConfig_Main
+  m_EditorClassIdentifier: 
+  Brain: {fileID: 11400000, guid: ddb9b69e2d2029045acd4b7fa4c340ec, type: 2}
+  Core: {fileID: 11400000, guid: 58e37e977b1067b4eaaac3eb1ec817e7, type: 2}
+  LocomotionAnims: {fileID: 11400000, guid: 63fce11ae0f62484682b552c8bbf58c4, type: 2}
+  JumpAndLanding: {fileID: 11400000, guid: fa517b21ea10ba5419ff4d252d8367aa, type: 2}
+  TacticalMotionBase: {fileID: 11400000, guid: 9379cc176f4cd1b4bb49b3421cd91238, type: 2}
+  HitReaction: {fileID: 11400000, guid: 50702dd567437eb47ba7d651bae00c15, type: 2}
+  Vaulting: {fileID: 11400000, guid: c817245546f047f4eaf477b9f3429f8a, type: 2}
+  Dodging: {fileID: 11400000, guid: 73049487dd19b0f40b9d0cf4ffb8fa7a, type: 2}
+  Rolling: {fileID: 11400000, guid: b5a26fbe4f8d93f42835b41a4bd1ff44, type: 2}
+  Action: {fileID: 11400000, guid: 34dfdfa74970bd94d9e51f28bf840248, type: 2}
+  ActionArbiterConfig: {fileID: 0}
+  StatusArbiterConfig: {fileID: 0}
+  Audio: {fileID: 11400000, guid: 4d323a5e935a4d04fb4c5704c9bcbb15, type: 2}
+  Emj: {fileID: 11400000, guid: 1bd984c7c70cd654580352c0e11101cb, type: 2}

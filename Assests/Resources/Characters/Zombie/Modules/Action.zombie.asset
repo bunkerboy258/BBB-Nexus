@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b2c4de8c00d76f4ba2a2a9f9187a7a1, type: 3}
+  m_Name: Action.zombie
+  m_EditorClassIdentifier: 
+  Action1: {fileID: 3060610079319413300, guid: 5c7a7377bba00494ba87345917b06ecf, type: 3}
+  Action2: {fileID: 3060610079319413300, guid: c8a97fa5c64172949b7ddd8770e8ffc8, type: 3}
+  Action3: {fileID: 3060610079319413300, guid: ca3cf84462135f4458e075793c497f19, type: 3}
+  Action4: {fileID: 3060610079319413300, guid: 31422118f4940344b8cac9c8fb916165, type: 3}
+  Action5: {fileID: 3060610079319413300, guid: 2c6bae4a34d6c8b4981b17fdc1b1c225, type: 3}
+  Action6: {fileID: 3060610079319413300, guid: 4b7bf78505dae324e911edb31b63673f, type: 3}
+  Action7: {fileID: 3060610079319413300, guid: 0087d2b82b4c55e44a88bc6df5a63820, type: 3}
+  Action8: {fileID: 3060610079319413300, guid: 4db077f3493fd4442b74751275a69839, type: 3}

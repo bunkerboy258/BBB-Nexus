@@ -1,54 +1,41 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace BBBNexus
 {
     /// <summary>
-    /// Action ¿ØÖÆÆ÷£ºÏìÓ¦ºÚ°å WantsToAction ÒâÍ¼ Ñ­»·Ìá½»¡°½Ó¹Ü¶¯×÷ÇëÇó¡±
-    /// Ä¿Ç°½öÊµÏÖÁË»ù´¡¹¦ÄÜ£ºÃ¿´Î´¥·¢¶¼»á°ÑË÷ÒıÍÆ½ø 0....7 ²¢Ìá½»Ò»¸ö ActionRequest ÔÊĞí»¥Ïà´ò¶Ï
+    /// Action æ§åˆ¶å™¨ï¼šå“åº”é»‘æ¿ WantsToInteract æ„å›¾ï¼ŒæŸ¥æ‰¾é™„è¿‘äº¤äº’å¯¹è±¡å¹¶æ‰§è¡Œã€‚
+    /// ä¸å†æŠŠ E é”®ç›´æ¥æ˜ å°„åˆ° PlayerSO.Action çš„å ä½åŠ¨ä½œåºåˆ—ã€‚
     /// </summary>
     public sealed class ActionController
     {
         private readonly BBBCharacterController _player;
         private readonly PlayerRuntimeData _data;
-        private readonly PlayerSO _config;
         private readonly InputPipeline _input;
-
-        private int _index;
-
-        // Ä¬ÈÏÓÅÏÈ¼¶£º±£Ö¤ÄÜ´ò¶ÏÆÕÍ¨ÒÆ¶¯ µ«µÍÓÚ·­¹ö/ÉÁ±ÜµÈ
-        private const int DefaultPriority = 25;
+        private readonly PlayerInteractionSensor _sensor;
 
         public ActionController(BBBCharacterController player)
         {
             _player = player;
             _data = player.RuntimeData;
-            _config = player.Config;
             _input = player.InputPipeline;
-            _index = 0;
+            _sensor = player.InteractionSensor;
         }
 
         public void Update()
         {
-            if (_data == null || _config == null || _input == null) return;
-            if (_config.Action == null) return;
+            if (_data == null || _input == null) return;
+            if (_player.CharacterArbiter != null && _player.CharacterArbiter.IsActionBlocked()) return;
+            if (!_data.WantsToInteract) return;
 
-            if (_data.Arbitration.BlockAction) return;
+            _input.ConsumeInteractPressed();
+            if (_sensor == null || !_sensor.HasInteractable)
+                return;
 
-            if (!_data.WantsToAction) return;
+            IInteractable interactable = _sensor.CurrentInteractable;
+            if (interactable.TryGetInteractionRequest(_player, out ActionRequest request))
+                _player.RequestOverride(in request, flushImmediately: true);
 
-            // Ïû·ÑÊäÈë»º´æ
-            _input.ConsumeActionPressed();
-
-            var clip = _config.Action.GetClip(_index);
-            _index = (_index + 1) % ActionSO.ActionCount;
-
-            if (clip == null) return;
-
-            // ·¢ËÍ½Ó¹ÜÇëÇó£ºflushImmediately = true È·±£±¾Ö¡½øÈë OverrideState
-            var req = new ActionRequest(clip, DefaultPriority, 0.15f, true);
-            _player.RequestOverride(in req, flushImmediately: true);
+            interactable.Interact(_player);
         }
     }
 }

@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System;
 
 namespace BBBNexus
@@ -20,25 +20,39 @@ namespace BBBNexus
         // 跳跃由全局拦截器统一处理，避免各状态重复判断
         protected override void UpdateStateLogic()
         {
+            if (data.IsTacticalStance)
+            {
+                player.StateMachine.ChangeState(
+                    data.CurrentLocomotionState == LocomotionState.Idle
+                        ? player.StateRegistry.GetState<PlayerTacticalIdleState>()
+                        : player.StateRegistry.GetState<PlayerTacticalMoveState>());
+                return;
+            }
+
             if (data.CurrentLocomotionState != LocomotionState.Idle)
             {
-                switch (data.CurrentLocomotionState)
+                if (config.LocomotionAnims.SkipStartAnimations)
                 {
-                    case LocomotionState.Walk:
-                        data.NextStatePlayOptions = config.LocomotionAnims.FadeInWalkStartOptions;
-                        break;
-                    case LocomotionState.Jog:
-                        data.NextStatePlayOptions = config.LocomotionAnims.FadeInRunStartOptions;
-                        break;
-                    case LocomotionState.Sprint:
-                        data.NextStatePlayOptions = config.LocomotionAnims.FadeInSprintStartOptions;
-                        break;
-                    default:
-                        data.NextStatePlayOptions = AnimPlayOptions.Default;
-                        break;
+                    data.NextStatePlayOptions = data.CurrentLocomotionState switch
+                    {
+                        LocomotionState.Walk => config.LocomotionAnims.FadeInWalkLoopOptions,
+                        LocomotionState.Jog => config.LocomotionAnims.FadeInRunLoopOptions,
+                        LocomotionState.Sprint => config.LocomotionAnims.FadeInSprintLoopOptions,
+                        _ => AnimPlayOptions.Default
+                    };
+                    player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerMoveLoopState>());
                 }
-
-                player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerMoveStartState>());
+                else
+                {
+                    data.NextStatePlayOptions = data.CurrentLocomotionState switch
+                    {
+                        LocomotionState.Walk => config.LocomotionAnims.FadeInWalkStartOptions,
+                        LocomotionState.Jog => config.LocomotionAnims.FadeInRunStartOptions,
+                        LocomotionState.Sprint => config.LocomotionAnims.FadeInSprintStartOptions,
+                        _ => AnimPlayOptions.Default
+                    };
+                    player.StateMachine.ChangeState(player.StateRegistry.GetState<PlayerMoveStartState>());
+                }
                 return;
             }
         }

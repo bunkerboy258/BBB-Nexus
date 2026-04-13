@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace BBBNexus
 {
@@ -16,30 +16,34 @@ namespace BBBNexus
 
         // 持有各意图处理器
         private readonly LocomotionIntentProcessor _locomotionIntentProcessor;
-        private readonly AimIntentProcessor _aimIntentProcessor;
+        private readonly TacticalStanceIntentProcessor _tacticalStanceIntentProcessor;
         private readonly JumpOrVaultIntentProcessor _jumpOrVaultIntentProcessor;
         private readonly EojIntentProcessor _eojIntentProcessor;
         private readonly HotbarIntentProcessor _hotbarIntentProcessor;
         private readonly ActionIntentProcessor _actionIntentProcessor;
+        private readonly ExtraActionIntentProcessor _extraActionIntentProcessor;
 
         // 持有各参数处理器
         private readonly MovementParameterProcessor _movementParameterProcessor;
         private readonly ViewRotationProcessor _viewRotationProcessor;
+        private readonly AimPointParameterProcessor _aimPointParameterProcessor;
         public MainProcessorPipeline(BBBCharacterController player, InputPipeline inputPipeline)
         {
             _inputPipeline = inputPipeline; // 重构 不再自己 new 接收外部独立运行的输入管线
             _runtimeData = player.RuntimeData;
             _config = player.Config;
 
-            _aimIntentProcessor = new AimIntentProcessor(_runtimeData);
+            _tacticalStanceIntentProcessor = new TacticalStanceIntentProcessor(_runtimeData, _inputPipeline, player);
             _locomotionIntentProcessor = new LocomotionIntentProcessor(_runtimeData, _config);
             _jumpOrVaultIntentProcessor = new JumpOrVaultIntentProcessor(_runtimeData, _config, player.transform);
             _eojIntentProcessor = new EojIntentProcessor(_runtimeData, _inputPipeline);
             _hotbarIntentProcessor = new HotbarIntentProcessor(_runtimeData);
-            _actionIntentProcessor = new ActionIntentProcessor(_runtimeData);
+            _actionIntentProcessor = new ActionIntentProcessor(_runtimeData, _inputPipeline);
+            _extraActionIntentProcessor = new ExtraActionIntentProcessor(_runtimeData, _inputPipeline);
 
             _movementParameterProcessor = new MovementParameterProcessor(_runtimeData, _config, player.transform);
             _viewRotationProcessor = new ViewRotationProcessor(_runtimeData, _config);
+            _aimPointParameterProcessor = new AimPointParameterProcessor(_runtimeData, selfTransform: player.transform);
         }
 
 
@@ -51,12 +55,13 @@ namespace BBBNexus
             ref readonly ProcessedInputData inputSnapshot = ref _inputPipeline.Current.currentFrameData.Processed;
 
             _viewRotationProcessor.Update(in inputSnapshot);
-            _aimIntentProcessor.Update(in inputSnapshot);
+            _tacticalStanceIntentProcessor.Update(in inputSnapshot);
             _locomotionIntentProcessor.Update(in inputSnapshot);
             _jumpOrVaultIntentProcessor.Update(in inputSnapshot);
             _eojIntentProcessor.Update(in inputSnapshot);
             _hotbarIntentProcessor.Update(in inputSnapshot);
             _actionIntentProcessor.Update(in inputSnapshot);
+            _extraActionIntentProcessor.Update(in inputSnapshot);
         }
 
         // 参数降维与混合树驱动运算
@@ -64,6 +69,7 @@ namespace BBBNexus
         public void UpdateParameterProcessors()
         {
             _movementParameterProcessor.Update();
+            _aimPointParameterProcessor.Update();
         }
     }
 }
