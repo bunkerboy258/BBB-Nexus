@@ -21,7 +21,7 @@ namespace BBBNexus
     public class BBBCharacterController : MonoBehaviour, IDamageable, IPoolable
     {
         [Header("--- 输入与表现源  ---")]
-        [Tooltip("输入源 - 可拖拽赋值任何继承 IInputSourceBase 的组件")]
+        [Tooltip("输入源 - 可拖拽赋值任何继承 InputSourceBase 的组件")]
         public InputSourceBase InputSourceRef;
         [Tooltip("动画转接器 - 可拖拽赋值任何继承 AnimationFacadeBase 的组件")]
         public AnimationFacadeBase AnimationFacadeRef;
