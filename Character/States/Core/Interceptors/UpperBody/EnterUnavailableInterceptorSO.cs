@@ -24,7 +24,7 @@ namespace BBBNexus
             if (playerbasestate is PlayerVaultState || playerbasestate is PlayerFallState || playerbasestate is PlayerRollState)
             {
                 // 获取不可用 Unavailable 状态
-                nextState = player.UpperBodyCtrl.StateRegistry.GetState<UpperBodyUnavailableState>();
+                nextState = player.UpperBodyController.StateRegistry.GetState<UpperBodyUnavailableState>();
                 return true;
             }
 

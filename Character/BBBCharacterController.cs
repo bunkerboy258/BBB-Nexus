@@ -64,7 +64,7 @@ namespace BBBNexus
         public MainProcessorPipeline MainProcessorPipeline { get; private set; }
 
         //子系统控制器
-        public UpperBodyController UpperBodyCtrl { get; private set; }
+        public UpperBodyController UpperBodyController { get; private set; }
         public FacialController FacialController { get; private set; }
         public IKController IkController { get; private set; }
         public PlayerInventoryController InventoryController { get; private set; }
@@ -168,7 +168,7 @@ namespace BBBNexus
 
             // 实例化子分层控制器
             InventoryController = new PlayerInventoryController(this);
-            UpperBodyCtrl = new UpperBodyController(this);
+            UpperBodyController = new UpperBodyController(this);
             FacialController = new FacialController(this);
             IkController = new IKController(this);
             ActionController = new ActionController(this);
@@ -287,7 +287,7 @@ namespace BBBNexus
 
             StateMachine.CurrentState.LogicUpdate();
 
-            UpperBodyCtrl.Update();
+            UpperBodyController.Update();
 
             FacialController.Update();
 
@@ -401,7 +401,7 @@ namespace BBBNexus
         private void BootUpStateMachines()
         {
             if (StateRegistry.InitialState != null) StateMachine.Initialize(StateRegistry.InitialState);
-            if (UpperBodyCtrl.StateRegistry.InitialState != null) UpperBodyCtrl.StateMachine.Initialize(UpperBodyCtrl.StateRegistry.InitialState);
+            if (UpperBodyController.StateRegistry.InitialState != null) UpperBodyController.StateMachine.Initialize(UpperBodyController.StateRegistry.InitialState);
         }
 
         #region IDamageable 接口实现

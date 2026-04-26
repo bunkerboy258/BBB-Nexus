@@ -29,11 +29,11 @@ namespace BBBNexus
             // 3. 根据当前是否装备物品 决定回到 HoldItem 还是 Empty
             if (player.RuntimeData != null && player.RuntimeData.CurrentItem != null)
             {
-                nextState = player.UpperBodyCtrl.StateRegistry.GetState<UpperBodyHoldItemState>();
+                nextState = player.UpperBodyController.StateRegistry.GetState<UpperBodyHoldItemState>();
             }
             else
             {
-                nextState = player.UpperBodyCtrl.StateRegistry.GetState<UpperBodyEmptyState>();
+                nextState = player.UpperBodyController.StateRegistry.GetState<UpperBodyEmptyState>();
             }
 
             return true;

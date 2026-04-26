@@ -25,8 +25,8 @@ namespace BBBNexus
             // 检测到装备物品就切换到持握状态
             if (data.CurrentItem != null)
             {
-                player.UpperBodyCtrl.StateMachine.ChangeState(
-                    player.UpperBodyCtrl.StateRegistry.GetState<UpperBodyHoldItemState>()
+                player.UpperBodyController.StateMachine.ChangeState(
+                    player.UpperBodyController.StateRegistry.GetState<UpperBodyHoldItemState>()
                 );
             }
         }

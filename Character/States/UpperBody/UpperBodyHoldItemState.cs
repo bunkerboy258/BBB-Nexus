@@ -41,8 +41,8 @@ namespace BBBNexus
             // 2. 退出条件 如果发现黑板里没东西了 玩家收枪了 切回空手状态
             if (player.RuntimeData.CurrentItem == null)
             {
-                player.UpperBodyCtrl.StateMachine.ChangeState(
-                    player.UpperBodyCtrl.StateRegistry.GetState<UpperBodyEmptyState>()
+                player.UpperBodyController.StateMachine.ChangeState(
+                    player.UpperBodyController.StateRegistry.GetState<UpperBodyEmptyState>()
                 );
                 return;
             }

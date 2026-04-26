@@ -22,7 +22,7 @@ namespace BBBNexus
         public sealed override void LogicUpdate()
         {
             // 延迟获取controller 避免在启动顺序不确定时出现空引用
-            if (controller == null) controller = player.UpperBodyCtrl;
+            if (controller == null) controller = player.UpperBodyController;
 
             if (CheckInterrupts()) return;
             UpdateStateLogic();
