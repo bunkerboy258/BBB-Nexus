@@ -156,9 +156,9 @@ namespace BBBNexus
             _batchTargetDuration = EditorGUILayout.FloatField("批量设置目标时长", _batchTargetDuration);
             if (GUILayout.Button("强制同步至所有数据节点", GUILayout.Height(30)))
             {
-                if (_targetSO == null)
+                if (_targetSO == null && _targetAsset == null)
                 {
-                    EditorUtility.DisplayDialog("报错", "请先注入 PlayerSO 根节点", "了解");
+                    EditorUtility.DisplayDialog("报错", "请先注入 PlayerSO 或者 UnityEngine.Object 根节点", "了解");
                     return;
                 }
                 ApplyBatchSettings();
